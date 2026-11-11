@@ -1,0 +1,44 @@
+rules_version = '2';
+// Paste this into Firebase console → Firestore Database → Rules, then press Publish.
+// Change the email below to the teacher Google account(s) that may open the tracker.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isTeacher() {
+      return request.auth != null && request.auth.token.email in ["xxyanzhangxx@gmail.com"];
+    }
+    function shortText(v, n) { return v is string && v.size() <= n; }
+
+    // Leaderboard: one document per player per game with their best score.
+    // Anyone can read; a score can only be replaced by a HIGHER score for the same player; only teachers can delete.
+    function validScore() {
+      return request.resource.data.keys().hasOnly(['game','title','level','nick','cls','score','stars','mode','ts'])
+        && shortText(request.resource.data.game, 40) && shortText(request.resource.data.title, 60)
+        && shortText(request.resource.data.level, 12) && shortText(request.resource.data.mode, 8)
+        && request.resource.data.nick is string && request.resource.data.nick.size() >= 2 && request.resource.data.nick.size() <= 14
+        && shortText(request.resource.data.cls, 8)
+        && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= 1000
+        && request.resource.data.stars is int && request.resource.data.stars >= -1 && request.resource.data.stars <= 3
+        && request.resource.data.ts == request.time;
+    }
+    match /scores/{id} {
+      allow read: if true;
+      allow create: if validScore();
+      allow update: if validScore() && request.resource.data.score > resource.data.score
+        && request.resource.data.nick == resource.data.nick && request.resource.data.cls == resource.data.cls
+        && request.resource.data.game == resource.data.game;
+      allow delete: if isTeacher();
+    }
+
+    // Usage log: the website can add entries; only teachers can read or delete them.
+    match /visits/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['event','game','score','nick','cls','sid','device','ts'])
+        && request.resource.data.score is int && request.resource.data.score >= -1 && request.resource.data.score <= 1000
+        && shortText(request.resource.data.event, 10) && shortText(request.resource.data.game, 40)
+        && shortText(request.resource.data.nick, 14) && shortText(request.resource.data.cls, 8)
+        && shortText(request.resource.data.sid, 12) && shortText(request.resource.data.device, 10)
+        && request.resource.data.ts == request.time;
+      allow read, delete: if isTeacher();
+      allow update: if false;
+    }
+  }
+}

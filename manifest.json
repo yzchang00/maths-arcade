@@ -1,0 +1,25 @@
+{
+ "name": "Maths Arcade",
+ "short_name": "Maths Arcade",
+ "description": "Maths games for Primary 4 to 6, matched to the MOE syllabus.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#eef3f1",
+ "theme_color": "#5f50ec",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}

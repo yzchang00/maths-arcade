@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arcade Tracker</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+:root{--bg:#edf4f2;--surface:#fff;--ink:#16233a;--muted:#56667b;--line:#cddbdb;--soft:#e1eeeb;--teal:#0b968b;--violet:#5f50ec;--bad:#de3f46;--sun:#ffb81f}
+@media (prefers-color-scheme:dark){:root{--bg:#0e191c;--surface:#172528;--ink:#e7f2f0;--muted:#9db2af;--line:#2a3d41;--soft:#1c3033}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Nunito,system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:18px}
+h1{font:700 2rem Fredoka,system-ui;margin:0}h2{font:600 1.25rem Fredoka,system-ui;margin:0 0 10px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.btn{font:800 15px Nunito,system-ui;color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:12px;padding:7px 14px;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--bg)}.btn.sm{padding:3px 10px;font-size:13px;border-width:1.5px}
+select,input{font:700 15px Nunito,system-ui;border:2px solid var(--ink);border-radius:10px;padding:6px 10px;background:var(--surface);color:var(--ink)}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi b{display:block;font:700 2.1rem Fredoka,system-ui;font-variant-numeric:tabular-nums}.kpi span{color:var(--muted);font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}td.n,th.n{text-align:right}
+.scroll{overflow:auto;max-height:420px}.muted{color:var(--muted)}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bars{display:flex;align-items:flex-end;gap:4px;height:170px;padding-top:18px}.bars div{flex:1;display:grid;justify-items:center;gap:4px;min-width:0}
+.bars i{display:block;width:100%;max-width:38px;background:var(--teal);border-radius:6px 6px 2px 2px;position:relative}.bars i em{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font:700 11px Nunito;color:var(--muted);font-style:normal}
+.bars small{font-size:10px;color:var(--muted);white-space:nowrap}
+.signin{max-width:440px;margin:12vh auto;text-align:center;display:grid;gap:14px}
+.tag{font:800 11px Nunito;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pill{display:inline-block;font:800 12px Nunito;border:1.5px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted)}
+[hidden]{display:none!important}
+</style></head>
+<body><main id="app"><div class="signin card"><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1><p class="muted" id="msg">Loading…</p><button class="btn primary" id="go" hidden>Sign in with Google</button></div></main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, where, orderBy, limit, deleteDoc, doc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig, teacherEmails } from "./firebase-config.js";
+const TITLES={"p4-rounding":["Rounding Rocket","P4"],"p4-factors":["Factor Hunt","P4"],"p4-product":["Digit Duel","P4"],"p4-flip":["Fraction Flip","P4"],"p4-share":["Sweet Share","P4"],"p4-target":["Fraction Target","P4"],"p4-decimals":["Decimal Line-Up","P4"],"p4-cashier":["Canteen Cashier","P4"],"p4-garden":["Garden Builder","P4"],"p4-angles":["Angle Sniper","P4"],"p4-mirror":["Mirror Maker","P4"],"p4-nets":["Net Detective","P4"],"p4-graphs":["Graph Reporter","P4"],"p5-vault":["Vault Cracker","P5"],"p5-order":["Operation Order","P5"],"p5-slide":["Place-Value Slide","P5"],"p5-share":["Fair Share","P5"],"p5-fgrid":["Fraction Grid","P5"],"p5-rate":["Rate Station","P5"],"p5-tarea":["Height Finder","P5"],"p5-volume":["Cube Builder","P5"],"p5-angles":["Angle Detective","P5"],"p5-triangles":["Triangle Sorter","P5"],"p5-quads":["Quad Quest","P5"],"p6-fdiv":["Scoop & Share","P6"],"p6-pchange":["Before & After","P6"],"p6-ratio":["Ratio Kitchen","P6"],"p6-algebra":["Balance Scale","P6"],"p6-circle":["Circle Lab","P6"],"p6-cuberoot":["Crate Cracker","P6"],"p6-chain":["Angle Chain","P6"],"p6-average":["Average Leveller","P6"],"p4-diner":["Decimal Diner","P4"],"p4-train":["Train Timetable","P4"],"p4-compass":["Treasure Map","P4"],"p5-pizza":["Pizza Party Orders","P5"],"p5-pshop":["Percent Shop","P5"],"p6-pie":["Pie Chart Bakery","P6"],"party-tug":["Times Table Tug-of-War","All levels"],"party-bingo":["Number Bingo","All levels"],"party-wall":["Fraction Wall Race","All levels"],"p6-quest":["PSLE Quest","P6"]};
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const title=id=>TITLES[id]?TITLES[id][0]:id||'—',lvl=id=>TITLES[id]?TITLES[id][1]:'';
+if(!firebaseConfig.apiKey||firebaseConfig.apiKey.startsWith('PASTE')){$('msg').textContent='Firebase is not set up yet. Fill in firebase-config.js first (see README).';throw 0}
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+$('go').onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>$('msg').textContent='Sign-in failed: '+e.message);
+onAuthStateChanged(auth,u=>{if(!u){$('msg').textContent='Sign in with the teacher Google account to see who is using the arcade.';$('go').hidden=false;return}
+  if(!teacherEmails.map(x=>x.toLowerCase()).includes((u.email||'').toLowerCase())){$('msg').innerHTML=`${esc(u.email)} is not on the teacher list in firebase-config.js. <button class="btn sm" id="out">Sign out</button>`;$('go').hidden=true;$('out').onclick=()=>signOut(auth);return}
+  start(u)});
+let V=[],S=[],days=7,cls='';
+async function load(){const cut=Timestamp.fromMillis(Date.now()-days*864e5);
+  const [v,s]=await Promise.all([getDocs(query(collection(db,'visits'),where('ts','>=',cut),orderBy('ts','desc'),limit(20000))),getDocs(query(collection(db,'scores'),orderBy('ts','desc'),limit(3000)))]);
+  V=v.docs.map(d=>({id:d.id,...d.data(),t:d.data().ts?d.data().ts.toMillis():Date.now()}));S=s.docs.map(d=>({id:d.id,...d.data(),t:d.data().ts?d.data().ts.toMillis():Date.now()}))}
+function start(u){$('app').innerHTML=`<div class="top"><div><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1></div><div class="row"><select id="days"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select>
+  <select id="cls"><option value="">All classes</option></select><button class="btn" id="csv">Download CSV</button><button class="btn" id="re">Refresh</button><button class="btn sm" id="out">Sign out ${esc(u.email)}</button></div></div><div id="body"><p class="muted">Loading data…</p></div>`;
+  $('out').onclick=()=>signOut(auth).then(()=>location.reload());$('days').onchange=()=>{days=+$('days').value;refresh()};$('cls').onchange=()=>{cls=$('cls').value;draw()};$('re').onclick=refresh;$('csv').onclick=csv;refresh()}
+async function refresh(){$('body').innerHTML='<p class="muted">Loading data…</p>';try{await load()}catch(e){$('body').innerHTML=`<p>Could not load data: ${esc(e.message)}</p><p class="muted">If it mentions an index, open the link in the browser console once to create it.</p>`;return}
+  const cs=[...new Set([...V,...S].map(x=>x.cls).filter(Boolean))].sort();$('cls').innerHTML='<option value="">All classes</option>'+cs.map(c=>`<option ${c===cls?'selected':''}>${esc(c)}</option>`).join('');draw()}
+const who=x=>x.nick?`${x.nick}|${x.cls||''}`:'';
+function draw(){const v=V.filter(x=>!cls||x.cls===cls),s=S.filter(x=>!cls||x.cls===cls);
+  const opens=v.filter(x=>x.event==='open'),starts=v.filter(x=>x.event==='start'),fin=v.filter(x=>x.event==='finish');
+  const players=new Set(v.map(who).filter(Boolean)),devices=new Set(v.map(x=>x.sid));
+  // per day
+  const N=Math.min(days,30),dayKey=t=>new Date(t).toLocaleDateString('en-SG',{day:'numeric',month:'short'});const D=[];for(let i=N-1;i>=0;i--){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);D.push({k:dayKey(d),n:0})}
+  starts.forEach(x=>{const e=D.find(d=>d.k===dayKey(x.t));if(e)e.n++});const mx=Math.max(1,...D.map(d=>d.n));
+  // games
+  const G={};starts.forEach(x=>{(G[x.game]=G[x.game]||{s:0,f:0,sc:[]}).s++});fin.forEach(x=>{(G[x.game]=G[x.game]||{s:0,f:0,sc:[]}).f++});fin.forEach(x=>{if(x.score>=0)G[x.game].sc.push(x.score)});
+  const games=Object.entries(G).sort((a,b)=>b[1].s-a[1].s);
+  // classes
+  const C={};v.forEach(x=>{if(!x.cls)return;const c=C[x.cls]=C[x.cls]||{p:new Set(),s:0};if(x.nick)c.p.add(x.nick);if(x.event==='start')c.s++});
+  // players
+  const P={};v.forEach(x=>{const k=who(x);if(!k)return;const p=P[k]=P[k]||{nick:x.nick,cls:x.cls,s:0,f:0,last:0,g:{}};if(x.event==='start'){p.s++;p.g[x.game]=(p.g[x.game]||0)+1}if(x.event==='finish')p.f++;p.last=Math.max(p.last,x.t)});
+  s.forEach(x=>{const p=P[who(x)];if(p){p.best=p.best||{};p.best[x.game]=Math.max(p.best[x.game]||0,x.score)}});
+  const pl=Object.values(P).sort((a,b)=>b.last-a.last);const fmtT=t=>new Date(t).toLocaleString('en-SG',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+  $('body').innerHTML=`<div style="display:grid;gap:12px">
+  <div class="kpis">${[['Named players',players.size],['Devices / visits',devices.size],['Games started',starts.length],['Games finished',fin.length],['Leaderboard entries',s.length]].map(([a,b])=>`<div class="card kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+  <div class="card"><h2>Games started per day</h2><div class="bars">${D.map(d=>`<div><i style="height:${Math.max(2,d.n/mx*140)}px"><em>${d.n||''}</em></i><small>${N>14?d.k.split(' ')[0]:d.k}</small></div>`).join('')}</div></div>
+  <div class="grid2"><div class="card"><h2>Most played games</h2><div class="scroll"><table><tr><th>Game</th><th class="n">Started</th><th class="n">Finished</th><th class="n">Avg score</th></tr>${games.map(([g,o])=>`<tr><td>${esc(title(g))} <span class="pill">${esc(lvl(g))}</span></td><td class="n">${o.s}</td><td class="n">${o.f}</td><td class="n">${o.sc.length?Math.round(o.sc.reduce((a,b)=>a+b,0)/o.sc.length):'—'}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No games yet</td></tr>'}</table></div></div>
+  <div class="card"><h2>Classes</h2><div class="scroll"><table><tr><th>Class</th><th class="n">Players</th><th class="n">Games started</th></tr>${Object.entries(C).sort().map(([c,o])=>`<tr><td>${esc(c)}</td><td class="n">${o.p.size}</td><td class="n">${o.s}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">No classes entered yet</td></tr>'}</table></div></div></div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h2>Players</h2><input id="find" placeholder="Search nickname"></div><div class="scroll"><table id="ptab"><tr><th>Nickname</th><th>Class</th><th class="n">Started</th><th class="n">Finished</th><th>Most played</th><th>Last seen</th></tr>${pl.map(p=>{const top=Object.entries(p.g).sort((a,b)=>b[1]-a[1])[0];return `<tr data-n="${esc(p.nick.toLowerCase())}"><td><b>${esc(p.nick)}</b></td><td>${esc(p.cls)}</td><td class="n">${p.s}</td><td class="n">${p.f}</td><td>${top?esc(title(top[0]))+` ×${top[1]}`:'—'}</td><td>${fmtT(p.last)}</td></tr>`}).join('')||'<tr><td colspan="6" class="muted">No named players yet</td></tr>'}</table></div></div>
+  <div class="grid2"><div class="card"><h2>Recent activity</h2><div class="scroll"><table><tr><th>When</th><th>Who</th><th>What</th></tr>${v.slice(0,80).map(x=>`<tr><td>${fmtT(x.t)}</td><td>${x.nick?esc(x.nick)+(x.cls?' · '+esc(x.cls):''):'<span class="muted">guest ('+esc(x.device)+')</span>'}</td><td>${{open:'Opened the arcade',start:'Started '+esc(title(x.game)),finish:'Finished '+esc(title(x.game))+(x.score>=0?` (score ${x.score})`:''),join:'Added a nickname'}[x.event]||esc(x.event)}</td></tr>`).join('')}</table></div></div>
+  <div class="card"><h2>Leaderboard scores <span class="muted" style="font-size:14px">(delete rude names or test entries)</span></h2><div class="scroll"><table><tr><th>Player</th><th>Game</th><th class="n">Score</th><th></th></tr>${s.slice(0,150).map(x=>`<tr><td><b>${esc(x.nick)}</b> ${esc(x.cls)}</td><td>${esc(x.title||title(x.game))}</td><td class="n">${x.score}</td><td><button class="btn sm" data-del="${x.id}">Delete</button></td></tr>`).join('')}</table></div></div></div></div>`;
+  $('find').oninput=()=>{const q=$('find').value.trim().toLowerCase();document.querySelectorAll('#ptab tr[data-n]').forEach(r=>r.hidden=!!q&&!r.dataset.n.includes(q))};
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this score from the leaderboard?'))return;await deleteDoc(doc(db,'scores',b.dataset.del));S=S.filter(x=>x.id!==b.dataset.del);draw()})}
+function csv(){const rows=[['time','event','game','nickname','class','device','visit id'],...V.map(x=>[new Date(x.t).toISOString(),x.event,title(x.game),x.nick,x.cls,x.device,x.sid])];
+  const blob=new Blob([rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`arcade-usage-${days}days.csv`;a.click()}
+</script></body></html>
