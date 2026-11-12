@@ -144,10 +144,14 @@ rq({id:'givenaway',kind:'mcq2',topic:'frac',make(){let f1,f2,v,g1,g2;do{[f1,f2]=
     work:[`Given away: ${Qf(g1)} of purple = ${Qf(g2)} of blue.`,`Make the numerators the same: purple : blue = ${Qf(g2)} : ${Qf(g1)} → ${Qv(g2)*g1[1]*g2[1]} : ${Qv(g1)*g1[1]*g2[1]} units.`,
       `Given away = 2 × ${Qv(Qmul(g1,g2))*g1[1]*g2[1]} = ${2*Qv(Qmul(g1,g2))*g1[1]*g2[1]} units out of ${(Qv(g1)+Qv(g2))*g1[1]*g2[1]} units = <b>${Qf(v)}</b>`]}}});
 rq({id:'overlap',kind:'mcq2',topic:'frac',make(){let a,b,x,A,B;do{a=pick([[2,7],[1,3],[2,5],[3,8],[1,4],[2,9],[3,7]]);b=pick([[1,6],[1,5],[1,8],[1,7],[1,9],[1,10]]);x=lcm(a[0],b[0])*R(1,6);A=x*a[1]/a[0];B=x*b[1]/b[0]}while(!(B>A)||B-A>60||A>90);
-  const sc=380/(A+B-x),y=20;let s='';const ax=10,bx=ax+(A-x)*sc;
-  for(let i=0;i<a[1];i++)s+=`<rect x="${r6(ax+i*A*sc/a[1])}" y="${y}" width="${r6(A*sc/a[1])}" height="22"/>`;s+=tx(ax+A*sc*.25,y+16,'A');
-  for(let i=0;i<b[1];i++)s+=`<rect x="${r6(bx+i*B*sc/b[1])}" y="${y+22}" width="${r6(B*sc/b[1])}" height="22"/>`;s+=tx(bx+B*sc*.75,y+38,'B');
-  return {stem:`Amber put two sticks, A and B, side by side as shown. ${fr(a[0],a[1])} of A and ${fr(b[0],b[1])} of B overlap exactly. Stick B is ${B-A} cm longer than stick A. What is the length of stick A?`,fig:svgW(400,80,s,400),
+  const L0=78,sc=(392-L0)/(A+B-x),y=14,h=24,gap=8;let s='';const ax=L0,bx=ax+(A-x)*sc,ox0=bx,ox1=ax+A*sc;
+  s+=`<rect x="${r6(ox0)}" y="${y-6}" width="${r6(ox1-ox0)}" height="${2*h+gap+12}" style="fill:var(--sun);opacity:.28;stroke:none"/>`;
+  for(let i=0;i<a[1];i++){const x0=ax+i*A*sc/a[1];s+=`<rect x="${r6(x0)}" y="${y}" width="${r6(A*sc/a[1])}" height="${h}" style="fill:color-mix(in srgb,var(--teal) 35%,transparent)"/>`}
+  for(let i=0;i<b[1];i++){const x0=bx+i*B*sc/b[1];s+=`<rect x="${r6(x0)}" y="${y+h+gap}" width="${r6(B*sc/b[1])}" height="${h}" style="fill:color-mix(in srgb,#7d5cf0 35%,transparent)"/>`}
+  s+=tx(L0-10,y+17,'Stick A','end')+tx(L0-10,y+h+gap+17,'Stick B','end');
+  s+=`<line x1="${r6(ox0)}" y1="${y-6}" x2="${r6(ox0)}" y2="${y+2*h+gap+6}" class="thin" style="stroke-dasharray:4 3"/><line x1="${r6(ox1)}" y1="${y-6}" x2="${r6(ox1)}" y2="${y+2*h+gap+6}" class="thin" style="stroke-dasharray:4 3"/>`;
+  s+=tx((ox0+ox1)/2,y+2*h+gap+22,'overlap');
+  return {stem:`Amber placed Stick A above Stick B as shown. Each stick is cut into equal parts. The shaded part is where the sticks overlap: ${fr(a[0],a[1])} of Stick A is exactly as long as ${fr(b[0],b[1])} of Stick B. Stick B is ${B-A} cm longer than Stick A. What is the length of Stick A?`,fig:svgW(400,y+2*h+gap+30,s,420),
     parts:[Object.assign(mc(A,[B,B-A,x,A+B-x],v=>v+' cm'),{marks:2})],
     work:[`${Qf([a[0],a[1]])} of A = ${Qf([b[0],b[1]])} of B. Let the overlap be ${lcm(a[0],b[0])} units.`,`A = ${lcm(a[0],b[0])*a[1]/a[0]} units, B = ${lcm(a[0],b[0])*b[1]/b[0]} units.`,`B − A = ${lcm(a[0],b[0])*(b[1]/b[0]-a[1]/a[0])} units = ${B-A} cm → 1 unit = ${fmtN((B-A)/(lcm(a[0],b[0])*(b[1]/b[0]-a[1]/a[0])))} cm`,`A = <b>${A} cm</b>`]}}});
 rq({id:'pctinc',kind:'mcq2',topic:'pct',make(){const p=pick([20,25,40,50,60,75,80]),a=R(2,12)*20,b=a*(100+p)/100;

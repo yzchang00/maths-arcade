@@ -1,12 +1,12 @@
 /* ---------- tap-to-zoom for graphs and figures ---------- */
 const ZOOM={sc:1,x:0,y:0};
 function zoomOpen(svg){const ov=document.createElement('div');ov.className='zoomov';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','Zoomed picture');
-  const cl=svg.cloneNode(true);cl.removeAttribute('id');cl.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));cl.removeAttribute('style');cl.classList.add('zoomsvg');
+  const cl=svg.cloneNode(true);cl.removeAttribute('id');cl.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));cl.removeAttribute('style');cl.classList.add('zoomsvg');if(!cl.getAttribute('viewBox')){try{const bb=svg.getBBox();if(bb.width&&bb.height)cl.setAttribute('viewBox',`${bb.x-4} ${bb.y-4} ${bb.width+8} ${bb.height+8}`)}catch(e){const r=svg.getBoundingClientRect();cl.setAttribute('viewBox',`0 0 ${r.width} ${r.height}`)}}cl.setAttribute('preserveAspectRatio','xMidYMid meet');cl.removeAttribute('width');cl.removeAttribute('height');
   ov.innerHTML=`<div class="zoombar"><b>🔍 Zoomed picture</b><span class="zoomtip">Pinch, scroll or use + and − to zoom. Drag to move.</span><span class="zoomrot">Drag to move around. Tip: turn your phone sideways for a bigger view.</span><span style="flex:1"></span><button class="btn" data-z="-" aria-label="Zoom out">−</button><button class="btn" data-z="+" aria-label="Zoom in">+</button><button class="btn" data-z="0">Reset</button><button class="btn primary" data-z="x" aria-label="Close">✕ Close</button></div><div class="zoomstage"><div class="zoompan"></div></div>`;
   ov.querySelector('.zoompan').appendChild(cl);document.body.appendChild(ov);document.body.classList.add('zoomed');
-  const pan=ov.querySelector('.zoompan'),st=ov.querySelector('.zoomstage');ZOOM.sc=innerWidth<600&&innerWidth<innerHeight?1.7:1;ZOOM.x=0;ZOOM.y=0;
+  const pan=ov.querySelector('.zoompan'),st=ov.querySelector('.zoomstage');ZOOM.sc=1;ZOOM.x=0;ZOOM.y=0;
   const apply=()=>{pan.style.transform=`translate(${ZOOM.x}px,${ZOOM.y}px) scale(${ZOOM.sc})`};apply();
-  const zoomBy=f=>{ZOOM.sc=Math.max(1,Math.min(5,ZOOM.sc*f));if(ZOOM.sc===1){ZOOM.x=0;ZOOM.y=0}apply()};
+  const zoomBy=f=>{ZOOM.sc=Math.max(.5,Math.min(6,ZOOM.sc*f));if(ZOOM.sc<=1){ZOOM.x=0;ZOOM.y=0}apply()};
   const close=()=>{ov.remove();document.body.classList.remove('zoomed');removeEventListener('keydown',kd)};
   const kd=e=>{if(e.key==='Escape')close();if(e.key==='+'||e.key==='=')zoomBy(1.25);if(e.key==='-')zoomBy(.8)};addEventListener('keydown',kd);
   ov.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{const z=b.dataset.z;if(z==='x')return close();if(z==='0'){ZOOM.sc=1;ZOOM.x=0;ZOOM.y=0;apply()}else zoomBy(z==='+'?1.4:1/1.4)});
