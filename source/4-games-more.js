@@ -290,9 +290,15 @@ function pieSVG(secs){const C=110,Rr=100;let a=-90,s='';
   secs.forEach(x=>{const sw=x.n/x.d*360,a1=a+sw,p=t=>[(C+Rr*Math.cos(t*Math.PI/180)).toFixed(2),(C+Rr*Math.sin(t*Math.PI/180)).toFixed(2)];
     s+=`<path d="M${C},${C} L${p(a)} A${Rr},${Rr} 0 ${sw>180?1:0} 1 ${p(a1)} Z" style="fill:${x.c}" stroke="var(--ink)" stroke-width="2"/>`;
     if(x.n*4===x.d){const q=t=>[(C+16*Math.cos(t*Math.PI/180)),(C+16*Math.sin(t*Math.PI/180))],u=q(a),v=q(a1);s+=`<path d="M${u[0].toFixed(1)},${u[1].toFixed(1)} L${(u[0]+v[0]-C).toFixed(1)},${(u[1]+v[1]-C).toFixed(1)} L${v[0].toFixed(1)},${v[1].toFixed(1)}" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`}
-    const m=(a+sw/2)*Math.PI/180,rr=sw<50?72:60,lx=C+rr*Math.cos(m),ly=C+rr*Math.sin(m);
-    s+=`<text class="pl" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="middle">${x.name}</text><text class="pl" x="${lx.toFixed(1)}" y="${(ly+13).toFixed(1)}" text-anchor="middle">${x.lab}</text>`;a=a1});
-  return `<svg viewBox="0 0 220 220" class="psvg" role="img" aria-label="Pie chart">${s}<circle cx="${C}" cy="${C}" r="3" style="fill:var(--ink)"/></svg>`}
+    const m=(a+sw/2)*Math.PI/180,cs=Math.cos(m),sn=Math.sin(m);
+    if(sw>=80){const lx=C+58*cs,ly=C+58*sn;
+      s+=`<text class="pl" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="middle">${x.name}</text><text class="pl" x="${lx.toFixed(1)}" y="${(ly+13).toFixed(1)}" text-anchor="middle">${x.lab}</text>`}
+    else{/* thin slice: label outside the pie with a pointer line, so it never spills over the slice edges */
+      const e=[C+(Rr-14)*cs,C+(Rr-14)*sn],o=[C+(Rr+12)*cs,C+(Rr+12)*sn],anc=cs>.3?'start':cs<-.3?'end':'middle',lx=o[0]+(anc==='start'?4:anc==='end'?-4:0),ly=o[1]+(sn>.3?12:sn<-.3?-14:0);
+      s+=`<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.5" style="fill:#16233a"/><line x1="${e[0].toFixed(1)}" y1="${e[1].toFixed(1)}" x2="${o[0].toFixed(1)}" y2="${o[1].toFixed(1)}" stroke="var(--ink)" stroke-width="1.5"/>`+
+        `<text class="pl plout" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="${anc}">${x.name}</text><text class="pl plout" x="${lx.toFixed(1)}" y="${(ly+13).toFixed(1)}" text-anchor="${anc}">${x.lab}</text>`}
+    a=a1});
+  return `<svg viewBox="-80 -30 380 280" class="psvg" role="img" aria-label="Pie chart">${s}<circle cx="${C}" cy="${C}" r="3" style="fill:var(--ink)"/></svg>`}
 const fs=(n,d)=>{const g=gcd(n,d);return `${n/g}/${d/g}`};
 addGame('p4-graphs',{level:'P4',strand:'stat',glyph:'↗',title:'Graph Reporter',topic:'Reading line graphs and pie charts',
  how:'Read the graph like a news reporter. Some questions ask you to tap a point or a line segment on the graph.',rounds:10,
