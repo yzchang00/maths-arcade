@@ -78,15 +78,22 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
       const col = collection(db, "rooms", name, "p"), me = doc(col, pid);
       const bye = () => { deleteDoc(me).catch(() => {}); };
       addEventListener("pagehide", bye);
-      const beat = setInterval(() => setDoc(me, { seen: serverTimestamp() }, { merge: true }).catch(() => {}), 45000);
+      const beat = setInterval(() => setDoc(me, { seen: serverTimestamp() }, { merge: true }).catch(() => {}), 15000);
       return {
         presence: (p) => { const d = {}; FIELDS.forEach(k => { if (p && k in p) d[k] = p[k] === undefined ? null : p[k]; });
           return setDoc(me, { ...d, seen: serverTimestamp() }, { merge: true }); },
-        onPeers: (cb, err) => onSnapshot(col, snap => {
-          const now = Date.now();
-          cb({ peers: snap.docs.map(d => { const x = d.data(); return { id: d.id, t: x.seen ? x.seen.toMillis() : now, presence: x, sameTab: d.id === pid }; })
-            .filter(p => p.sameTab || now - p.t < 150000) });
-        }, e => err && err(e)),
+        // Players whose device stops checking in for 45 seconds (closed tab, lost Wi-Fi) drop off the list.
+        onPeers: (cb, err) => {
+          let last = [];
+          const emit = () => { const now = Date.now(); cb({ peers: last.filter(p => p.sameTab || now - p.t < 45000) }); };
+          const un = onSnapshot(col, snap => {
+            const now = Date.now();
+            last = snap.docs.map(d => { const x = d.data(); return { id: d.id, t: x.seen ? x.seen.toMillis() : now, presence: x, sameTab: d.id === pid }; });
+            emit();
+          }, e => err && err(e));
+          const iv = setInterval(emit, 5000);
+          return () => { clearInterval(iv); un(); };
+        },
         leave: async () => { clearInterval(beat); removeEventListener("pagehide", bye); try { await deleteDoc(me); } catch (e) {} }
       };
     }
