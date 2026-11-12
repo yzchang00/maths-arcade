@@ -7,15 +7,22 @@ function arcSetMe(m){try{localStorage.setItem('arcMe',JSON.stringify(m))}catch(e
 function arcLog(event,game,score){if(!window.ARCB)return;const me=arcMe();
   window.ARCB.log({event,game:game||'',score:score==null?-1:Math.max(0,Math.min(1000,Math.round(score))),nick:me?me.nick:'',cls:me?me.cls:'',sid:SID,device:innerWidth<600?'phone':innerWidth<1000?'tablet':'computer'}).catch(()=>{})}
 /* difficulty of the game just played: Easy / Medium / Hard for normal games, '-' for games with their own start screen */
-const DIFFS=[['easy','Easy'],['mixed','Medium'],['hard','Hard']],DIFFPTS={easy:1,mixed:2,hard:3};
+const DIFFS=[['easy','Easy'],['mixed','Medium'],['hard','Hard'],['old','Older']],DIFFPTS={easy:1,mixed:2,hard:3,old:1};
+/* Champion points for one result: 3 stars in Solo. Easy/Medium/Hard = 1/2/3; scores saved before levels existed ("old") = 1; PSLE Quest = 3. */
+const CHAMP_EXTRA={'p6-quest':3};
+const champPts=(game,diff,stars)=>stars!==3?0:hasDiff(game)?(DIFFPTS[diff]||0):(CHAMP_EXTRA[game]||0);
+/* class must look like a class: letters, numbers or a dash, starting with a letter or number (e.g. 5B, P5-2, 6E1) */
+const okClass=c=>c===''||/^[A-Z0-9][A-Z0-9-]{0,7}$/.test(c);
 const hasDiff=id=>GAMES[id]&&!GAMES[id].custom&&!GAMES[id].ownStart;
 async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();if(!o.again)arcLog('finish',id,score);
   if(!me||!me.nick){lbNote('<button class="btn" id="lbJoin">🏆 Add my name to the leaderboard</button>',()=>$('lbJoin').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));return}
+  if(me.cls&&!okClass(String(me.cls).toUpperCase()))return lbNote(`Your class "${esc(me.cls)}" doesn't look like a class. <button class="btn sm" id="lbFix">Fix my class</button>`,()=>$('lbFix').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
   const G=GAMES[id],diff=o.diff||(hasDiff(id)&&ctx&&ctx.id===id?ctx.level:'-');
-  try{await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
-    const rows=bestPer((await window.ARCB.top(id)).filter(r=>r.diff===diff));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
-    const dn=diff!=='-'?` (${LVNAME[diff]})`:'';
-    lbNote(`🏆 Score saved${k>=0?` · you are <b>#${k+1}</b> of ${rows.length} for ${esc(G.title)}${dn}`:''}. <button class="btn sm" id="lbSee">See the leaderboard</button>${o.stars===3&&diff!=='-'?`<br>⭐ 3 stars on ${LVNAME[diff]}: worth ${DIFFPTS[diff]} Champion point${DIFFPTS[diff]>1?'s':''}!`:''}`,
+  try{const res=await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
+    if(res&&res.taken)return lbNote(`Someone on another device already uses the name <b>${esc(me.nick)}</b>${me.cls?' in '+esc(me.cls):''}. <button class="btn sm" id="lbRename">Pick a different nickname</button>`,()=>$('lbRename').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
+    const rows=bestPer(window.ARCB.rank?await window.ARCB.rank(id,diff):(await window.ARCB.top(id)).filter(r=>r.diff===diff));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
+    const dn=diff!=='-'?` (${LVNAME[diff]})`:'',pts=champPts(id,diff,o.stars);
+    lbNote(`🏆 Score saved${k>=0?` · you are <b>#${k+1}</b> of ${rows.length} for ${esc(G.title)}${dn}`:''}. <button class="btn sm" id="lbSee">See the leaderboard</button>${pts?`<br>⭐ 3 stars${diff!=='-'?' on '+LVNAME[diff]:''}: worth ${pts} Champion point${pts>1?'s':''}!`:''}`,
       ()=>$('lbSee').onclick=()=>lbPopup(id,diff))}
   catch(e){lbNote('Could not reach the leaderboard just now. Your game still counts on this device.')}}
 function lbNote(html,wire){const end=document.querySelector('#gStage .end, #vmOver .end, .ptover .end, .rqrep');if(!end)return;let n=end.querySelector('.lbnote');if(!n){n=document.createElement('p');n.className='lbnote';end.appendChild(n)}n.innerHTML=html;if(wire)wire()}
@@ -32,7 +39,7 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
   $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
   const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
   $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
-    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(isBadNick(nick))return $('lbErr').textContent='Please choose a kinder nickname.';if(isBadNick(cls))return $('lbErr').textContent='Please type a real class, like 5B.';
+    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(isBadNick(nick))return $('lbErr').textContent='Please choose a kinder nickname.';if(isBadNick(cls)||!okClass(cls))return $('lbErr').textContent='Type your class like 5B or P5-2 (letters and numbers only), or leave it empty.';
     arcSetMe({nick,cls});arcLog('join');sfx.ok();close();if(after)after()}}
 function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
   return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
@@ -50,30 +57,30 @@ const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
 function lbPopup(gid,diff){const G=GAMES[gid];if(!G)return;const me=arcMe()||{},dd=hasDiff(gid);let cls='',rows=null;diff=dd?(diff&&diff!=='-'?diff:(ctx&&ctx.id===gid?ctx.level:getLvl(gid))):'-';
   const o=document.createElement('div');o.className='zoomov lbmodal';
   o.innerHTML=`<div class="end lbpop"><div class="row" style="justify-content:space-between"><span class="tag">🏆 Leaderboard</span><button class="btn sm" id="lpX" aria-label="Close">✕ Close</button></div><h3>${esc(G.title)}</h3>
-    ${dd?`<div class="levels lbtabs" role="group" aria-label="Difficulty">${DIFFS.map(([k,t])=>`<button aria-pressed="${k===diff}" data-d="${k}">${t}</button>`).join('')}</div>`:''}
+    ${dd?`<div class="levels lbtabs" role="group" aria-label="Difficulty">${DIFFS.map(([k,t])=>`<button aria-pressed="${k===diff}" data-d="${k}" ${k==='old'?'hidden title="Scores saved before Easy/Medium/Hard levels were added"':''}>${t}</button>`).join('')}</div>`:''}
     <div class="row"><select id="lpC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select></div>
     <div id="lpList" class="lblist"><p>Loading…</p></div><p class="qs">Each player's best score${dd?' on this level':''}. Solo, vs Robot and online-room games count. Pass &amp; play does not.</p></div>`;
   document.body.appendChild(o);sfx.pop();
   const close=()=>o.remove();$('lpX').onclick=close;o.addEventListener('click',e=>{if(e.target===o)close()});
-  const draw=()=>{if(!rows)return;$('lpList').innerHTML=lbRows(bestPer(rows.filter(x=>x.diff===diff&&(!cls||x.cls===cls))).slice(0,30),me)};
+  const draw=()=>{if(!rows)return;$('lpList').innerHTML=lbRows(bestPer(rows.filter(x=>(!dd||x.diff===diff)&&(!cls||x.cls===cls))).slice(0,30),me)};
   o.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{diff=b.dataset.d;o.querySelectorAll('[data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b));sfx.tap();draw()});
   $('lpC').onchange=()=>{cls=$('lpC').value;draw()};
   if(!window.ARCB){$('lpList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
-  window.ARCB.top(gid).then(r=>{rows=r;draw()}).catch(()=>{$('lpList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'})}
-/* Arcade Champions: 3-star solo results, Easy 1 / Medium 2 / Hard 3 points, each game counted once at its hardest 3-star level */
+  window.ARCB.top(gid).then(r=>{rows=r;const ob=o.querySelector('[data-d=old]');if(ob&&r.some(x=>x.diff==='old'))ob.hidden=false;draw()}).catch(()=>{$('lpList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'})}
+/* Arcade Champions: 3-star solo results (see champPts), each game counted once at its best value */
 function champRows(rows){const P=new Map();
-  rows.forEach(r=>{if(r.stars!==3||!DIFFPTS[r.diff]||!GAMES[r.game])return;const k=r.nick+'|'+(r.cls||'');const p=P.get(k)||{nick:r.nick,cls:r.cls,g:{},t:0};
-    p.g[r.game]=Math.max(p.g[r.game]||0,DIFFPTS[r.diff]);p.t=Math.max(p.t,r.t);P.set(k,p)});
+  rows.forEach(r=>{const pts=GAMES[r.game]?champPts(r.game,r.diff,r.stars):0;if(!pts)return;const k=r.nick+'|'+(r.cls||'');const p=P.get(k)||{nick:r.nick,cls:r.cls,g:{},t:0};
+    p.g[r.game]=Math.max(p.g[r.game]||0,pts);p.t=Math.max(p.t,r.t);P.set(k,p)});
   return [...P.values()].map(p=>{const v=Object.values(p.g);return {nick:p.nick,cls:p.cls,score:v.reduce((a,b)=>a+b,0),games:v.length,hard:v.filter(x=>x===3).length,t:p.t,stars:-1}})
     .sort((a,b)=>b.score-a.score||b.hard-a.hard||a.t-b.t)}
 async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','#leaderboard');setTimeout(()=>lbPopup(gid),50)}
   const me=arcMe()||{};let cls='',rows=null;const ids=ORDER.filter(id=>GAMES[id]);
   $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="#">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Arcade Champions</h2>
-    <div class="howcard champhow"><b>How to earn Champion points</b><ol class="howlist"><li>Play a game in <b>Solo</b> and get <b>3 stars</b>.</li><li>⭐ Easy = <b>1 point</b>, ⚡ Medium = <b>2 points</b>, 🔥 Hard = <b>3 points</b>.</li><li>Each game counts once, at the hardest level you got 3 stars on. Master more games to climb!</li></ol></div>
+    <div class="howcard champhow"><b>How to earn Champion points</b><ol class="howlist"><li>Play a game in <b>Solo</b> and get <b>3 stars</b>.</li><li>⭐ Easy = <b>1 point</b>, ⚡ Medium = <b>2 points</b>, 🔥 Hard = <b>3 points</b>.</li><li>🗺️ <b>PSLE Quest</b>: 3 stars = <b>3 points</b>. Scores saved before levels were added count as Easy.</li><li>Each game counts once, at the hardest level you got 3 stars on. Master more games to climb!</li><li class="qs" style="list-style:none">Party games, Vault Cracker and multiplayer games have their own leaderboards but don't give Champion points.</li></ol></div>
     <div class="row"><select id="lbC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select>
     <select id="lbG" class="num" style="width:auto"><option value="">See one game's leaderboard…</option>${['P4','P5','P6','All levels'].map(l=>`<optgroup label="${l}">${ids.filter(id=>GAMES[id].level===l).map(id=>`<option value="${id}">${esc(GAMES[id].title)}</option>`).join('')}</optgroup>`).join('')}</select></div>
     <div id="lbList" class="lblist"><p>Loading…</p></div></div>`;
-  const draw=()=>{if(!rows)return;const r=champRows(rows.filter(x=>!cls||x.cls===cls)).slice(0,30).map(x=>({...x,sub:`pts · ${x.games} game${x.games===1?'':'s'}${x.hard?`, ${x.hard} on Hard`:''}`}));
+  const draw=()=>{if(!rows)return;const r=champRows(rows.filter(x=>!cls||x.cls===cls)).slice(0,30).map(x=>({...x,sub:`pts · ${x.games} game${x.games===1?'':'s'}${x.hard?`, ${x.hard} worth 3`:''}`}));
     $('lbList').innerHTML=r.length?lbRows(r,me):'<p>No champions yet. Get 3 stars in any Solo game to be the first!</p>'};
   $('lbC').onchange=()=>{cls=$('lbC').value;draw()};$('lbG').onchange=()=>{const g=$('lbG').value;$('lbG').value='';if(g)lbPopup(g)};
   if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}

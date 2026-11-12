@@ -14,7 +14,7 @@ H=$A/1-head.html
   echo '<script>'
   cat $(sed -n "s/.*cat \(2-kit.js.*5-hub.js\).*/\1/p" $A/build.sh | sed "s#\([^ ]*\.js\)#$A/\1#g")
   echo '</script>'
-  echo '<script type="module" src="backend.js?v=3"></script>'
+  echo '<script type="module" src="backend.js?v=4"></script>'
   echo '</body></html>'
 } > $S/index.html
 node -e "
