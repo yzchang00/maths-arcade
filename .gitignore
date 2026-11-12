@@ -1,0 +1,2 @@
+# Firebase deploy cache (changes after every deploy; not needed on GitHub)
+.firebase/
