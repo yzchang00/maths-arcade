@@ -33,7 +33,7 @@ function tugQ(kind){
   const t=pick(['sq','cu','fof','pct','sq']);
   if(t==='sq'){const a=R(4,15);return {q:`${a}²`,a:a*a,o:[opt(a*2,`${a}² means ${a} × ${a}, not ${a} × 2.`),opt(a*a+a,`That is ${a} × ${a+1}.`),opt(a*a-a,`That is ${a} × ${a-1}.`)],tip:`${a}² = ${a} × ${a} = ${a*a}`}}
   if(t==='cu'){const a=R(2,6);return {q:`${a}³`,a:a**3,o:[opt(a*3,`${a}³ means ${a} × ${a} × ${a}, not ${a} × 3.`),opt(a*a,`That is ${a}², only two ${a}s.`),opt(a**3+a*a,'Multiply three times.')],tip:`${a}³ = ${a} × ${a} × ${a} = ${a**3}`}}
-  if(t==='fof'){const d=pick([3,4,5,6,8]),n=R(1,d-1),m=R(3,9)*d;return {q:`${n}/${d} of ${m}`,a:m/d*n,o:[opt(m/d,`${m/d} is only 1/${d} of ${m}. You need ${n} of those parts.`),opt(m*n,`Find ${n}/${d} of ${m}: divide by ${d} first.`),opt(m-m/d*n,`That is the part that is left over.`)].filter((x,i,a)=>x.v!==m/d*n),tip:`${m} ÷ ${d} = ${m/d}, × ${n} = ${m/d*n}`}}
+  if(t==='fof'){const d=pick([3,4,5,6,8]),n=R(1,d-1),m=R(3,9)*d;return {q:`${fr(n,d)} of ${m}`,a:m/d*n,o:[opt(m/d,`${m/d} is only ${fr(1,d)} of ${m}. You need ${n} of those parts.`),opt(m*n,`Find ${n}/${d} of ${m}: divide by ${d} first.`),opt(m-m/d*n,`That is the part that is left over.`)].filter((x,i,a)=>x.v!==m/d*n),tip:`${m} ÷ ${d} = ${m/d}, × ${n} = ${m/d*n}`}}
   const p=pick([10,20,25,50,75,30]),m=pick([40,60,80,120,200]);return {q:`${p}% of ${m}`,a:p*m/100,o:[opt(m-p,`${p}% of ${m} is not ${m} − ${p}.`),opt(p,`${p}% is not ${p}. Find ${p} out of every 100.`),opt(m-p*m/100,'That is the part that is left.')].filter(x=>x.v!==p*m/100),tip:`${p}% of ${m} = ${p/100} × ${m} = ${p*m/100}`}}
 addGame('party-tug',{level:'All levels',strand:'party',glyph:'🪢',title:'Times Table Tug-of-War',topic:'Quick-fire facts race',
  how:'Two players pull a rope by answering quick-fire questions. Each right answer pulls the rope one step your way.',rounds:1,
@@ -72,7 +72,7 @@ function tugGame(stage,mode,o){const kind=o.sel.tugK||'t29',WIN=6,TIME=90,bot=mo
 function bingoClues(kind){const out=[],used=new Set(),add=c=>{if(c.a<1||c.a>200||!Number.isInteger(c.a)||used.has(c.a))return;used.add(c.a);out.push(c)};let guard=0;
   while(out.length<24&&guard++<4000){let c;const t=R(0,5);
     if(kind==='P4'){if(t<2){const a=R(3,9),b=R(3,12);c={c:`${a} × ${b}`,a:a*b,trap:[a+b,`${a} + ${b} = ${a+b}, but the sign is ×.`]}}
-      else if(t===2){const d=pick([3,4,5,6,8]),n=R(1,d-1),m=d*R(2,9);c={c:`${n}/${d} of ${m}`,a:m/d*n,trap:[m/d,`${m/d} is only 1/${d} of ${m}. Take ${n} parts.`]}}
+      else if(t===2){const d=pick([3,4,5,6,8]),n=R(1,d-1),m=d*R(2,9);c={c:`${fr(n,d)} of ${m}`,a:m/d*n,trap:[m/d,`${m/d} is only ${fr(1,d)} of ${m}. Take ${n} parts.`]}}
       else if(t===3){const a=R(2,9)*10+R(1,9);c={c:`${a} rounded to the nearest 10`,a:Math.round(a/10)*10,trap:[Math.floor(a/10)*10===Math.round(a/10)*10?Math.ceil(a/10)*10:Math.floor(a/10)*10,'Look at the ones digit: 5 or more rounds up, 4 or less rounds down.']}}
       else if(t===4){const a=pick([4,6,8,9,10,12]),b=pick([6,8,9,10,12,15]);if(a===b)continue;c={c:`the smallest common multiple of ${a} and ${b}`,a:lcm(a,b),trap:[a*b,`${a} × ${b} is a common multiple, but not the smallest.`]}}
       else{const p=R(3,9)*R(3,9),a=R(3,9);if(p%a)continue;c={c:`${p} ÷ ${a}`,a:p/a,trap:[p-a,'Divide, don’t subtract.']}}}

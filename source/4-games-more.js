@@ -292,14 +292,18 @@ function pieSVG(secs){const C=110,Rr=100;let a=-90,s='';
     if(x.n*4===x.d){const q=t=>[(C+16*Math.cos(t*Math.PI/180)),(C+16*Math.sin(t*Math.PI/180))],u=q(a),v=q(a1);s+=`<path d="M${u[0].toFixed(1)},${u[1].toFixed(1)} L${(u[0]+v[0]-C).toFixed(1)},${(u[1]+v[1]-C).toFixed(1)} L${v[0].toFixed(1)},${v[1].toFixed(1)}" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`}
     const m=(a+sw/2)*Math.PI/180,cs=Math.cos(m),sn=Math.sin(m);
     if(sw>=80){const lx=C+58*cs,ly=C+58*sn;
-      s+=`<text class="pl" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="middle">${x.name}</text><text class="pl" x="${lx.toFixed(1)}" y="${(ly+13).toFixed(1)}" text-anchor="middle">${x.lab}</text>`}
+      s+=`<text class="pl" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="middle">${x.name}</text>${svgLab(x.lab,lx,ly+16,'middle','pl')}`}
     else{/* thin slice: label outside the pie with a pointer line, so it never spills over the slice edges */
       const e=[C+(Rr-14)*cs,C+(Rr-14)*sn],o=[C+(Rr+12)*cs,C+(Rr+12)*sn],anc=cs>.3?'start':cs<-.3?'end':'middle',lx=o[0]+(anc==='start'?4:anc==='end'?-4:0),ly=o[1]+(sn>.3?12:sn<-.3?-14:0);
       s+=`<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.5" style="fill:#16233a"/><line x1="${e[0].toFixed(1)}" y1="${e[1].toFixed(1)}" x2="${o[0].toFixed(1)}" y2="${o[1].toFixed(1)}" stroke="var(--ink)" stroke-width="1.5"/>`+
-        `<text class="pl plout" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="${anc}">${x.name}</text><text class="pl plout" x="${lx.toFixed(1)}" y="${(ly+13).toFixed(1)}" text-anchor="${anc}">${x.lab}</text>`}
+        `<text class="pl plout" x="${lx.toFixed(1)}" y="${(ly-2).toFixed(1)}" text-anchor="${anc}">${x.name}</text>${svgLab(x.lab,lx,ly+16,anc,'pl plout')}`}
     a=a1});
   return `<svg viewBox="-80 -30 380 280" class="psvg" role="img" aria-label="Pie chart">${s}<circle cx="${C}" cy="${C}" r="3" style="fill:var(--ink)"/></svg>`}
 const fs=(n,d)=>{const g=gcd(n,d);return `${n/g}/${d/g}`};
+/* a fraction label inside an SVG chart, drawn stacked (numerator over a bar over denominator) instead of "1/4" */
+function svgLab(lab,x,y,anc,cls){if(!/^\d+\/\d+$/.test(lab))return `<text class="${cls}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anc}">${lab}</text>`;
+  const [n,d]=lab.split('/'),w=Math.max(n.length,d.length)*8+4,cx=anc==='start'?x+w/2:anc==='end'?x-w/2:x;
+  return `<text class="${cls}" x="${cx.toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle">${n}</text><line x1="${(cx-w/2).toFixed(1)}" y1="${(y+1).toFixed(1)}" x2="${(cx+w/2).toFixed(1)}" y2="${(y+1).toFixed(1)}" stroke="currentColor" stroke-width="1.6" class="${cls}"/><text class="${cls}" x="${cx.toFixed(1)}" y="${(y+15).toFixed(1)}" text-anchor="middle">${d}</text>`}
 addGame('p4-graphs',{level:'P4',strand:'stat',glyph:'↗',title:'Graph Reporter',topic:'Reading line graphs and pie charts',
  how:'Read the graph like a news reporter. Some questions ask you to tap a point or a line segment on the graph.',rounds:10,
  round(api,r){
@@ -316,7 +320,7 @@ addGame('p4-graphs',{level:'P4',strand:'stat',glyph:'↗',title:'Graph Reporter'
       api.body.innerHTML=pieSVG(secs)+`<div class="choices" id="pCh"></div>`;
       choice.forEach(o=>{const b=document.createElement('button');b.className='btn';const [n,d]=o.split('/');b.innerHTML=fr(n,d);
         b.onclick=()=>{if(api.answered)return;[...$('pCh').children].forEach(x=>x.disabled=true);b.classList.add(o===fs(an,ad)?'ok':'no');
-          api.done(o===fs(an,ad),`${names[k]}: ${fs(an,ad)} of the pupils.`,[`The whole circle is 1 whole = ${fr(L,L)}.`,`The other parts: ${others.map(([n,d])=>`${fr(n,d)} = ${fr(n*L/d,L)}`).join(', ')}`,
+          api.done(o===fs(an,ad),`${names[k]}: ${nice(an,ad)} of the pupils.`,[`The whole circle is 1 whole = ${fr(L,L)}.`,`The other parts: ${others.map(([n,d])=>`${fr(n,d)} = ${fr(n*L/d,L)}`).join(', ')}`,
             `${fr(L,L)} − ${others.map(([n,d])=>fr(n*L/d,L)).join(' − ')} = ${fr(an*L/ad,L)} = ${nice(an,ad)}`])};$('pCh').appendChild(b)})}
     else{const N=L*R(2,5),k=R(0,set.length-1),[an,ad]=set[k],ans=N*an/ad;
       const secs=set.map(([n,d],i)=>({n,d,c:cols[i],name:names[i],lab:fs(n,d)}));

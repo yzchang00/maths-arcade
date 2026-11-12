@@ -7,7 +7,7 @@ const mixIn=id=>`<span class="mixin">${inBox(id,'w','whole number',2.6,'numeric'
 /* right: [n,d] improper. traps: [[[n,d] or fn(v), msg]] */
 function askFrac(api,o){return askBox(api,{id:o.id,label:o.label,html:mixIn(o.id)+(o.unit?`<span class="askunit">${o.unit}</span>`:''),need:['n','d'],
   judge:v=>{const w=isNaN(v.w)?0:v.w;if(!v.d)return 'The denominator (bottom number) cannot be 0.';const g=[w*v.d+v.n,v.d],eq=x=>g[0]*x[1]===x[0]*g[1];
-    if(eq(o.right)){if(v.n>=v.d)return {simp:`That is equal to the answer, but ${v.n}/${v.d} is more than 1 whole. Change it to a mixed number.`};if(gcd(v.n,v.d)>1)return {simp:`Equal, but not in simplest form yet. Divide the top and bottom by ${gcd(v.n,v.d)}.`};return true}
+    if(eq(o.right)){if(v.n>=v.d)return {simp:`That is equal to the answer, but ${fr(v.n,v.d)} is more than 1 whole. Change it to a mixed number.`};if(gcd(v.n,v.d)>1)return {simp:`Equal, but not in simplest form yet. Divide the top and bottom by ${gcd(v.n,v.d)}.`};return true}
     const t=(o.traps||[]).find(([x])=>typeof x==='function'?x(v,g):eq(x));return t?t[1]:false},
   onRight:(v,u)=>o.then?o.then(u):api.done(true,o.ok,o.work||[],ptsUsed(u)),onWrong:m=>api.done(false,(m?m+' ':'')+`The answer is ${rshow(o.right)}.`,o.work||[])})}
 function pizzaSvg([n,d],col='var(--sun)',showD){const w=Math.floor(n/d),r=n%d,R0=30,cnt=w+(r?1:0);let s='';const D=showD||d;
@@ -45,14 +45,14 @@ addGame('p5-pizza',{level:'P5',strand:'num',glyph:'🍕',title:'Pizza Party Orde
       ok:`${fr(a,b)} + ${fr(c,d)} = ${rshow(S)}`,work:workAdd(A,B,S)}));return}
   if(type==='mixAdd'||type==='mixAddR'||type==='storyAdd'){pickPair(type!=='mixAdd');w1=R(1,3);w2=R(type==='storyAdd'?0:1,2);
     const A=[w1*b+a,b],B=[w2*d+c,d],S=radd(A,B),l=L(),fs=a*l/b+c*l/d;
-    api.q(type==='storyAdd'?`<p class="qt">The class ordered pizzas. The teachers ate <b>${rtxt(A)}</b> pizzas and the pupils ate <b>${rtxt(B)}</b> pizzas. How many pizzas were eaten in all?</p>`
-      :`<p class="qt">Table 1 has <b>${rtxt(A)}</b> pizzas left and Table 2 has <b>${rtxt(B)}</b> pizzas left. They put them together. How many pizzas is that?</p>`);
+    api.q(type==='storyAdd'?`<p class="qt">The class ordered pizzas. The teachers ate <b>${rshow(A)}</b> pizzas and the pupils ate <b>${rshow(B)}</b> pizzas. How many pizzas were eaten in all?</p>`
+      :`<p class="qt">Table 1 has <b>${rshow(A)}</b> pizzas left and Table 2 has <b>${rshow(B)}</b> pizzas left. They put them together. How many pizzas is that?</p>`);
     api.body.innerHTML=pizzaRow([[type==='storyAdd'?'Teachers':'Table 1',A,'var(--sun)'],[type==='storyAdd'?'Pupils':'Table 2',B,'var(--tomato)']]);
     cdStep(()=>askFrac(api,{id:'pzA',label:'Step 2: add the wholes, then add the fractions. Simplest form, please.',right:S,unit:'pizzas',
       traps:[[[(w1+w2)*(b+d)+a+c,b+d],`You added the tops and the bottoms. Change the fractions to ${l}ths first.`],
         [(v,g)=>fs>l&&g[0]*S[1]===(S[0]-S[1])*g[1],`${fr(a*l/b,l)} + ${fr(c*l/d,l)} = ${fr(fs,l)}, which is more than 1 whole! ${fr(fs,l)} = 1 ${fr(fs-l,l)}, so add 1 more to the wholes.`],
         [[w1+w2+0,1],'Do not forget the fraction parts.']],
-      ok:`${rtxt(A)} + ${rtxt(B)} = ${rtxt(S)}`,work:[...workAdd(A,B,S),fs>l?`${fr(fs,l)} = 1 ${fr(fs-l,l)}, so carry 1 whole: ${w1+w2} + 1 ${fr(fs-l,l)}`:'' ].filter(Boolean)}));return}
+      ok:`${rshow(A)} + ${rshow(B)} = ${rshow(S)}`,work:[...workAdd(A,B,S),fs>l?`${fr(fs,l)} = 1 ${fr(fs-l,l)}, so carry 1 whole: ${w1+w2} + 1 ${fr(fs-l,l)}`:'' ].filter(Boolean)}));return}
   if(type==='wholeSub'){const W=R(2,5);b=pick([3,4,5,6,8]);a=R(1,b-1);while(gcd(a,b)>1)a=R(1,b-1);const A=[W*b,b],B=[a,b],S=radd(A,B,-1);
     api.q(`<p class="qt">There are <b>${W}</b> whole pizzas. ${F[0]} takes <b>${fr(a,b)}</b> of a pizza. How much pizza is left?</p>`);
     api.body.innerHTML=pizzaRow([['Before',A,'var(--sun)'],[F[0]+' takes',B,'var(--tomato)']]);
@@ -60,23 +60,23 @@ addGame('p5-pizza',{level:'P5',strand:'num',glyph:'🍕',title:'Pizza Party Orde
       traps:[[[W*b+a,b],`${W} ${fr(a,b)} is ${W} wholes <b>plus</b> ${fr(a,b)}. We are taking ${fr(a,b)} away, so the answer must be less than ${W}.`],
         [[(W-1)*b+a,b],`You took 1 whole but kept ${fr(a,b)}. 1 whole = ${fr(b,b)}, and ${fr(b,b)} − ${fr(a,b)} = ${fr(b-a,b)}.`],
         [[(W-1)*b+(b-a)-b,b],`Only 1 whole is cut up. The other ${W-1} stay whole.`]],
-      ok:`${W} − ${fr(a,b)} = ${rtxt(S)}`,work:[`${W} = ${W-1} + ${fr(b,b)}`,`${fr(b,b)} − ${fr(a,b)} = ${fr(b-a,b)}`,`Answer: ${W-1} ${fr(b-a,b)}`]});return}
+      ok:`${W} − ${fr(a,b)} = ${rshow(S)}`,work:[`${W} = ${W-1} + ${fr(b,b)}`,`${fr(b,b)} − ${fr(a,b)} = ${fr(b-a,b)}`,`Answer: ${W-1} ${fr(b-a,b)}`]});return}
   if(type==='mixSubR'||type==='storySub'){pickPair(undefined,true);w1=R(2,4);w2=R(1,w1-1);
     const A=[w1*b+a,b],B=[w2*d+c,d],S=radd(A,B,-1),l=L(),an=a*l/b,cn=c*l/d;
-    api.q(type==='storySub'?`<p class="qt">The canteen had <b>${rtxt(A)}</b> pizzas. The P5 class ate <b>${rtxt(B)}</b> pizzas. How many pizzas were left?</p>`
-      :`<p class="qt">${F[0]} brought <b>${rtxt(A)}</b> pizzas to the party. <b>${rtxt(B)}</b> pizzas were eaten. How much is left?</p>`);
+    api.q(type==='storySub'?`<p class="qt">The canteen had <b>${rshow(A)}</b> pizzas. The P5 class ate <b>${rshow(B)}</b> pizzas. How many pizzas were left?</p>`
+      :`<p class="qt">${F[0]} brought <b>${rshow(A)}</b> pizzas to the party. <b>${rshow(B)}</b> pizzas were eaten. How much is left?</p>`);
     api.body.innerHTML=pizzaRow([['At first',A,'var(--sun)'],['Eaten',B,'var(--tomato)']]);
     cdStep(()=>{$('pzCM').insertAdjacentHTML('beforeend',`<p class="asknote">${fr(an,l)} is smaller than ${fr(cn,l)}, so you will need to rename 1 whole as ${fr(l,l)}.</p>`);
       askFrac(api,{id:'pzS',label:'Step 2: subtract. Simplest form, please.',right:S,unit:'pizzas',
       traps:[[radd([w1-w2,1],[cn-an,l]),`You did ${fr(cn,l)} − ${fr(an,l)} because it was easier, but you must take ${fr(cn,l)} <b>away from</b> ${fr(an,l)}. Rename: ${w1} ${fr(an,l)} = ${w1-1} ${fr(an+l,l)}.`],
         [radd([w1-w2,1],[0,1]),'Do not forget the fractions.'],[radd(A,B),'That is the sum. Some pizza was eaten, so subtract.']],
-      ok:`${rtxt(A)} − ${rtxt(B)} = ${rtxt(S)}`,work:[`Change to ${l}ths: ${w1} ${fr(an,l)} − ${w2} ${fr(cn,l)}`,`Rename 1 whole: ${w1-1} ${fr(an+l,l)} − ${w2} ${fr(cn,l)}`,`= ${rtxt(S)}`]})});return}
+      ok:`${rshow(A)} − ${rshow(B)} = ${rshow(S)}`,work:[`Change to ${l}ths: ${w1} ${fr(an,l)} − ${w2} ${fr(cn,l)}`,`Rename 1 whole: ${w1-1} ${fr(an+l,l)} − ${w2} ${fr(cn,l)}`,`= ${rshow(S)}`]})});return}
   if(type==='three'){pickPair(true);w1=R(1,2);w2=1;const A=[w1*b+a,b],B=[w2*d+c,d],S0=radd(A,B),e=pick([1,2]),E=[e,1],S=radd(S0,E,-1);
     if(S[0]<=0){api.q('');return this.round(api,r)}
-    api.q(`<p class="qt">${F[0]} ordered <b>${rtxt(A)}</b> pizzas and ${F[1]} ordered <b>${rtxt(B)}</b> pizzas. Then the class ate <b>${e}</b> whole pizza${e>1?'s':''}. How much pizza is left?</p>`);
+    api.q(`<p class="qt">${F[0]} ordered <b>${rshow(A)}</b> pizzas and ${F[1]} ordered <b>${rshow(B)}</b> pizzas. Then the class ate <b>${e}</b> whole pizza${e>1?'s':''}. How much pizza is left?</p>`);
     api.body.innerHTML=pizzaRow([[F[0],A,'var(--sun)'],[F[1],B,'var(--tomato)']]);
     cdStep(()=>askFrac(api,{id:'pzT',label:'Step 2: add, then take away the whole pizzas.',right:S,unit:'pizzas',traps:[[S0,`That is how much was ordered. Now take away the ${e} pizza${e>1?'s':''} that ${e>1?'were':'was'} eaten.`],[radd(S0,E),'Add the orders, but <b>take away</b> what was eaten.']],
-      ok:`${rtxt(A)} + ${rtxt(B)} − ${e} = ${rtxt(S)}`,work:[`${rtxt(A)} + ${rtxt(B)} = ${rtxt(S0)}`,`${rtxt(S0)} − ${e} = ${rtxt(S)}`]}));return}
+      ok:`${rshow(A)} + ${rshow(B)} − ${e} = ${rshow(S)}`,work:[`${rshow(A)} + ${rshow(B)} = ${rshow(S0)}`,`${rshow(S0)} − ${e} = ${rshow(S)}`]}));return}
  }});
 
 /* ================= P5. Percent Shop — percentage of a whole, discount, GST, interest ================= */

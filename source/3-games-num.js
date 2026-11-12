@@ -169,7 +169,7 @@ addGame('p4-share',{level:'P4',strand:'num',glyph:'⅓',title:'Sweet Share',topi
   $('sG').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{if(api.answered)return;const g=+btn.dataset.g;sfx.tap();
     const per=Math.floor(N/g),rem=N%g;let h='';for(let j=0;j<g;j++)h+=`<div class="grp static">${Array.from({length:per},(_,i)=>sweet(j)).join('')}</div>`;
     if(rem)h+=`<div class="grp static" style="border-style:dashed">${Array.from({length:rem},()=>sweet(9)).join('')}</div>`;$('sP').innerHTML=h;
-    if(g!==b){mistakes++;$('sMsg').textContent=rem?`${N} sweets cannot be shared equally into ${g} groups. Look at the fraction again.`:`These are equal groups, but the bottom number of ${a}/${b} tells you how many groups you need.`;return}
+    if(g!==b){mistakes++;$('sMsg').textContent=rem?`${N} sweets cannot be shared equally into ${g} groups. Look at the fraction again.`:`These are equal groups, but the bottom number of the fraction (${b}) tells you how many groups you need.`;return}
     $('sG').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');
     $('sMsg').textContent=`${N} ÷ ${b} = ${k} sweets in each group.`;
     $('sSt').innerHTML=`Step 2: Tap ${a} group${a>1?'s':''} to show the ${fr(a,b)} ${left?'that is given away':`that ${who} takes`}.`;
