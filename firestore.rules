@@ -40,5 +40,14 @@ service cloud.firestore {
       allow read, delete: if isTeacher();
       allow update: if false;
     }
+
+    // Saved progress for pupils who sign in with Google: each pupil can only read and write their own.
+    match /players/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['p','ts'])
+        && request.resource.data.p is map && request.resource.data.p.size() <= 400
+        && request.resource.data.ts == request.time;
+    }
   }
 }
