@@ -19,7 +19,7 @@ service cloud.firestore {
       return {
         'p4-rounding': 90, 'p4-factors': 80, 'p4-product': 90, 'p4-flip': 30, 'p4-share': 80, 'p4-target': 100,
         'p4-decimals': 80, 'p4-cashier': 80, 'p4-garden': 80, 'p4-angles': 100, 'p4-mirror': 80, 'p4-nets': 100,
-        'p4-graphs': 100, 'p5-vault': 1000, 'p5-order': 80, 'p5-slide': 80, 'p5-share': 80, 'p5-fgrid': 80,
+        'p4-graphs': 100, 'p5-vault': 20000, 'p5-order': 80, 'p5-slide': 80, 'p5-share': 80, 'p5-fgrid': 80,
         'p5-rate': 80, 'p5-tarea': 80, 'p5-volume': 80, 'p5-angles': 80, 'p5-triangles': 80, 'p5-quads': 80,
         'p6-fdiv': 80, 'p6-pchange': 80, 'p6-ratio': 80, 'p6-algebra': 80, 'p6-circle': 80, 'p6-cuberoot': 80,
         'p6-chain': 80, 'p6-average': 80, 'p4-diner': 80, 'p4-train': 80, 'p4-compass': 80, 'p5-pizza': 80,
