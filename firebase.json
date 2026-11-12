@@ -1,0 +1,14 @@
+{
+  "hosting": {
+    "site": "matharcade",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "README.md",
+      "source/**",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
