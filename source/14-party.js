@@ -11,7 +11,7 @@ function partyStart(stage,id,mode,extra,onGo){const H=HOWTO[id]||{steps:[]},G=GA
     ${mode==='bot'||(mode==='solo'&&id!=='party-bingo')?`<div class="row"><b>Robot:</b>${['easy','mixed','hard'].map(l=>`<label class="pchip"><input type="radio" name="ptBot" value="${l}" ${l==='mixed'?'checked':''}> ${BOT[l].name}</label>`).join('')}</div>`:''}</div>
     <button class="btn primary" id="ptGo">I'm ready, let's play! ▶</button></div>`;
   qubi('gQ','wave','Read the rules first!',true);
-  $('ptGo').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>$('ptN'+i).value.trim().slice(0,14)||`Player ${i+1}`);
+  $('ptGo').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>{const v=$('ptN'+i).value.trim().slice(0,14);return isBadNick(v)?`Player ${i+1}`:v||`Player ${i+1}`});
     const bl=(stage.querySelector('input[name=ptBot]:checked')||{}).value||'mixed';const sel={};stage.querySelectorAll('[data-pset]').forEach(x=>{if(x.type==='radio'){if(x.checked)sel[x.name]=x.value}else sel[x.dataset.pset]=x.value});
     sfx.ok();document.body.classList.add('playing');onGo({bot:bl,names:mode==='pass'?PASS.slice(0,2):mode==='class'?['Class']:['You','🤖 '+BOT[bl].name],sel});fitView()};fitView()}
 const topicPick=(name,opts,def)=>`<div class="row"><b>Questions:</b>${opts.map(([k,t])=>`<label class="pchip"><input type="radio" data-pset name="${name}" value="${k}" ${k===def?'checked':''}> ${t}</label>`).join('')}</div>`;

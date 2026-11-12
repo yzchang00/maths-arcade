@@ -136,7 +136,7 @@ addGame('p5-vault',{level:'P5',strand:'num',glyph:'7',title:'Vault Cracker',topi
      ${vaultRules(mode)}
      ${mode==='pass'?`<div class="row">${[0,1].map(i=>`<label class="row"><b>Player ${i+1}</b><input class="num" style="width:10em" maxlength="14" id="vmN${i}" value="${esc(PASS[i])}"></label>`).join('')}</div>`:''}
      <button class="btn primary" id="vmStart">Start</button></div>`;
-   $('vmStart').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>$('vmN'+i).value.trim().slice(0,14)||`Player ${i+1}`);sfx.tap();vaultGame(stage,mode)}}});
+   $('vmStart').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>{const v=$('vmN'+i).value.trim().slice(0,14);return isBadNick(v)?`Player ${i+1}`:v||`Player ${i+1}`});sfx.tap();vaultGame(stage,mode)}}});
 
 /* P5-2. Operation Order — Order of operations and brackets */
 function exStep(t){let l=0,r=t.length-1;const lp=t.findIndex(x=>x.lp);if(lp>=0){l=lp+1;r=t.findIndex(x=>x.rp)-1}

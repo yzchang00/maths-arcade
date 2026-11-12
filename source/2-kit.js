@@ -57,6 +57,15 @@ const PRAISE=['Correct!','Brilliant!','Spot on!','Nailed it!','Well done!','Supe
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let ctx=null;
 function cleanup(){if($('rqCalc')){$('rqCalc').hidden=true;document.body.classList.remove('rqco')}if(ctx){ctx.timers.forEach(clearTimeout);ctx.dead=true}ctx=null}
+/* ---------- nickname filter (used for leaderboard names, classes and online-room names) ----------
+   Checks a "squashed" copy of the name: lower case, look-alike digits/symbols turned into letters
+   (0→o, 1→i, 3→e, 4→a, 5→s, 7→t, @→a, $→s), everything except letters removed, repeated letters collapsed.
+   So "N1GG3R", "f.u.c.k", "Fuuuck" and "s h i t" are all caught. */
+const BADWORDS=/(n[i1]g(?:er|a|ah|uh|az|ers)|fuk|fuc|fck|fvk|fvc|phuk|shit|sht|bitch|bich|biatch|cunt|dick|pusy|puss|sex|porn|fag|cock|slut|whore|rape|penis|vagina|boob|tits|tity|wank|retard|ashole|arse|bastard|idiot|stupid|dumb|bodoh|knn|kanina|ccb|lanji|lanjio|chibai|cibai|cheebai|pukimak|puki|nabeh|sohai|diulei|hitler|nazi|kys|kilyour|suicid|damn|crap|bastad|motherf|stfu|wtf|gay|lesbian|homo|negro|chink|paki|kling|keling)/;
+function squashNick(s){return String(s||'').toLowerCase().replace(/[0-9@$!|]/g,c=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','!':'i','|':'i'}[c]||'')).replace(/[^a-z]/g,'').replace(/(.)\1+/g,'$1')}
+const OKWORDS=/(nigam|nigamm|sussex|essex|middlesex|dickson|dicksen|dickens|benedick|susex|esex|midlesex|peacock|hancock|cockato|cockpit|cockerel|scunthorpe|shitake|shiitake|pakistan|klingon|sexton|titus|titan)/g;
+function isBadNick(s){const a=squashNick(s).replace(OKWORDS,''),b=String(s||'').toLowerCase().replace(/[^a-z]/g,'').replace(OKWORDS,'');return BADWORDS.test(a)||BADWORDS.test(b)}
+const safeNick=s=>isBadNick(s)?'Player':String(s||'');
 /* Play modes: solo, vs robot, pass & play on one device, online room. */
 const MODES=[['solo','Solo'],['bot','vs Robot'],['pass','Pass & play'],['online','Online room']];
 let MODE='solo',PASS=null;
@@ -181,7 +190,7 @@ function passSetup(id){const names=PASS||['Player 1','Player 2'];
   let cur=[...names];const draw=()=>{$('ppN').innerHTML=cur.map((n,i)=>`<label class="row"><span style="min-width:70px;font-weight:800">Player ${i+1}</span><input class="num" style="width:12em" maxlength="16" data-i="${i}" value="${esc(n)}"></label>`).join('');
     $('ppN').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{cur[+inp.dataset.i]=inp.value})};draw();
   $('gStage').querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const n=+b.dataset.n;cur=Array.from({length:n},(_,i)=>cur[i]||`Player ${i+1}`);$('gStage').querySelectorAll('[data-n]').forEach(x=>x.classList.toggle('sel',x===b));draw()});
-  $('ppGo').onclick=()=>{PASS=cur.map((n,i)=>n.trim().slice(0,16)||`Player ${i+1}`);sfx.tap();playGame(id,{go:true,how:true})}}
+  $('ppGo').onclick=()=>{PASS=cur.map((n,i)=>isBadNick(n)?`Player ${i+1}`:n.trim().slice(0,16)||`Player ${i+1}`);sfx.tap();playGame(id,{go:true,how:true})}}
 
 /* ---------- online room (Firebase rooms on the class website, or the Claude room capability; presence only) ---------- */
 let ROOMNS,ONLINE={code:null,room:null,host:false,nick:'',peers:[],lastStart:null,unsub:null};
@@ -189,7 +198,7 @@ const roomReady=(async()=>{try{if(window.claude&&window.claude.use){ROOMNS=await
   if(!window.ARCROOM)await new Promise(r=>{addEventListener('arcb-ready',r,{once:true});setTimeout(r,8000)});ROOMNS=window.ARCROOM||null;return ROOMNS})();
 try{ONLINE.nick=localStorage.getItem('arcNick')||''}catch(e){}
 const hostPeer=()=>ONLINE.peers.find(p=>p.presence&&p.presence.host&&p.presence.code===ONLINE.code);
-function onlineRows(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).map(p=>({n:(p.presence.host?'★ ':'')+p.presence.nick+(p.sameTab?' (you)':''),s:+p.presence.score||0,me:p.sameTab,
+function onlineRows(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).map(p=>({n:(p.presence.host?'★ ':'')+safeNick(p.presence.nick)+(p.sameTab?' (you)':''),s:+p.presence.score||0,me:p.sameTab,
   sub:p.presence.status==='done'?' done':p.presence.status==='playing'?` · round ${p.presence.round||1}`:' · in lobby'})).sort((a,b)=>b.s-a.s)}
 function onlineReport(done){const c=ctx;if(!ONLINE.room||!c)return;ONLINE.room.presence({score:c.score,round:Math.min(c.r+1,c.G.rounds),status:done?'done':'playing'}).catch(()=>{})}
 function onPeersChange(ch){ONLINE.peers=ch.peers;if(ctx&&ctx.mode==='online')renderScore();
@@ -213,7 +222,7 @@ function onlinePanel(id){
     if(ONLINE.autoCode){const c=ONLINE.autoCode;ONLINE.autoCode=null;$('olCode').value=c.toUpperCase();$('olNew').hidden=true;$('olNew').nextElementSibling.hidden=true;
       $('olNote').innerHTML=`You've been invited to room <b class="code">${esc(c.toUpperCase())}</b>! Type your nickname and tap <b>Join</b>.`;$('olJoin').classList.add('primary');$('olJoin').textContent='Join the room ▶';
       if(!$('olNick').value)$('olNick').focus()}
-    const nick=()=>{const n=$('olNick').value.trim().slice(0,16);if(!n){$('olErr').textContent='Type a nickname first.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
+    const nick=()=>{const n=$('olNick').value.trim().replace(/\s+/g,' ').slice(0,16);if(n.length<2){$('olErr').textContent='Type a nickname with at least 2 letters.';return null}if(isBadNick(n)){$('olErr').textContent='Please choose a kinder nickname.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
     $('olNew').onclick=async()=>{if(!nick())return;const code=Array.from({length:4},()=>'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random()*31)]).join('');
       const r=await joinCode(code,true);if(r!=='ok'){$('olErr').textContent=r==='unavailable'?'Online rooms are not available for you here.':'Could not open a room. Try again.';return}drawLobby()};
     $('olJoin').onclick=async()=>{if(!nick())return;const code=$('olCode').value.trim().toLowerCase();if(!/^[a-z0-9]{4}$/.test(code)){$('olErr').textContent='Room codes have 4 letters or numbers.';return}

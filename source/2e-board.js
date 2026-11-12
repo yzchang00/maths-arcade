@@ -4,7 +4,6 @@
 const SID=Math.random().toString(36).slice(2,10);
 function arcMe(){try{return JSON.parse(localStorage.getItem('arcMe')||'null')}catch(e){return null}}
 function arcSetMe(m){try{localStorage.setItem('arcMe',JSON.stringify(m))}catch(e){}}
-const BADNICK=/(fuck|shit|bitch|cunt|dick|pussy|sex|porn|nigg|fag|idiot|stupid|bodoh|knn|ccb|lanjiao|chibai|pukimak)/i;
 function arcLog(event,game,score){if(!window.ARCB)return;const me=arcMe();
   window.ARCB.log({event,game:game||'',score:score==null?-1:Math.max(0,Math.min(1000,Math.round(score))),nick:me?me.nick:'',cls:me?me.cls:'',sid:SID,device:innerWidth<600?'phone':innerWidth<1000?'tablet':'computer'}).catch(()=>{})}
 /* difficulty of the game just played: Easy / Medium / Hard for normal games, '-' for games with their own start screen */
@@ -33,7 +32,7 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
   $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
   const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
   $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
-    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(BADNICK.test(nick))return $('lbErr').textContent='Please choose a kinder nickname.';
+    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(isBadNick(nick))return $('lbErr').textContent='Please choose a kinder nickname.';if(isBadNick(cls))return $('lbErr').textContent='Please type a real class, like 5B.';
     arcSetMe({nick,cls});arcLog('join');sfx.ok();close();if(after)after()}}
 function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
   return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
@@ -45,8 +44,8 @@ addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(!h&&!documen
 const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
   const isMe=x=>x.nick===me.nick&&x.cls===(me.cls||''),val=x=>`${x.score}${x.stars>=0?` <small>${'★'.repeat(x.stars)}</small>`:''}${x.sub?` <small class="pts">${x.sub}</small>`:''}`,mood=['party','wave','cheer'];
   const step=i=>{const x=r[i];if(!x)return `<div class="lbp-col lbp-${i+1} lbp-none"><div class="lbp-who"><b>—</b><span class="lbc">No one yet</span></div><div class="lbp-block"><span>${i+1}</span></div></div>`;
-    return `<div class="lbp-col lbp-${i+1}${isMe(x)?' lbp-me':''}"><div class="lbp-who"><span class="lbp-medal">${['🥇','🥈','🥉'][i]}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${val(x)}</span></div><div class="lbp-q">${QUBI.replace('class="qubi"',`class="qubi ${mood[i]}"`)}</div><div class="lbp-block"><span>${i+1}</span></div></div>`};
-  return `<div class="lbp">${step(1)}${step(0)}${step(2)}</div>${r.length>3?`<ol class="lbrows" start="4">${r.slice(3).map((x,i)=>`<li class="${isMe(x)?'me':''}"><span class="lbr">${i+4}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${val(x)}</span></li>`).join('')}</ol>`:''}`};
+    return `<div class="lbp-col lbp-${i+1}${isMe(x)?' lbp-me':''}"><div class="lbp-who"><span class="lbp-medal">${['🥇','🥈','🥉'][i]}</span><b>${esc(safeNick(x.nick))}</b><span class="lbc">${esc(isBadNick(x.cls)?'':x.cls||'')}</span><span class="lbs">${val(x)}</span></div><div class="lbp-q">${QUBI.replace('class="qubi"',`class="qubi ${mood[i]}"`)}</div><div class="lbp-block"><span>${i+1}</span></div></div>`};
+  return `<div class="lbp">${step(1)}${step(0)}${step(2)}</div>${r.length>3?`<ol class="lbrows" start="4">${r.slice(3).map((x,i)=>`<li class="${isMe(x)?'me':''}"><span class="lbr">${i+4}</span><b>${esc(safeNick(x.nick))}</b><span class="lbc">${esc(isBadNick(x.cls)?'':x.cls||'')}</span><span class="lbs">${val(x)}</span></li>`).join('')}</ol>`:''}`};
 /* one game's leaderboard, in a pop-up so pupils can check it from the game's start screen */
 function lbPopup(gid,diff){const G=GAMES[gid];if(!G)return;const me=arcMe()||{},dd=hasDiff(gid);let cls='',rows=null;diff=dd?(diff&&diff!=='-'?diff:(ctx&&ctx.id===gid?ctx.level:getLvl(gid))):'-';
   const o=document.createElement('div');o.className='zoomov lbmodal';
