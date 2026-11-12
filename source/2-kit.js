@@ -106,12 +106,12 @@ function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id
   ctx={id,G,r:0,score:0,botScore:0,streak:0,timers:[],answered:false,dead:false,level:opts.level||getLvl(id),mode:MODE,seedBase:opts.seedBase};
   const s=STRANDS[G.strand];
   $('view').innerHTML=`<div style="display:grid;gap:14px;--c:${s.c}">
-    <div class="gbar"><a class="back" href="#">← All games</a><div class="row"><span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
+    <div class="gbar"><a class="back" href="#">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
     <div class="gtop"><div class="ghead"><span class="tag">${G.level} · ${G.topic}</span><h2>${G.title}</h2></div>${qubiBox('gQ',pick(['Let’s go!','You can do this!','I believe in you!']))}</div>
     <div id="gSet" class="row"></div><div id="gVs"></div>
     <div class="stagewrap"><button class="stagemenu" id="gMenu" hidden title="Leave this round and go back to this game's start screen">↩ Back to game menu</button><section class="stage" id="gStage"><div id="gq"></div><div id="gb" style="display:grid;gap:14px;min-width:0"></div><div id="gf"></div></section></div></div>`;
   {const st=$('gStage'),sync=()=>{const b=$('gMenu');if(b)b.hidden=!!st.querySelector('.wiz,.rqhome')&&!st.querySelector('.rqhead')};new MutationObserver(sync).observe(st,{childList:true});sync()}
-  $('gMenu').onclick=()=>{sfx.tap();playGame(id)};
+  $('gMenu').onclick=()=>{sfx.tap();playGame(id)};if($('gLb'))$('gLb').onclick=()=>{sfx.tap();lbPopup(id)};
   if(G.ownStart){$('gSet').hidden=true;G.custom($('gStage'),'solo');return}
   if(!opts.go&&!opts.setup)return startWizard(id);
   $('gSet').innerHTML=`<span class="setchip">${MODENAME[MODE]||''}${G.custom?'':' · '+LVNAME[ctx.level]}</span><button class="btn" id="gChange">Change settings</button>`;
@@ -134,7 +134,7 @@ function startWizard(id){const G=GAMES[id],modes=G.custom?G.modes.map(m=>m[0]):[
   const go=()=>{try{localStorage.setItem('arcLvl_'+id,st.level)}catch(e){}MODE=st.mode;sfx.ok();playGame(id,{setup:true,level:st.level})};
   const draw=()=>{let body='',title='';
     if(st.step===1){title='How do you want to play?';body=tile('solo','🎯','Solo','Play on your own and beat your best.',st.mode==='solo')+tile('multi','👥','Multiplayer',G.custom?'Race a friend or Robo.':'Play against Robo or with friends.',st.mode!=='solo')}
-    else if(st.step===2){title='Who are you playing with?';body=multi.map(m=>m==='bot'?tile('bot','🤖','vs Robot','Race Robo, the computer player.',st.mode==='bot'):m==='pass'?tile('pass','📱',G.custom?'2 players':'Pass & play',G.custom?'Two players take turns on this device.':'2 to 4 players take turns on this device.',st.mode==='pass'):m==='online'?tile('online','🌐','Online room','Friends join on their own devices (signed-in Claude users only).',st.mode==='online'):(e=>tile(m,e[3]||'👥',e[1],e[2]||'',st.mode===m))(G.modes.find(x=>x[0]===m))).join('')}
+    else if(st.step===2){title='Who are you playing with?';body=multi.map(m=>m==='bot'?tile('bot','🤖','vs Robot','Race Robo, the computer player.',st.mode==='bot'):m==='pass'?tile('pass','📱',G.custom?'2 players':'Pass & play',G.custom?'Two players take turns on this device.':'2 to 4 players take turns on this device.',st.mode==='pass'):m==='online'?tile('online','🌐','Online room','Friends join with a room code on their own devices.',st.mode==='online'):(e=>tile(m,e[3]||'👥',e[1],e[2]||'',st.mode===m))(G.modes.find(x=>x[0]===m))).join('')}
     else{title='Choose your level';body=tile('easy','🌱','Easy','Easier question types to warm up.',st.level==='easy')+tile('mixed','⚡','Medium','Starts easy and gets harder each round.',st.level==='mixed')+tile('hard','🔥','Hard','Only the toughest question types.',st.level==='hard')}
     const n=st.step===1?1:st.step===2?2:(st.mode==='solo'?2:3),of=st.mode==='solo'?(G.custom?1:2):steps;
     $('gStage').innerHTML=`<div class="wiz"><div class="row" style="justify-content:space-between"><span class="tag">Game start · step ${n}</span>${st.step>1?'<button class="btn" id="wBack">← Back</button>':''}</div>
@@ -166,7 +166,7 @@ function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ
       <h3>You scored ${c.score} out of ${max}</h3>${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
       <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
     $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id);return}
-  if(c.mode==='online'){c.finished=true;onlineReport(true);onlineEnd();return}
+  if(c.mode==='online'){c.finished=true;onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
   let title,rows;
   if(c.mode==='bot'){const b=BOT[c.level].name;title=c.score>c.botScore?'You beat '+b+'!':c.score<c.botScore?b+' wins this time':'It’s a draw!';rows=[['You',c.score],['🤖 '+b,c.botScore]]}
   else{rows=c.players.map(p=>[p.name,p.score]).sort((a,b)=>b[1]-a[1]);const top=rows.filter(r=>r[1]===rows[0][1]);title=top.length>1?'It’s a tie between '+top.map(t=>esc(t[0])).join(' and ')+'!':esc(rows[0][0])+' wins!'}
@@ -183,9 +183,10 @@ function passSetup(id){const names=PASS||['Player 1','Player 2'];
   $('gStage').querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const n=+b.dataset.n;cur=Array.from({length:n},(_,i)=>cur[i]||`Player ${i+1}`);$('gStage').querySelectorAll('[data-n]').forEach(x=>x.classList.toggle('sel',x===b));draw()});
   $('ppGo').onclick=()=>{PASS=cur.map((n,i)=>n.trim().slice(0,16)||`Player ${i+1}`);sfx.tap();playGame(id,{go:true,how:true})}}
 
-/* ---------- online room (room capability; presence only, so nothing needs special send rights) ---------- */
+/* ---------- online room (Firebase rooms on the class website, or the Claude room capability; presence only) ---------- */
 let ROOMNS,ONLINE={code:null,room:null,host:false,nick:'',peers:[],lastStart:null,unsub:null};
-const roomReady=(async()=>{try{ROOMNS=await (window.claude&&window.claude.use?window.claude.use('room'):null)}catch(e){ROOMNS=null}return ROOMNS})();
+const roomReady=(async()=>{try{if(window.claude&&window.claude.use){ROOMNS=await window.claude.use('room');if(ROOMNS)return ROOMNS}}catch(e){ROOMNS=null}
+  if(!window.ARCROOM)await new Promise(r=>{addEventListener('arcb-ready',r,{once:true});setTimeout(r,8000)});ROOMNS=window.ARCROOM||null;return ROOMNS})();
 try{ONLINE.nick=localStorage.getItem('arcNick')||''}catch(e){}
 const hostPeer=()=>ONLINE.peers.find(p=>p.presence&&p.presence.host&&p.presence.code===ONLINE.code);
 function onlineRows(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).map(p=>({n:(p.presence.host?'★ ':'')+p.presence.nick+(p.sameTab?' (you)':''),s:+p.presence.score||0,me:p.sameTab,
@@ -204,9 +205,9 @@ function startOnline(p){MODE='online';const go=()=>{playGame(p.game,{go:true,see
 function onlinePanel(id){
   $('gStage').innerHTML=`<div class="end" id="olBox"><span class="tag">Online room</span><h3>Play with friends on their own devices</h3><p style="margin:0;color:var(--muted)" id="olNote">Checking whether online play works here…</p></div>`;
   roomReady.then(R=>{if(!$('olBox'))return;
-    if(!R){$('olNote').textContent='Online rooms only work for people who are signed in to Claude and have access to this page. Anyone opening it through a public link cannot join. Try vs Robot or Pass & play instead.';return}
+    if(!R){$('olNote').textContent='Online rooms need an internet connection to the class website. Try vs Robot or Pass & play instead.';return}
     if(ONLINE.code){drawLobby();return}
-    $('olBox').insertAdjacentHTML('beforeend',`<label class="row"><b>Your nickname</b><input class="num" style="width:12em" id="olNick" maxlength="16" value="${esc(ONLINE.nick)}"></label>
+    $('olBox').insertAdjacentHTML('beforeend',`<label class="row"><b>Your nickname</b><input class="num" style="width:12em" id="olNick" maxlength="16" value="${esc(ONLINE.nick||(arcMe()||{}).nick||"")}"></label>
       <div class="row"><button class="btn primary" id="olNew">Create a room</button><span style="color:var(--muted)">or</span><input class="num" style="width:7em;text-transform:uppercase" id="olCode" maxlength="4" placeholder="CODE" aria-label="Room code"><button class="btn" id="olJoin">Join</button></div><div id="olErr" style="font-weight:700;color:var(--bad)"></div>`);
     $('olNote').textContent='One person creates a room and shares the 4-letter code. Everyone gets the same questions at the same time, with a live leaderboard.';
     const nick=()=>{const n=$('olNick').value.trim().slice(0,16);if(!n){$('olErr').textContent='Type a nickname first.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
