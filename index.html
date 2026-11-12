@@ -557,9 +557,9 @@ body.playing .rqtrack{gap:4px}body.playing .rqtr{padding:3px 8px;gap:2px}body.pl
 .rqfig svg{cursor:zoom-in}
 .zoomov{position:fixed;inset:0;z-index:200;background:rgba(10,18,32,.86);display:grid;grid-template-rows:auto 1fr;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
 .zoombar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surface);color:var(--ink);border-radius:14px;padding:8px 12px;margin-bottom:10px}.zoomtip{color:var(--muted);font-size:13px}
-.zoomstage{overflow:hidden;border-radius:14px;background:var(--surface);touch-action:none;display:grid;place-items:center;cursor:grab}
-.zoompan{width:100%;height:100%;display:grid;place-items:center;transform-origin:center center;transition:transform .08s}
-.zoomsvg{width:min(100%,1400px)!important;height:auto!important;max-height:100%!important;max-width:100%!important}
+.zoomstage{position:relative;overflow:hidden;border-radius:14px;background:var(--surface);touch-action:none;cursor:grab;min-height:0}
+.zoompan{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;transform-origin:center center;transition:transform .08s}
+.zoomsvg{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;display:block}
 body.zoomed{overflow:hidden}
 .zoomrot{display:none;flex-basis:100%;color:var(--muted);font-size:12.5px}@media (max-width:600px){.zoomtip{display:none}.zoomrot{display:block}}
 
@@ -935,12 +935,12 @@ function onlineEnd(){const list=onlineRows(),all=list.every(x=>/done/.test(x.sub
 /* ---------- tap-to-zoom for graphs and figures ---------- */
 const ZOOM={sc:1,x:0,y:0};
 function zoomOpen(svg){const ov=document.createElement('div');ov.className='zoomov';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','Zoomed picture');
-  const cl=svg.cloneNode(true);cl.removeAttribute('id');cl.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));cl.removeAttribute('style');cl.classList.add('zoomsvg');
+  const cl=svg.cloneNode(true);cl.removeAttribute('id');cl.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));cl.removeAttribute('style');cl.classList.add('zoomsvg');if(!cl.getAttribute('viewBox')){try{const bb=svg.getBBox();if(bb.width&&bb.height)cl.setAttribute('viewBox',`${bb.x-4} ${bb.y-4} ${bb.width+8} ${bb.height+8}`)}catch(e){const r=svg.getBoundingClientRect();cl.setAttribute('viewBox',`0 0 ${r.width} ${r.height}`)}}cl.setAttribute('preserveAspectRatio','xMidYMid meet');cl.removeAttribute('width');cl.removeAttribute('height');
   ov.innerHTML=`<div class="zoombar"><b>🔍 Zoomed picture</b><span class="zoomtip">Pinch, scroll or use + and − to zoom. Drag to move.</span><span class="zoomrot">Drag to move around. Tip: turn your phone sideways for a bigger view.</span><span style="flex:1"></span><button class="btn" data-z="-" aria-label="Zoom out">−</button><button class="btn" data-z="+" aria-label="Zoom in">+</button><button class="btn" data-z="0">Reset</button><button class="btn primary" data-z="x" aria-label="Close">✕ Close</button></div><div class="zoomstage"><div class="zoompan"></div></div>`;
   ov.querySelector('.zoompan').appendChild(cl);document.body.appendChild(ov);document.body.classList.add('zoomed');
-  const pan=ov.querySelector('.zoompan'),st=ov.querySelector('.zoomstage');ZOOM.sc=innerWidth<600&&innerWidth<innerHeight?1.7:1;ZOOM.x=0;ZOOM.y=0;
+  const pan=ov.querySelector('.zoompan'),st=ov.querySelector('.zoomstage');ZOOM.sc=1;ZOOM.x=0;ZOOM.y=0;
   const apply=()=>{pan.style.transform=`translate(${ZOOM.x}px,${ZOOM.y}px) scale(${ZOOM.sc})`};apply();
-  const zoomBy=f=>{ZOOM.sc=Math.max(1,Math.min(5,ZOOM.sc*f));if(ZOOM.sc===1){ZOOM.x=0;ZOOM.y=0}apply()};
+  const zoomBy=f=>{ZOOM.sc=Math.max(.5,Math.min(6,ZOOM.sc*f));if(ZOOM.sc<=1){ZOOM.x=0;ZOOM.y=0}apply()};
   const close=()=>{ov.remove();document.body.classList.remove('zoomed');removeEventListener('keydown',kd)};
   const kd=e=>{if(e.key==='Escape')close();if(e.key==='+'||e.key==='=')zoomBy(1.25);if(e.key==='-')zoomBy(.8)};addEventListener('keydown',kd);
   ov.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{const z=b.dataset.z;if(z==='x')return close();if(z==='0'){ZOOM.sc=1;ZOOM.x=0;ZOOM.y=0;apply()}else zoomBy(z==='+'?1.4:1/1.4)});
