@@ -45,7 +45,7 @@ onAuthStateChanged(auth,u=>{if(!u){$('msg').textContent='Sign in with the teache
   start(u)});
 let V=[],S=[],days=7,cls='';
 async function load(){const cut=Timestamp.fromMillis(Date.now()-days*864e5);
-  const [v,s]=await Promise.all([getDocs(query(collection(db,'visits'),where('ts','>=',cut),orderBy('ts','desc'),limit(20000))),getDocs(query(collection(db,'scores'),orderBy('ts','desc'),limit(3000)))]);
+  const [v,s]=await Promise.all([getDocs(query(collection(db,'visits'),where('ts','>=',cut),orderBy('ts','desc'),limit(10000))),getDocs(query(collection(db,'scores'),orderBy('ts','desc'),limit(3000)))]);
   V=v.docs.map(d=>({id:d.id,...d.data(),t:d.data().ts?d.data().ts.toMillis():Date.now()}));S=s.docs.map(d=>({id:d.id,...d.data(),t:d.data().ts?d.data().ts.toMillis():Date.now()}))}
 function start(u){$('app').innerHTML=`<div class="top"><div><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1></div><div class="row"><select id="days"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select>
   <select id="cls"><option value="">All classes</option></select><button class="btn" id="csv">Download CSV</button><button class="btn" id="re">Refresh</button><button class="btn sm" id="out">Sign out ${esc(u.email)}</button></div></div><div id="body"><p class="muted">Loading data…</p></div>`;
