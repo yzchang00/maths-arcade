@@ -1,10 +1,11 @@
 rules_version = '2';
 // Paste this into Firebase console → Firestore Database → Rules, then press Publish.
-// Change the email below to the teacher Google account(s) that may open the tracker.
+// Only the email below can open the tracker or delete leaderboard entries. Everything not listed here is blocked.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isTeacher() {
-      return request.auth != null && request.auth.token.email in ["xxyanzhangxx@gmail.com"];
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ["xxyanzhangxx@gmail.com"];   // admin: only Yan
     }
     function shortText(v, n) { return v is string && v.size() <= n; }
 

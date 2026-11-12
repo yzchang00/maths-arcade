@@ -3456,10 +3456,100 @@ rq({id:'Lcurry',kind:'long',topic:'alg',make(){const k=pick([2,3]),A=R(10,50),m=
       num(ca*W+cb,{q:`How many curry puffs were sold altogether when ${vi('w')} = ${W}?`,work:[`${ca} × ${W} + ${cb} = <b>${ca*W+cb}</b>`]}),
       num(r6((W+A)*cst),{q:`Each curry puff cost ${$m(cst)}. How much money was collected on Saturday when ${vi('w')} = ${W}?`,pre:'$',work:[`Saturday = ${W} + ${A} = ${W+A} puffs`,`${W+A} × ${$m(cst)} = <b>${$m((W+A)*cst)}</b>`]})]}}});
 
+/* ================= Added Nov 2026: question types modelled on PSLE Standard Maths 2022–2025 =================
+   Original questions in the same styles, with fresh numbers every time (not copied from the papers). */
+const PSLE_EST=[['the length of a tour bus','12 m',['1.2 m','120 m','1.2 km']],['the height of a classroom door','2 m',['20 cm','20 m','200 m']],
+  ['the length of a new pencil','18 cm',['18 mm','1.8 m','18 m']],['the mass of a pencil with an eraser tip','8 g',['800 g','8 kg','80 kg']],
+  ['the mass of an oral thermometer','20 g',['2 kg','20 kg','200 kg']],['the mass of a bag of rice from the supermarket','5 kg',['5 g','50 g','500 kg']],
+  ['the capacity of a cup of milo','250 ml',['2.5 ml','25 ℓ','250 ℓ']],['the mass of a Primary 6 pupil','40 kg',['40 g','400 g','400 kg']],
+  ['the length of a football field','100 m',['10 m','1 km','10 km']],['the capacity of a bathtub','200 ℓ',['200 ml','2 ℓ','2000 ℓ']]];
+rq({id:'estimate',kind:'mcq1',topic:'meas',make(){const [o,a,ds]=pick(PSLE_EST);
+  return {stem:`Which of the following is most likely ${o}?`,parts:[Object.assign(mc(a,ds,String),{marks:1})],work:[`Picture the real object and compare it with something you know (1 m is about one big step; 1 kg is a bag of sugar).`,`The most sensible answer is <b>${a}</b>.`]}}});
+rq({id:'mixdec',kind:'mcq1',topic:'dec',make(){const b=pick([2,4,5,8,20,25]),a=R(1,b-1);if(gcd(a,b)>1)return this.make();const w=R(2,9),v=r6(w+a/b);
+  return {stem:`Express ${nice(w*b+a,b)} as a decimal.`,parts:[Object.assign(mc(v,[+(w+'.'+a+b),r6(w+a/10),r6(w+b/100),r6(w+a/100)],fmtN),{marks:1})],work:[`${fr(a,b)} = ${a} ÷ ${b} = ${fmtN(a/b)}`,`${w} + ${fmtN(a/b)} = <b>${fmtN(v)}</b>`]}}});
+rq({id:'decorder',kind:'mcq1',topic:'dec',make(){const w=R(1,9),pool=shuffle(['110','200','003','040','103','030','300','011','101','013']).slice(0,4),vals=pool.map(d=>`${w}.${d}`),small=Math.random()<.5,
+  ans=vals.slice().sort((x,y)=>small?x-y:y-x)[0];
+  return {stem:`Which of the following decimals is the ${small?'smallest':'largest'}?`,parts:[Object.assign(mc(ans,vals.filter(x=>x!==ans),String),{marks:1})],work:[`All have ${w} ones, so compare the tenths, then the hundredths, then the thousandths.`,`The ${small?'smallest':'largest'} is <b>${ans}</b>.`]}}});
+rq({id:'round2',kind:'mcq1',topic:'dec',make(){const x=R(1001,9998);if(x%10===0)return this.make();const v=x/1000,up=x%10>=5,ans=(Math.round(x/10)/100).toFixed(2);
+  return {stem:`Round off ${v.toFixed(3)} to 2 decimal places.`,parts:[Object.assign(mc(ans,[(Math.floor(x/10)/100+(up?0:.01)).toFixed(2),(Math.round(x/100)/10).toFixed(2),(Math.floor(x/100)/10).toFixed(2),(Math.floor(x/10)/100+.02).toFixed(2),(Math.floor(x/10)/100-.01).toFixed(2),(Math.floor(x/10)/100+.03).toFixed(2)],String),{marks:1})],
+    work:[`Look at the 3rd decimal place: ${x%10}. It is ${up?'5 or more, so round up':'less than 5, so round down'}.`,`${v.toFixed(3)} ≈ <b>${ans}</b>`]}}});
+rq({id:'pctof2',kind:'mcq1',topic:'pct',make(){const x=pick([0.5,0.07,0.35,1.25,2.5,3.5,0.08,1.6]),p=r6(x*100);
+  return {stem:`Express ${fmtN(x)} as a percentage.`,parts:[Object.assign(mc(p+'%',[r6(x*10)+'%',fmtN(x)+'%',r6(x*1000)+'%'],String),{marks:1})],work:[`To change a decimal to a percentage, multiply by 100.`,`${fmtN(x)} × 100 = <b>${fmtN(p)}%</b>`]}}});
+rq({id:'expand',kind:'mcq1',topic:'whole',make(){let d;do d=Array.from({length:7},(_,i)=>i===0?R(1,9):R(0,9));while(d[1]===0||d[2]===0||d[1]===d[2]);const k=pick([1,2]),pv=10**(6-k),N=+d.join(''),
+  terms=d.map((x,i)=>x*10**(6-i)).filter((t,i)=>t||i===k),miss=d[k]*pv;
+  return {stem:`${fmtN(N)} = ${terms.map(t=>t===miss?'_______':fmtN(t)).join(' + ')}`,parts:[Object.assign(mc(fmtN(miss),[fmtN(miss*10),fmtN(miss/10),String(d[k])],String),{marks:1,q:'What is the missing number?'})],
+    work:[`The digit ${d[k]} is in the ${RQPV[6-k]} place.`,`${d[k]} × ${fmtN(pv)} = <b>${fmtN(miss)}</b>`]}}});
+rq({id:'agealg',kind:'mcq1',topic:'alg',make(){const [a,b]=pick([['Andy','Ben'],['Mei','Siti'],['Ravi','Jun'],['Aisha','Lily']]),A=R(9,14),older=Math.random()<.5,z=vi('z'),ans=older?`${A} − ${z}`:`${A} + ${z}`;
+  return {stem:`${a} is ${A} years old. ${a} is ${z} years ${older?'older':'younger'} than ${b}. How old is ${b}?`,parts:[Object.assign(mc(ans,[older?`${A} + ${z}`:`${A} − ${z}`,`${z} − ${A}`,`${A}${z}`],String),{marks:1})],
+    work:[`${b} is ${older?'younger':'older'} than ${a} by ${z} years.`,`${b}'s age = <b>${ans}</b>`]}}});
+rq({id:'ratioeq',kind:'mcq1',topic:'ratio',make(){const a=R(2,9),b=R(2,9),k=R(3,9);if(a===b)return this.make();
+  return {stem:`${a} : ${b} = ${a*k} : ______`,parts:[Object.assign(mc(b*k,[b+a*k-a,a*b,b*k+k,a*k+b]),{marks:1,q:'What is the missing number?'})],work:[`${a} × ${k} = ${a*k}, so multiply both parts by ${k}.`,`${b} × ${k} = <b>${b*k}</b>`]}}});
+rq({id:'unitcost',kind:'mcq1',topic:'meas',make(){const c=pick([5,8,10,15,20,25,30,40,45]),n=pick([10,20,25,40,50]),T=c*n;
+  return {stem:`${pick(['Jeffrey','Nurul','Kai Wen','Devi'])} paid ${$m(T/100)} for ${n} ${pick(['stamps','stickers','erasers','pencils'])}. How much did each one cost?`,parts:[Object.assign(mc(c/100,[c/10,c,r6(c/1000)],$m),{marks:1})],
+    work:[`${$m(T/100)} = ${T} cents`,`${T} ÷ ${n} = ${c} cents = <b>${$m(c/100)}</b>`]}}});
+
+rq({id:'avg6',kind:'mcq2',topic:'avg',make(){const A=R(10,30),B=A+pick([-2,-1,1,2,3]),v=6*B-5*A;if(v<=0)return this.make();
+  return {stem:`The average of 5 numbers is ${A}. When a 6th number is added, the average becomes ${B}. What is the 6th number?`,parts:[Object.assign(mc(v,[B,6*B-6*A>0?6*B-6*A:v+6,5*B-5*A>0?5*B-5*A:v-5,v+B-A]),{marks:2})],
+    work:[`Total of 5 numbers = 5 × ${A} = ${5*A}`,`Total of 6 numbers = 6 × ${B} = ${6*B}`,`6th number = ${6*B} − ${5*A} = <b>${v}</b>`]}}});
+rq({id:'syrup',kind:'mcq2',topic:'rate',make(){const d=pick([5,10]),k=pick([2,3,4]),days=R(3,7),V=d*k*days;
+  return {stem:`The doctor gave ${pick(['Nigel','Farah','Wei Ming'])} ${V} ml of cough syrup. He had to take ${d} ml of it ${k} times a day. How many days would the cough syrup last?`,parts:[Object.assign(mc(days,[V/d,V/k,days*k,days+k]),{marks:2})],
+    work:[`Each day: ${d} × ${k} = ${d*k} ml`,`${V} ÷ ${d*k} = <b>${days} days</b>`]}}});
+rq({id:'freebag',kind:'mcq2',topic:'meas',make(){const n=pick([3,4,5,6]),c=pick([2,2.5,3,3.6,4]),B=R(4,12),N=B*(n+1);
+  return {stem:`A bag of ${n} apples costs ${$m(c)}. For every bag bought, a shop gives 1 free apple. Angie needs ${N} apples. What is the least amount of money she has to pay?`,parts:[Object.assign(mc(r6(B*c),[r6(N/n*c),r6((B+1)*c),r6(N*c/(n+1)+c),r6(Math.ceil(N/n)*c)],$m),{marks:2})],
+    work:[`Each bag gives ${n} + 1 = ${n+1} apples.`,`${N} ÷ ${n+1} = ${B} bags`,`${B} × ${$m(c)} = <b>${$m(B*c)}</b>`]}}});
+rq({id:'pairsum',kind:'mcq2',topic:'whole',make(){const c=R(8,30),k=pick([2,3,4]),b=R(10,60),s1=b+c,s2=b+k*c;
+  return {stem:`Bob and Charlie have $${s1} altogether. Bob and Damien have $${s2} altogether. Damien has ${['','','twice','3 times','4 times'][k]} as much money as Charlie. How much money does Bob have?`,
+    parts:[Object.assign(mc(b,[c,k*c,s2-s1,s1+s2-b],v=>'$'+v),{marks:2})],work:[`Damien − Charlie = $${s2} − $${s1} = $${s2-s1}`,`Damien is ${k} units, Charlie is 1 unit, so ${k-1} unit${k>2?'s':''} = $${s2-s1} → Charlie = $${c}`,`Bob = $${s1} − $${c} = <b>$${b}</b>`]}}});
+
+rq({id:'heavier',kind:'saq',paper:1,topic:'meas',make(){const K=R(30,60),g=R(1,9)*100,heavier=Math.random()<.5,v=r6(heavier?K-g/1000:K+g/1000),nm=pick(['Kelly','Maria','Hui Min','Zara']);
+  return {stem:'',parts:[num(v,{unit:'kg',q:`${nm} has a mass of ${K} kg. She is ${g} g ${heavier?'heavier':'lighter'} than her sister. What is her sister's mass in kilograms?`,work:[`${g} g = ${fmtN(g/1000)} kg`,`${K} ${heavier?'−':'+'} ${fmtN(g/1000)} = <b>${fmtN(v)} kg</b>`]})]}}});
+rq({id:'shareleft',kind:'saq',paper:1,topic:'whole',make(){const n=pick([30,32,35,36,40]),e=R(2,6),l=R(3,n-1),T=n*e+l;
+  return {stem:'',parts:[num(T,{q:`Mr Chan donated some books to a class. When the books were shared equally among ${n} pupils, each pupil got ${e} books and ${l} books were left over. How many books did Mr Chan donate?`,work:[`${n} × ${e} = ${n*e}`,`${n*e} + ${l} = <b>${T}</b>`]})]}}});
+rq({id:'divdp',kind:'saq',paper:1,topic:'dec',make(){const b=pick([3,6,7,9,11]),a=R(1,b*3);if(a%b===0)return this.make();const dp=pick([1,2]),v=+(a/b).toFixed(dp);
+  return {stem:'',parts:[num(v,{q:`What is the value of ${a} ÷ ${b}? Give your answer as a decimal, correct to ${dp} decimal place${dp>1?'s':''}.`,work:[`${a} ÷ ${b} = ${(a/b).toFixed(dp+2)}…`,`Correct to ${dp} decimal place${dp>1?'s':''}: <b>${v.toFixed(dp)}</b>`]})]}}});
+rq({id:'digits',kind:'saq',paper:1,topic:'whole',make(){let ds;do ds=shuffle([0,1,2,3,4,5,6,7,8,9]).slice(0,4);while(!ds.includes(0)&&Math.random()<.7);
+  const perms=[];const go=(a,r)=>{if(!r.length){if(a[0]!==0)perms.push(+a.join(''));return}r.forEach((x,i)=>go([...a,x],r.filter((_,j)=>j!==i)))};go([],ds);
+  const t=pick([['smallest','even',n=>n%2===0],['largest','odd',n=>n%2===1],['smallest','odd',n=>n%2===1],['largest','even',n=>n%2===0]]),ok=perms.filter(t[2]);if(!ok.length)return this.make();
+  const v=t[0]==='smallest'?Math.min(...ok):Math.max(...ok);
+  return {stem:'',parts:[num(v,{q:`Use all the digits ${ds.join(', ')} to form the ${t[0]} ${t[1]} 4-digit number.`,work:[`An ${t[1]} number must end in ${t[1]==='even'?'0, 2, 4, 6 or 8':'1, 3, 5, 7 or 9'}.`,`${t[0]==='smallest'?'Put the smallest possible digits in front (not 0 first)':'Put the largest digits in front'} and choose the best last digit.`,`Answer: <b>${v}</b>`]})]}}});
+rq({id:'machines',kind:'saq',paper:1,topic:'rate',make(){const a=R(3,9),b=R(3,12),t=R(4,15),N=(a+b)*t;if(a===b)return this.make();
+  return {stem:'',parts:[num(t,{unit:'min',q:`In one minute, Machine A can pack ${a} boxes of donuts while Machine B can pack ${b} boxes. Both machines started packing at the same time. How long did they take to pack ${N} boxes altogether?`,work:[`Together: ${a} + ${b} = ${a+b} boxes per minute`,`${N} ÷ ${a+b} = <b>${t} min</b>`]})]}}});
+rq({id:'cuboidside',kind:'saq',paper:1,topic:'vol',make(){const s=R(3,12),h=R(4,15),V=s*s*h;
+  return {stem:'',parts:[num(s,{unit:'cm',q:`A cuboid has a square base. Its volume is ${fmtN(V)} cm³ and its height is ${h} cm. Find the length of one side of its base.`,work:[`Base area = ${fmtN(V)} ÷ ${h} = ${s*s} cm²`,`${s} × ${s} = ${s*s}, so each side = <b>${s} cm</b>`]})]}}});
+rq({id:'cupleft',kind:'saq',paper:1,topic:'frac',make(){const [p,q]=pick([[1,2],[1,3],[2,3],[1,4],[3,4],[2,5],[3,5]]),u=R(4,20),L=(q-p)*u,S=R(12,60),T=S+q*u;
+  return {stem:'',parts:[num(T,{marks:2,q:`A bakery sold ${S} cupcakes in the morning. In the afternoon, it sold ${fr(p,q)} of the remaining cupcakes. ${L} cupcakes were left. How many cupcakes did the bakery have at first?`,
+    work:[`After the morning, ${fr(q-p,q)} of the remaining cupcakes = ${L}`,`Remaining after morning = ${L} ÷ ${q-p} × ${q} = ${q*u}`,`At first = ${q*u} + ${S} = <b>${T}</b>`]})]}}});
+rq({id:'flourbag',kind:'saq',paper:1,topic:'frac',make(){const [a,b]=pick([[3,4],[2,5],[3,8],[1,4],[2,3],[5,8]]),n=a*R(3,12),M=n*a/b;if(!Number.isInteger(M))return this.make();const bags=M*b/a;
+  return {stem:'',parts:[num(bags,{q:`${M} kg of flour was packed into bags of ${fr(a,b)} kg each. How many bags of flour were there?`,work:[`${M} ÷ ${fr(a,b)} = ${M} × ${fr(b,a)}`,`= <b>${bags}</b> bags`]})]}}});
+
+rq({id:'airmail',kind:'saq',paper:2,topic:'meas',make(){const f=pick([20,50]),c1=pick([0.6,0.8,1.2,1.5]),st=pick([10,20]),c2=pick([0.2,0.25,0.3,0.4]),m=f+R(2,12)*st-R(0,st-1),extra=Math.ceil((m-f)/st),v=r6(c1+extra*c2);
+  const fig=tableH(['Mass of letter','Cost'],[[`First ${f} g`,$m(c1)],[`Every additional ${st} g or part thereof`,$m(c2)]]);
+  return {stem:'The rates for sending airmail letters to a country are shown in the table.',fig,parts:[num(v,{marks:2,pre:'$',q:`How much does it cost to send a letter of mass ${m} g?`,
+    work:[`${m} g − ${f} g = ${m-f} g more`,`${m-f} ÷ ${st} → ${extra} lots of ${st} g (a part still counts as a whole lot)`,`${$m(c1)} + ${extra} × ${$m(c2)} = <b>${$m(v)}</b>`]})]}}});
+rq({id:'stooldesk',kind:'saq',paper:2,topic:'whole',make(){const s=R(4,20)*5,d=R(6,30)*5,a=pick([2,3,4]),b=pick([3,5,7]),k=pick([2,3]),c=b*k+pick([2,3,5]),P1=a*s+b*d,P2=k*a*s+c*d;
+  return {stem:'',parts:[num(d,{marks:2,pre:'$',q:`The cost of ${a} stools and ${b} desks is ${$m(P1)}. The cost of ${k*a} stools and ${c} desks is ${$m(P2)}. Find the cost of 1 desk.`,
+    work:[`${k} × (${a} stools + ${b} desks) = ${k*a} stools + ${k*b} desks = ${$m(k*P1)}`,`The difference is ${c-k*b} desks: ${$m(P2)} − ${$m(k*P1)} = ${$m(P2-k*P1)}`,`1 desk = ${$m(P2-k*P1)} ÷ ${c-k*b} = <b>${$m(d)}</b>`]})]}}});
+rq({id:'cutratio',kind:'saq',paper:2,topic:'ratio',make(){let r;do r=[R(2,9),R(1,5),R(2,7)];while(new Set(r).size<3);const u=R(5,30),mn=Math.min(...r),L=mn*u,T=(r[0]+r[1]+r[2])*u,lng=Math.max(...r)*u,ask=Math.random()<.5;
+  return {stem:'',parts:[num(ask?T:lng,{marks:2,unit:'cm',q:`A roll of string is cut into three pieces in the ratio ${r.join(' : ')}. The shortest piece is ${L} cm long. What is the length of ${ask?'the whole roll of string':'the longest piece'}?`,
+    work:[`Shortest = ${mn} unit${mn>1?'s':''} = ${L} cm → 1 unit = ${u} cm`,ask?`Whole roll = ${r[0]+r[1]+r[2]} units = <b>${T} cm</b>`:`Longest = ${Math.max(...r)} units = <b>${lng} cm</b>`]})]}}});
+rq({id:'notes',kind:'saq',paper:2,topic:'whole',make(){const t=R(4,15),f=R(3,15),T=10*t+5*f,n=t+f;
+  return {stem:'',parts:[num(t,{marks:2,q:`Mrs Tan bought a dress for ${$m(T)}. She paid the cashier using only $10 and $5 notes. She used ${n} notes altogether. How many $10 notes did she use?`,
+    work:[`If all ${n} notes were $5: ${n} × $5 = ${$m(5*n)}`,`Short by ${$m(T)} − ${$m(5*n)} = ${$m(T-5*n)}; each $10 note adds $5 more`,`${$m(T-5*n)} ÷ $5 = <b>${t}</b>`]})]}}});
+rq({id:'meet',kind:'saq',paper:2,topic:'rate',make(){const a=R(6,16)*10,b=R(5,14)*10,t=pick([2,2.5,3,4,5,6]),D=(a+b)*t;if(a===b)return this.make();
+  return {stem:'',parts:[num(t,{marks:2,unit:'h',q:`The distance between Town C and Town D is ${fmtN(D)} km. Train X left Town C for Town D at ${a} km/h. At the same time, Train Y left Town D for Town C at ${b} km/h. How many hours later did the two trains meet?`,
+    work:[`Every hour they get ${a} + ${b} = ${a+b} km closer.`,`${fmtN(D)} ÷ ${a+b} = <b>${fmtN(t)} h</b>`]})]}}});
+rq({id:'wings',kind:'saq',paper:2,topic:'whole',make(){const s=pick([4,6,8]),b=s+pick([2,4,6]),N=R(20,45),big=R(5,N-5),W=s*(N-big)+b*big;
+  return {stem:'',parts:[num(big,{marks:2,q:`Ronald bought ${N} small and big boxes of chicken wings. Each small box had ${s} wings and each big box had ${b} wings. There were ${W} wings altogether. How many big boxes did he buy?`,
+    work:[`If all ${N} boxes were small: ${N} × ${s} = ${N*s} wings`,`Extra wings = ${W} − ${N*s} = ${W-N*s}; each big box has ${b-s} more`,`${W-N*s} ÷ ${b-s} = <b>${big}</b>`]})]}}});
+rq({id:'avgspeed',kind:'saq',paper:2,topic:'rate',make(){let v,u,d,t1,t2,av;do{v=pick([40,45,50,60,72,75,80,90]);u=pick([40,45,50,60,72,75,80,90]);d=lcm(v,u)*pick([1,2]);t1=d/v;t2=d/u;av=2*d/(t1+t2)}while(v===u||t1+t2>12||Math.round(av*10)!==av*10);
+  return {stem:'',parts:[num(av,{marks:2,unit:'km/h',q:`Mr Kong drove from City A to City B at an average speed of ${v} km/h. He took ${t1} h. He then drove back to City A along the same road at an average speed of ${u} km/h. What was his average speed for the whole journey?`,
+    work:[`Distance one way = ${v} × ${t1} = ${d} km`,`Time back = ${d} ÷ ${u} = ${t2} h`,`Average speed = total distance ÷ total time = ${2*d} ÷ ${t1+t2} = <b>${fmtN(av)} km/h</b>`]})]}}});
+
 /* ---------- difficulty: 1 Foundation, 2 Standard, 3 Challenge ---------- */
 const RQLV={sqangle:3,givenaway:3,overlap:3,discount:2,shortleft:2,patsum:2,steprate:2,rolls:2,ring:2,
   cloth:2,paraang:2,ratio2:2,plantbar:2,rectY:3,pietfn:2,gst:2,
-  Lalgcost:2,Lpct2:2,Lcourt:3,Lrhombus:2,Lcookies:3,Ltanks:3,Lsemi:2,Lstickers:2,Lmuffin:3,Lpie:2,Lcubetank:2,Lbeads:2,Lcamp:3,Lpoints:3,Lequal:3,Ljackets:3,Lboxes:2,Lelec:2,Lfilepen:3,Lclub:2};
+  Lalgcost:2,Lpct2:2,Lcourt:3,Lrhombus:2,Lcookies:3,Ltanks:3,Lsemi:2,Lstickers:2,Lmuffin:3,Lpie:2,Lcubetank:2,Lbeads:2,Lcamp:3,Lpoints:3,Lequal:3,Ljackets:3,Lboxes:2,Lelec:2,Lfilepen:3,Lclub:2,
+  avg6:2,syrup:1,freebag:2,pairsum:3,cupleft:2,flourbag:2,airmail:2,stooldesk:3,cutratio:2,notes:2,meet:2,wings:3,avgspeed:3};
 RQB.forEach(g=>{g.lv=RQLV[g.id]||1});
 /* ================= PSLE QUEST: game =================
    One revision game across all topics, laid out like the real P6 paper:
