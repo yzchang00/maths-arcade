@@ -35,6 +35,8 @@ function angArc(v,a,b,label,r=22){const a1=Math.atan2(a[1]-v[1],a[0]-v[0]),a2=Ma
   return `<path class="arc" d="M${r6(p1[0])} ${r6(p1[1])} A${r} ${r} 0 0 ${d>0?1:0} ${r6(p2[0])} ${r6(p2[1])}"/>`+(label?tx(v[0]+lr*Math.cos(m),v[1]+lr*Math.sin(m)+4,label,'middle','ang'):'')}
 const tk=(a,b)=>{const m=[(a[0]+b[0])/2,(a[1]+b[1])/2],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy),nx=-dy/l*6,ny=dx/l*6;return ln([m[0]-nx,m[1]-ny],[m[0]+nx,m[1]+ny],'thin')};
 const lab=(p,s,dx=0,dy=0)=>tx(p[0]+dx,p[1]+dy,s,'middle','ptl');
+/* put a point's label in the widest open gap between the lines that meet at it */
+function labFree(p,s,nb,r=16){const an=nb.map(q=>Math.atan2(q[1]-p[1],q[0]-p[0])).sort((a,b)=>a-b);let best=0,mid=Math.PI;an.forEach((a,i)=>{const b=i+1<an.length?an[i+1]:an[0]+2*Math.PI,g=b-a;if(g>best){best=g;mid=a+g/2}});return tx(p[0]+r*Math.cos(mid),p[1]+r*Math.sin(mid)+5,s,'middle','ptl')}
 function barChart(cats,vals,max,step,minor,ylab,hide){const W=460,H=250,x0=70,y0=20,y1=205,x1=W-12,bw=(x1-x0)/cats.length;let s='';
   for(let v=0;v<=max;v+=minor){const y=y1-(y1-y0)*v/max;s+=ln([x0,y],[x1,y],v%step===0?'gr2':'gr');if(v%step===0)s+=tx(x0-6,y+4,v,'end')}
   s+=ln([x0,y0],[x0,y1])+ln([x0,y1],[x1,y1]);
@@ -129,7 +131,7 @@ rq({id:'rolls',kind:'mcq2',topic:'whole',make(){let Lp,Rl,N,per,v;do{Lp=pick([3,
     work:[`Each ${Rl} m roll gives ${Rl} ÷ ${Lp} = ${per} pieces (remainder ${Rl%Lp} m is wasted).`,`${N} ÷ ${per} = ${Math.floor(N/per)} rem ${N%per}${N%per?', so 1 more roll is needed':''}.`,`Least number of rolls = <b>${v}</b>`]}}});
 rq({id:'sqangle',kind:'mcq2',topic:'angle',make(){const th=pick([20,24,28,30,32,36,40,44,48,50,56,60,64,70]),v=(90-th)/2;
   const B=[50,30],C=[230,30],A=[50,210],D=[230,210],E=[C[0]-180*Math.cos(th*deg),C[1]+180*Math.sin(th*deg)];
-  const s=PG([B,C,D,A])+ln(B,E)+ln(C,E)+ln(E,D)+tk(B,C)+tk(C,E)+angArc(C,B,E,th+'°',26)+lab(B,'B',-10,-6)+lab(C,'C',10,-6)+lab(A,'A',-10,14)+lab(D,'D',10,14)+lab(E,'E',-12,4);
+  const s=PG([B,C,D,A])+ln(B,E)+ln(C,E)+ln(E,D)+tk(B,C)+tk(C,E)+angArc(C,B,E,th+'°',26)+lab(B,'B',-10,-6)+lab(C,'C',10,-6)+lab(A,'A',-10,14)+lab(D,'D',10,14)+labFree(E,'E',[B,C,D,[A[0],E[1]]]);
   return {stem:`In the figure, ABCD is a square. BC = CE and ∠BCE = ${th}°. Find ∠EDA.`,fig:svgW(280,240,s,280),parts:[Object.assign(mc(v,[th,(90+th)/2,90-th,(180-th)/2]),{marks:2})].map(p=>(p.opts=p.opts.map(x=>x+'°'),p)),
     work:[`CE = BC = CD (sides of a square), so triangle CDE is isosceles.`,`∠ECD = 90° − ${th}° = ${90-th}°`,`∠CDE = (180° − ${90-th}°) ÷ 2 = ${(90+th)/2}°`,`∠EDA = 90° − ${(90+th)/2}° = <b>${v}°</b>`]}}});
 rq({id:'ring',kind:'mcq2',topic:'circ',make(){const use7=Math.random()<.5,D=use7?pick([14,28,42]):pick([10,20,30,40]),d=D/2,pi=use7?22/7:3.14,v=r6(pi*D/2+pi*d/2+(D-d));

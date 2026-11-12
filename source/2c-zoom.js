@@ -22,10 +22,9 @@ function zoomOpen(svg){const ov=document.createElement('div');ov.className='zoom
 function zoomScan(){const st=$('gStage');if(!st)return;
   st.querySelectorAll('svg').forEach(svg=>{if(svg.dataset.zb||svg.closest('.zoomov,.vmmap,.kitchen,.cust,.mcard,.rqcalc,.qubi,.choices,button,.facewrap,.pzrow,.tug,.fwall,.tmap-nozoom')||svg.classList.contains('tmap'))return;if(svg.classList.contains('qubi')||svg.classList.contains('kid')||svg.classList.contains('vmmap'))return;
     const r=svg.getBoundingClientRect();if(r.width<200||r.height<110)return;svg.dataset.zb='1';
-    const holder=svg.parentElement;if(getComputedStyle(holder).position==='static')holder.style.position='relative';
     const b=document.createElement('button');b.type='button';b.className='zoombtn';b.innerHTML='🔍<span> Zoom</span>';b.setAttribute('aria-label','Zoom in on this picture');b.onclick=e=>{e.stopPropagation();zoomOpen(svg)};
-    holder.appendChild(b);const place=()=>{if(!svg.isConnected){b.remove();return}const pr=holder.getBoundingClientRect(),sr=svg.getBoundingClientRect();b.style.left=(sr.right-pr.left-b.offsetWidth-6+holder.scrollLeft)+'px';b.style.top=Math.max(0,sr.top-pr.top-16)+'px'};place();
-    (ZOOM.places=ZOOM.places||[]).push(place);
+    /* the button sits in its own row under the picture, so it never covers a label */
+    const row=document.createElement('div');row.className='zoomrow';row.style.maxWidth=Math.round(r.width)+'px';row.appendChild(b);svg.after(row);
     if(svg.closest('.rqfig'))svg.addEventListener('click',()=>zoomOpen(svg))})}
 addEventListener('resize',()=>{(ZOOM.places||[]).forEach(f=>f())});
 {let t=0;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(()=>{zoomScan();(ZOOM.places||[]).forEach(f=>f())},120)}).observe(document.getElementById('view'),{childList:true,subtree:true})}

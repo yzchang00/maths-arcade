@@ -550,7 +550,8 @@ body.playing .rqtrack{gap:4px}body.playing .rqtr{padding:3px 8px;gap:2px}body.pl
 }
 
 /* ---------- zoom viewer ---------- */
-.zoombtn{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:2px;font:800 13px var(--body);background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);opacity:.92}
+.zoomrow{display:flex;justify-content:flex-end;width:100%;margin:2px 0 4px}
+.zoombtn{position:relative;z-index:4;display:inline-flex;align-items:center;gap:2px;font:800 13px var(--body);background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);opacity:.92}
 .zoombtn:hover{opacity:1;background:var(--soft)}@media (max-width:600px){.zoombtn span{display:none}.zoombtn{padding:4px 8px}}
 .rqfig svg{cursor:zoom-in}
 .zoomov{position:fixed;inset:0;z-index:200;background:rgba(10,18,32,.86);display:grid;grid-template-rows:auto 1fr;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
