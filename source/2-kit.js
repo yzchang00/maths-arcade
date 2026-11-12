@@ -210,18 +210,34 @@ function onlinePanel(id){
     $('olBox').insertAdjacentHTML('beforeend',`<label class="row"><b>Your nickname</b><input class="num" style="width:12em" id="olNick" maxlength="16" value="${esc(ONLINE.nick||(arcMe()||{}).nick||"")}"></label>
       <div class="row"><button class="btn primary" id="olNew">Create a room</button><span style="color:var(--muted)">or</span><input class="num" style="width:7em;text-transform:uppercase" id="olCode" maxlength="4" placeholder="CODE" aria-label="Room code"><button class="btn" id="olJoin">Join</button></div><div id="olErr" style="font-weight:700;color:var(--bad)"></div>`);
     $('olNote').textContent='One person creates a room and shares the 4-letter code. Everyone gets the same questions at the same time, with a live leaderboard.';
+    if(ONLINE.autoCode){const c=ONLINE.autoCode;ONLINE.autoCode=null;$('olCode').value=c.toUpperCase();$('olNew').hidden=true;$('olNew').nextElementSibling.hidden=true;
+      $('olNote').innerHTML=`You've been invited to room <b class="code">${esc(c.toUpperCase())}</b>! Type your nickname and tap <b>Join</b>.`;$('olJoin').classList.add('primary');$('olJoin').textContent='Join the room ▶';
+      if(!$('olNick').value)$('olNick').focus()}
     const nick=()=>{const n=$('olNick').value.trim().slice(0,16);if(!n){$('olErr').textContent='Type a nickname first.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
     $('olNew').onclick=async()=>{if(!nick())return;const code=Array.from({length:4},()=>'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random()*31)]).join('');
       const r=await joinCode(code,true);if(r!=='ok'){$('olErr').textContent=r==='unavailable'?'Online rooms are not available for you here.':'Could not open a room. Try again.';return}drawLobby()};
     $('olJoin').onclick=async()=>{if(!nick())return;const code=$('olCode').value.trim().toLowerCase();if(!/^[a-z0-9]{4}$/.test(code)){$('olErr').textContent='Room codes have 4 letters or numbers.';return}
       const r=await joinCode(code,false);if(r!=='ok'){$('olErr').textContent='Could not join that room. Check the code.';return}drawLobby()}})}
+const olLink=()=>location.origin+location.pathname+'#join/'+ONLINE.code+'/'+ctx.id;
+function olShareBox(){let qr='';try{qr=qrSvg(olLink())}catch(e){}
+  return `<div class="olshare">${qr?`<button class="qrbox" id="olBig" title="Show a big QR code for the class to scan">${qr}<small>🔍 Tap to enlarge</small></button>`:''}<div class="olsharetxt"><b>Invite classmates</b><span>Scan the QR code, or open this link:</span>
+    <input class="num ollink" id="olLink" readonly value="${esc(olLink())}" aria-label="Room link"><div class="row"><button class="btn sm" id="olCopy">📋 Copy link</button>${navigator.share?'<button class="btn sm" id="olShare">📤 Share</button>':''}<span id="olCopied" class="olcopied" role="status"></span></div></div></div>`}
+function wireShare(){const link=olLink();
+  if($('olLink'))$('olLink').onclick=()=>$('olLink').select();
+  if($('olCopy'))$('olCopy').onclick=async()=>{try{await navigator.clipboard.writeText(link)}catch(e){$('olLink').select();try{document.execCommand('copy')}catch(e2){}}sfx.tap();$('olCopied').textContent='Copied! Paste it in your class chat.'};
+  if($('olShare'))$('olShare').onclick=()=>navigator.share({title:'Maths Arcade room '+ONLINE.code.toUpperCase(),text:`Join my Maths Arcade room (${ctx.G.title}). Code: ${ONLINE.code.toUpperCase()}`,url:link}).catch(()=>{});
+  if($('olBig'))$('olBig').onclick=()=>{const o=document.createElement('div');o.className='zoomov lbmodal';
+    o.innerHTML=`<div class="end olbig"><span class="tag">Scan to join</span><h3>Room ${ONLINE.code.toUpperCase()} · ${esc(ctx.G.title)}</h3>${qrSvg(link)}<p class="ollinkbig">${esc(link.replace(/^https?:\/\//,''))}</p><button class="btn primary" id="olBigX">Close</button></div>`;
+    document.body.appendChild(o);sfx.pop();const x=()=>o.remove();$('olBigX').onclick=x;o.addEventListener('click',e=>{if(e.target===o)x()})}}
 function drawLobby(){const box=$('olBox');if(!box)return;const h=hostPeer(),list=onlineRows(),hg=h&&h.presence.game&&GAMES[h.presence.game];
   box.innerHTML=`<span class="tag">Online room</span><h3>Room code: <span class="code">${ONLINE.code.toUpperCase()}</span></h3>
-    <p style="margin:0;color:var(--muted)">${ONLINE.host?`Friends open this page, choose ${esc(ctx.G.title)} (or any game), tap Online room and join with this code.`:hg?`Host is setting up <b>${esc(hg.title)}</b>. The game starts when the host presses Start.`:'Waiting for the host…'}</p>
+    <p style="margin:0;color:var(--muted)">${ONLINE.host?`Invite classmates with the QR code or link below, or tell them the code. When everyone is in, press Start.`:hg?`Host is setting up <b>${esc(hg.title)}</b>. The game starts when the host presses Start.`:'Waiting for the host…'}</p>
     <div id="olLobby"><ol class="board">${list.map(x=>`<li><b>${esc(x.n)}</b><span>${x.sub}</span></li>`).join('')||'<li>Connecting…</li>'}</ol></div>
+    ${olShareBox()}
     <div class="row">${ONLINE.host?`<button class="btn primary" id="olStart">Start ${esc(ctx.G.title)} for everyone</button>`:''}<button class="btn" id="olLeave">Leave room</button></div>`;
   if($('olStart'))$('olStart').onclick=()=>{const seed=Math.floor(Math.random()*4294967296),startAt=Date.now();ONLINE.lastStart=startAt;
     ONLINE.room.presence({game:ctx.id,level:ctx.level,seed,startAt,status:'playing',score:0,round:1}).catch(()=>{});playGame(ctx.id,{go:true,seedBase:seed,level:ctx.level})};
+  wireShare();
   $('olLeave').onclick=async()=>{try{await ONLINE.room.leave()}catch(e){}if(ONLINE.unsub)ONLINE.unsub();Object.assign(ONLINE,{code:null,room:null,host:false,peers:[],unsub:null});onlinePanel(ctx.id)}}
 function onlineEnd(){const list=onlineRows(),all=list.every(x=>/done/.test(x.sub));
   if(!$('olEnd')){$('gStage').innerHTML=`<div class="end" id="olEnd"></div>`;sfx.win();confetti(120,true)}
