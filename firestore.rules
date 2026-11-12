@@ -8,6 +8,10 @@ service cloud.firestore {
         && request.auth.token.email in ["xxyanzhangxx@gmail.com"];   // admin: only Yan
     }
     function shortText(v, n) { return v is string && v.size() <= n; }
+    // Server-side backstop for the worst words (the website has a fuller filter; this stops anyone bypassing it).
+    function cleanName(v) {
+      return !(v is string) || !v.lower().matches('.*(n+[i1!|]+g+[e3]+r|n+[i1!|]+gg+[a@]+|f+[u*v]+c+k|f+u+k|c+u+n+t|ch?[i1]+ba[i1]|lanj[i1]+a?o|puk[i1]+mak|kan[i1]+na|b[i1]+tch|wh[o0]+re|sl[u*]+t|p[o0]+rn).*');
+    }
 
     // Leaderboard: one document per player per game per difficulty with their best score.
     // Anyone can read; a score can only be replaced by a HIGHER score (or more stars) for the same player; only teachers can delete.
@@ -18,6 +22,7 @@ service cloud.firestore {
         && (!('diff' in request.resource.data) || shortText(request.resource.data.diff, 8))
         && request.resource.data.nick is string && request.resource.data.nick.size() >= 2 && request.resource.data.nick.size() <= 14
         && shortText(request.resource.data.cls, 8)
+        && cleanName(request.resource.data.nick) && cleanName(request.resource.data.cls)
         && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= 1000
         && request.resource.data.stars is int && request.resource.data.stars >= -1 && request.resource.data.stars <= 3
         && request.resource.data.ts == request.time;
@@ -57,7 +62,7 @@ service cloud.firestore {
       allow create, update: if room.matches('arc-[a-z0-9]{4}')
         && request.resource.data.keys().hasOnly(['nick','code','host','status','score','round','game','level','startAt','seed','seen'])
         && request.resource.data.seen == request.time
-        && (!('nick' in request.resource.data) || shortText(request.resource.data.nick, 16))
+        && (!('nick' in request.resource.data) || (shortText(request.resource.data.nick, 16) && cleanName(request.resource.data.nick)))
         && (!('game' in request.resource.data) || request.resource.data.game == null || shortText(request.resource.data.game, 40))
         && (!('status' in request.resource.data) || shortText(request.resource.data.status, 10));
       allow delete: if true;

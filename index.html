@@ -776,6 +776,15 @@ const PRAISE=['Correct!','Brilliant!','Spot on!','Nailed it!','Well done!','Supe
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let ctx=null;
 function cleanup(){if($('rqCalc')){$('rqCalc').hidden=true;document.body.classList.remove('rqco')}if(ctx){ctx.timers.forEach(clearTimeout);ctx.dead=true}ctx=null}
+/* ---------- nickname filter (used for leaderboard names, classes and online-room names) ----------
+   Checks a "squashed" copy of the name: lower case, look-alike digits/symbols turned into letters
+   (0→o, 1→i, 3→e, 4→a, 5→s, 7→t, @→a, $→s), everything except letters removed, repeated letters collapsed.
+   So "N1GG3R", "f.u.c.k", "Fuuuck" and "s h i t" are all caught. */
+const BADWORDS=/(n[i1]g(?:er|a|ah|uh|az|ers)|fuk|fuc|fck|fvk|fvc|phuk|shit|sht|bitch|bich|biatch|cunt|dick|pusy|puss|sex|porn|fag|cock|slut|whore|rape|penis|vagina|boob|tits|tity|wank|retard|ashole|arse|bastard|idiot|stupid|dumb|bodoh|knn|kanina|ccb|lanji|lanjio|chibai|cibai|cheebai|pukimak|puki|nabeh|sohai|diulei|hitler|nazi|kys|kilyour|suicid|damn|crap|bastad|motherf|stfu|wtf|gay|lesbian|homo|negro|chink|paki|kling|keling)/;
+function squashNick(s){return String(s||'').toLowerCase().replace(/[0-9@$!|]/g,c=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','!':'i','|':'i'}[c]||'')).replace(/[^a-z]/g,'').replace(/(.)\1+/g,'$1')}
+const OKWORDS=/(nigam|nigamm|sussex|essex|middlesex|dickson|dicksen|dickens|benedick|susex|esex|midlesex|peacock|hancock|cockato|cockpit|cockerel|scunthorpe|shitake|shiitake|pakistan|klingon|sexton|titus|titan)/g;
+function isBadNick(s){const a=squashNick(s).replace(OKWORDS,''),b=String(s||'').toLowerCase().replace(/[^a-z]/g,'').replace(OKWORDS,'');return BADWORDS.test(a)||BADWORDS.test(b)}
+const safeNick=s=>isBadNick(s)?'Player':String(s||'');
 /* Play modes: solo, vs robot, pass & play on one device, online room. */
 const MODES=[['solo','Solo'],['bot','vs Robot'],['pass','Pass & play'],['online','Online room']];
 let MODE='solo',PASS=null;
@@ -900,7 +909,7 @@ function passSetup(id){const names=PASS||['Player 1','Player 2'];
   let cur=[...names];const draw=()=>{$('ppN').innerHTML=cur.map((n,i)=>`<label class="row"><span style="min-width:70px;font-weight:800">Player ${i+1}</span><input class="num" style="width:12em" maxlength="16" data-i="${i}" value="${esc(n)}"></label>`).join('');
     $('ppN').querySelectorAll('input').forEach(inp=>inp.oninput=()=>{cur[+inp.dataset.i]=inp.value})};draw();
   $('gStage').querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const n=+b.dataset.n;cur=Array.from({length:n},(_,i)=>cur[i]||`Player ${i+1}`);$('gStage').querySelectorAll('[data-n]').forEach(x=>x.classList.toggle('sel',x===b));draw()});
-  $('ppGo').onclick=()=>{PASS=cur.map((n,i)=>n.trim().slice(0,16)||`Player ${i+1}`);sfx.tap();playGame(id,{go:true,how:true})}}
+  $('ppGo').onclick=()=>{PASS=cur.map((n,i)=>isBadNick(n)?`Player ${i+1}`:n.trim().slice(0,16)||`Player ${i+1}`);sfx.tap();playGame(id,{go:true,how:true})}}
 
 /* ---------- online room (Firebase rooms on the class website, or the Claude room capability; presence only) ---------- */
 let ROOMNS,ONLINE={code:null,room:null,host:false,nick:'',peers:[],lastStart:null,unsub:null};
@@ -908,7 +917,7 @@ const roomReady=(async()=>{try{if(window.claude&&window.claude.use){ROOMNS=await
   if(!window.ARCROOM)await new Promise(r=>{addEventListener('arcb-ready',r,{once:true});setTimeout(r,8000)});ROOMNS=window.ARCROOM||null;return ROOMNS})();
 try{ONLINE.nick=localStorage.getItem('arcNick')||''}catch(e){}
 const hostPeer=()=>ONLINE.peers.find(p=>p.presence&&p.presence.host&&p.presence.code===ONLINE.code);
-function onlineRows(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).map(p=>({n:(p.presence.host?'★ ':'')+p.presence.nick+(p.sameTab?' (you)':''),s:+p.presence.score||0,me:p.sameTab,
+function onlineRows(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).map(p=>({n:(p.presence.host?'★ ':'')+safeNick(p.presence.nick)+(p.sameTab?' (you)':''),s:+p.presence.score||0,me:p.sameTab,
   sub:p.presence.status==='done'?' done':p.presence.status==='playing'?` · round ${p.presence.round||1}`:' · in lobby'})).sort((a,b)=>b.s-a.s)}
 function onlineReport(done){const c=ctx;if(!ONLINE.room||!c)return;ONLINE.room.presence({score:c.score,round:Math.min(c.r+1,c.G.rounds),status:done?'done':'playing'}).catch(()=>{})}
 function onPeersChange(ch){ONLINE.peers=ch.peers;if(ctx&&ctx.mode==='online')renderScore();
@@ -932,7 +941,7 @@ function onlinePanel(id){
     if(ONLINE.autoCode){const c=ONLINE.autoCode;ONLINE.autoCode=null;$('olCode').value=c.toUpperCase();$('olNew').hidden=true;$('olNew').nextElementSibling.hidden=true;
       $('olNote').innerHTML=`You've been invited to room <b class="code">${esc(c.toUpperCase())}</b>! Type your nickname and tap <b>Join</b>.`;$('olJoin').classList.add('primary');$('olJoin').textContent='Join the room ▶';
       if(!$('olNick').value)$('olNick').focus()}
-    const nick=()=>{const n=$('olNick').value.trim().slice(0,16);if(!n){$('olErr').textContent='Type a nickname first.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
+    const nick=()=>{const n=$('olNick').value.trim().replace(/\s+/g,' ').slice(0,16);if(n.length<2){$('olErr').textContent='Type a nickname with at least 2 letters.';return null}if(isBadNick(n)){$('olErr').textContent='Please choose a kinder nickname.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
     $('olNew').onclick=async()=>{if(!nick())return;const code=Array.from({length:4},()=>'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random()*31)]).join('');
       const r=await joinCode(code,true);if(r!=='ok'){$('olErr').textContent=r==='unavailable'?'Online rooms are not available for you here.':'Could not open a room. Try again.';return}drawLobby()};
     $('olJoin').onclick=async()=>{if(!nick())return;const code=$('olCode').value.trim().toLowerCase();if(!/^[a-z0-9]{4}$/.test(code)){$('olErr').textContent='Room codes have 4 letters or numbers.';return}
@@ -1775,7 +1784,7 @@ addGame('p5-vault',{level:'P5',strand:'num',glyph:'7',title:'Vault Cracker',topi
      ${vaultRules(mode)}
      ${mode==='pass'?`<div class="row">${[0,1].map(i=>`<label class="row"><b>Player ${i+1}</b><input class="num" style="width:10em" maxlength="14" id="vmN${i}" value="${esc(PASS[i])}"></label>`).join('')}</div>`:''}
      <button class="btn primary" id="vmStart">Start</button></div>`;
-   $('vmStart').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>$('vmN'+i).value.trim().slice(0,14)||`Player ${i+1}`);sfx.tap();vaultGame(stage,mode)}}});
+   $('vmStart').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>{const v=$('vmN'+i).value.trim().slice(0,14);return isBadNick(v)?`Player ${i+1}`:v||`Player ${i+1}`});sfx.tap();vaultGame(stage,mode)}}});
 
 /* P5-2. Operation Order — Order of operations and brackets */
 function exStep(t){let l=0,r=t.length-1;const lp=t.findIndex(x=>x.lp);if(lp>=0){l=lp+1;r=t.findIndex(x=>x.rp)-1}
@@ -2852,7 +2861,7 @@ function partyStart(stage,id,mode,extra,onGo){const H=HOWTO[id]||{steps:[]},G=GA
     ${mode==='bot'||(mode==='solo'&&id!=='party-bingo')?`<div class="row"><b>Robot:</b>${['easy','mixed','hard'].map(l=>`<label class="pchip"><input type="radio" name="ptBot" value="${l}" ${l==='mixed'?'checked':''}> ${BOT[l].name}</label>`).join('')}</div>`:''}</div>
     <button class="btn primary" id="ptGo">I'm ready, let's play! ▶</button></div>`;
   qubi('gQ','wave','Read the rules first!',true);
-  $('ptGo').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>$('ptN'+i).value.trim().slice(0,14)||`Player ${i+1}`);
+  $('ptGo').onclick=()=>{if(mode==='pass')PASS=[0,1].map(i=>{const v=$('ptN'+i).value.trim().slice(0,14);return isBadNick(v)?`Player ${i+1}`:v||`Player ${i+1}`});
     const bl=(stage.querySelector('input[name=ptBot]:checked')||{}).value||'mixed';const sel={};stage.querySelectorAll('[data-pset]').forEach(x=>{if(x.type==='radio'){if(x.checked)sel[x.name]=x.value}else sel[x.dataset.pset]=x.value});
     sfx.ok();document.body.classList.add('playing');onGo({bot:bl,names:mode==='pass'?PASS.slice(0,2):mode==='class'?['Class']:['You','🤖 '+BOT[bl].name],sel});fitView()};fitView()}
 const topicPick=(name,opts,def)=>`<div class="row"><b>Questions:</b>${opts.map(([k,t])=>`<label class="pchip"><input type="radio" data-pset name="${name}" value="${k}" ${k===def?'checked':''}> ${t}</label>`).join('')}</div>`;
@@ -3060,7 +3069,6 @@ const HOWTO={
 const SID=Math.random().toString(36).slice(2,10);
 function arcMe(){try{return JSON.parse(localStorage.getItem('arcMe')||'null')}catch(e){return null}}
 function arcSetMe(m){try{localStorage.setItem('arcMe',JSON.stringify(m))}catch(e){}}
-const BADNICK=/(fuck|shit|bitch|cunt|dick|pussy|sex|porn|nigg|fag|idiot|stupid|bodoh|knn|ccb|lanjiao|chibai|pukimak)/i;
 function arcLog(event,game,score){if(!window.ARCB)return;const me=arcMe();
   window.ARCB.log({event,game:game||'',score:score==null?-1:Math.max(0,Math.min(1000,Math.round(score))),nick:me?me.nick:'',cls:me?me.cls:'',sid:SID,device:innerWidth<600?'phone':innerWidth<1000?'tablet':'computer'}).catch(()=>{})}
 /* difficulty of the game just played: Easy / Medium / Hard for normal games, '-' for games with their own start screen */
@@ -3089,7 +3097,7 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
   $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
   const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
   $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
-    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(BADNICK.test(nick))return $('lbErr').textContent='Please choose a kinder nickname.';
+    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(isBadNick(nick))return $('lbErr').textContent='Please choose a kinder nickname.';if(isBadNick(cls))return $('lbErr').textContent='Please type a real class, like 5B.';
     arcSetMe({nick,cls});arcLog('join');sfx.ok();close();if(after)after()}}
 function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
   return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
@@ -3101,8 +3109,8 @@ addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(!h&&!documen
 const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
   const isMe=x=>x.nick===me.nick&&x.cls===(me.cls||''),val=x=>`${x.score}${x.stars>=0?` <small>${'★'.repeat(x.stars)}</small>`:''}${x.sub?` <small class="pts">${x.sub}</small>`:''}`,mood=['party','wave','cheer'];
   const step=i=>{const x=r[i];if(!x)return `<div class="lbp-col lbp-${i+1} lbp-none"><div class="lbp-who"><b>—</b><span class="lbc">No one yet</span></div><div class="lbp-block"><span>${i+1}</span></div></div>`;
-    return `<div class="lbp-col lbp-${i+1}${isMe(x)?' lbp-me':''}"><div class="lbp-who"><span class="lbp-medal">${['🥇','🥈','🥉'][i]}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${val(x)}</span></div><div class="lbp-q">${QUBI.replace('class="qubi"',`class="qubi ${mood[i]}"`)}</div><div class="lbp-block"><span>${i+1}</span></div></div>`};
-  return `<div class="lbp">${step(1)}${step(0)}${step(2)}</div>${r.length>3?`<ol class="lbrows" start="4">${r.slice(3).map((x,i)=>`<li class="${isMe(x)?'me':''}"><span class="lbr">${i+4}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${val(x)}</span></li>`).join('')}</ol>`:''}`};
+    return `<div class="lbp-col lbp-${i+1}${isMe(x)?' lbp-me':''}"><div class="lbp-who"><span class="lbp-medal">${['🥇','🥈','🥉'][i]}</span><b>${esc(safeNick(x.nick))}</b><span class="lbc">${esc(isBadNick(x.cls)?'':x.cls||'')}</span><span class="lbs">${val(x)}</span></div><div class="lbp-q">${QUBI.replace('class="qubi"',`class="qubi ${mood[i]}"`)}</div><div class="lbp-block"><span>${i+1}</span></div></div>`};
+  return `<div class="lbp">${step(1)}${step(0)}${step(2)}</div>${r.length>3?`<ol class="lbrows" start="4">${r.slice(3).map((x,i)=>`<li class="${isMe(x)?'me':''}"><span class="lbr">${i+4}</span><b>${esc(safeNick(x.nick))}</b><span class="lbc">${esc(isBadNick(x.cls)?'':x.cls||'')}</span><span class="lbs">${val(x)}</span></li>`).join('')}</ol>`:''}`};
 /* one game's leaderboard, in a pop-up so pupils can check it from the game's start screen */
 function lbPopup(gid,diff){const G=GAMES[gid];if(!G)return;const me=arcMe()||{},dd=hasDiff(gid);let cls='',rows=null;diff=dd?(diff&&diff!=='-'?diff:(ctx&&ctx.id===gid?ctx.level:getLvl(gid))):'-';
   const o=document.createElement('div');o.className='zoomov lbmodal';
