@@ -550,6 +550,10 @@ body.playing .rqtrack{gap:4px}body.playing .rqtr{padding:3px 8px;gap:2px}body.pl
 }
 
 /* ---------- zoom viewer ---------- */
+.rqhint{border:2px dashed var(--sun);border-radius:12px;padding:10px 12px;margin:8px 0;background:color-mix(in srgb,var(--sun) 10%,var(--surface))}
+.rqhint .gsvg{display:block;margin:6px 0;width:100%;height:auto}
+.rqhintsay{margin:4px 0;font-weight:700}
+.rqhint .bmt{paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round;font-weight:800}
 .zoomrow{display:flex;justify-content:flex-end;width:100%;margin:2px 0 4px}
 .zoombtn{position:relative;z-index:4;display:inline-flex;align-items:center;gap:2px;font:800 13px var(--body);background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);opacity:.92}
 .zoombtn:hover{opacity:1;background:var(--soft)}@media (max-width:600px){.zoombtn span{display:none}.zoombtn{padding:4px 8px}}

@@ -20,7 +20,7 @@ function zoomOpen(svg){const ov=document.createElement('div');ov.className='zoom
   const up=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=0;if(!pts.size)last=null};st.addEventListener('pointerup',up);st.addEventListener('pointercancel',up);
   ov.querySelector('[data-z="x"]').focus();sfx.pop&&sfx.pop()}
 function zoomScan(){const st=$('gStage');if(!st)return;
-  st.querySelectorAll('svg').forEach(svg=>{if(svg.dataset.zb||svg.closest('.zoomov,.vmmap,.kitchen,.cust,.mcard,.rqcalc,.qubi,.choices,button,.facewrap,.pzrow,.tug,.fwall,.tmap-nozoom')||svg.classList.contains('tmap'))return;if(svg.classList.contains('qubi')||svg.classList.contains('kid')||svg.classList.contains('vmmap'))return;
+  st.querySelectorAll('svg').forEach(svg=>{if(svg.dataset.zb||svg.closest('.rqhint,.zoomov,.vmmap,.kitchen,.cust,.mcard,.rqcalc,.qubi,.choices,button,.facewrap,.pzrow,.tug,.fwall,.tmap-nozoom')||svg.classList.contains('tmap'))return;if(svg.classList.contains('qubi')||svg.classList.contains('kid')||svg.classList.contains('vmmap'))return;
     const r=svg.getBoundingClientRect();if(r.width<200||r.height<110)return;svg.dataset.zb='1';
     const b=document.createElement('button');b.type='button';b.className='zoombtn';b.innerHTML='🔍<span> Zoom</span>';b.setAttribute('aria-label','Zoom in on this picture');b.onclick=e=>{e.stopPropagation();zoomOpen(svg)};
     /* the button sits in its own row under the picture, so it never covers a label */
