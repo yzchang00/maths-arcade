@@ -693,6 +693,13 @@ input.num.ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 1
 @media (prefers-reduced-motion:reduce){.lbp-block,.lbp-q,.lbp-who{animation:none}.lbp-q .qubi *{animation:none!important}}
 @media (max-width:480px){.lbp{gap:6px}.lbp-q .qubi{width:46px}.lbp-1 .lbp-q .qubi{width:58px}.lbp-who b{font-size:.95rem}}
 select.num{font-size:1rem}
+.btn.sm{min-height:32px;padding:3px 10px;font-size:13px}
+.lbmodal .lbpop{max-width:560px;max-height:calc(100vh - 32px);overflow:auto;display:grid;gap:10px}.lbpop h3{margin:0}.lbpop .lbrows li{grid-template-columns:2.2em 1fr auto auto;padding:6px 10px}
+.lbtabs button{padding:4px 14px;font-size:.95rem}.lbs small{font-family:var(--body)}
+.gbtn{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:4px 12px;font-size:14px}
+.champhow{max-width:620px;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:14px 16px}.champhow .howlist{margin:6px 0 0}.lbs small.pts{color:var(--muted);font:700 .85rem var(--body)}
+.lbpop .lblist,.lbpop .lbrows{width:100%;max-width:none}
+body.playing .gbtn{display:none}
 </style>
 <style>[hidden]{display:none!important}</style></head><body>
 
@@ -814,12 +821,12 @@ function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id
   ctx={id,G,r:0,score:0,botScore:0,streak:0,timers:[],answered:false,dead:false,level:opts.level||getLvl(id),mode:MODE,seedBase:opts.seedBase};
   const s=STRANDS[G.strand];
   $('view').innerHTML=`<div style="display:grid;gap:14px;--c:${s.c}">
-    <div class="gbar"><a class="back" href="#">← All games</a><div class="row"><span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
+    <div class="gbar"><a class="back" href="#">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
     <div class="gtop"><div class="ghead"><span class="tag">${G.level} · ${G.topic}</span><h2>${G.title}</h2></div>${qubiBox('gQ',pick(['Let’s go!','You can do this!','I believe in you!']))}</div>
     <div id="gSet" class="row"></div><div id="gVs"></div>
     <div class="stagewrap"><button class="stagemenu" id="gMenu" hidden title="Leave this round and go back to this game's start screen">↩ Back to game menu</button><section class="stage" id="gStage"><div id="gq"></div><div id="gb" style="display:grid;gap:14px;min-width:0"></div><div id="gf"></div></section></div></div>`;
   {const st=$('gStage'),sync=()=>{const b=$('gMenu');if(b)b.hidden=!!st.querySelector('.wiz,.rqhome')&&!st.querySelector('.rqhead')};new MutationObserver(sync).observe(st,{childList:true});sync()}
-  $('gMenu').onclick=()=>{sfx.tap();playGame(id)};
+  $('gMenu').onclick=()=>{sfx.tap();playGame(id)};if($('gLb'))$('gLb').onclick=()=>{sfx.tap();lbPopup(id)};
   if(G.ownStart){$('gSet').hidden=true;G.custom($('gStage'),'solo');return}
   if(!opts.go&&!opts.setup)return startWizard(id);
   $('gSet').innerHTML=`<span class="setchip">${MODENAME[MODE]||''}${G.custom?'':' · '+LVNAME[ctx.level]}</span><button class="btn" id="gChange">Change settings</button>`;
@@ -842,7 +849,7 @@ function startWizard(id){const G=GAMES[id],modes=G.custom?G.modes.map(m=>m[0]):[
   const go=()=>{try{localStorage.setItem('arcLvl_'+id,st.level)}catch(e){}MODE=st.mode;sfx.ok();playGame(id,{setup:true,level:st.level})};
   const draw=()=>{let body='',title='';
     if(st.step===1){title='How do you want to play?';body=tile('solo','🎯','Solo','Play on your own and beat your best.',st.mode==='solo')+tile('multi','👥','Multiplayer',G.custom?'Race a friend or Robo.':'Play against Robo or with friends.',st.mode!=='solo')}
-    else if(st.step===2){title='Who are you playing with?';body=multi.map(m=>m==='bot'?tile('bot','🤖','vs Robot','Race Robo, the computer player.',st.mode==='bot'):m==='pass'?tile('pass','📱',G.custom?'2 players':'Pass & play',G.custom?'Two players take turns on this device.':'2 to 4 players take turns on this device.',st.mode==='pass'):m==='online'?tile('online','🌐','Online room','Friends join on their own devices (signed-in Claude users only).',st.mode==='online'):(e=>tile(m,e[3]||'👥',e[1],e[2]||'',st.mode===m))(G.modes.find(x=>x[0]===m))).join('')}
+    else if(st.step===2){title='Who are you playing with?';body=multi.map(m=>m==='bot'?tile('bot','🤖','vs Robot','Race Robo, the computer player.',st.mode==='bot'):m==='pass'?tile('pass','📱',G.custom?'2 players':'Pass & play',G.custom?'Two players take turns on this device.':'2 to 4 players take turns on this device.',st.mode==='pass'):m==='online'?tile('online','🌐','Online room','Friends join with a room code on their own devices.',st.mode==='online'):(e=>tile(m,e[3]||'👥',e[1],e[2]||'',st.mode===m))(G.modes.find(x=>x[0]===m))).join('')}
     else{title='Choose your level';body=tile('easy','🌱','Easy','Easier question types to warm up.',st.level==='easy')+tile('mixed','⚡','Medium','Starts easy and gets harder each round.',st.level==='mixed')+tile('hard','🔥','Hard','Only the toughest question types.',st.level==='hard')}
     const n=st.step===1?1:st.step===2?2:(st.mode==='solo'?2:3),of=st.mode==='solo'?(G.custom?1:2):steps;
     $('gStage').innerHTML=`<div class="wiz"><div class="row" style="justify-content:space-between"><span class="tag">Game start · step ${n}</span>${st.step>1?'<button class="btn" id="wBack">← Back</button>':''}</div>
@@ -874,7 +881,7 @@ function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ
       <h3>You scored ${c.score} out of ${max}</h3>${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
       <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
     $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id);return}
-  if(c.mode==='online'){c.finished=true;onlineReport(true);onlineEnd();return}
+  if(c.mode==='online'){c.finished=true;onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
   let title,rows;
   if(c.mode==='bot'){const b=BOT[c.level].name;title=c.score>c.botScore?'You beat '+b+'!':c.score<c.botScore?b+' wins this time':'It’s a draw!';rows=[['You',c.score],['🤖 '+b,c.botScore]]}
   else{rows=c.players.map(p=>[p.name,p.score]).sort((a,b)=>b[1]-a[1]);const top=rows.filter(r=>r[1]===rows[0][1]);title=top.length>1?'It’s a tie between '+top.map(t=>esc(t[0])).join(' and ')+'!':esc(rows[0][0])+' wins!'}
@@ -891,9 +898,10 @@ function passSetup(id){const names=PASS||['Player 1','Player 2'];
   $('gStage').querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{const n=+b.dataset.n;cur=Array.from({length:n},(_,i)=>cur[i]||`Player ${i+1}`);$('gStage').querySelectorAll('[data-n]').forEach(x=>x.classList.toggle('sel',x===b));draw()});
   $('ppGo').onclick=()=>{PASS=cur.map((n,i)=>n.trim().slice(0,16)||`Player ${i+1}`);sfx.tap();playGame(id,{go:true,how:true})}}
 
-/* ---------- online room (room capability; presence only, so nothing needs special send rights) ---------- */
+/* ---------- online room (Firebase rooms on the class website, or the Claude room capability; presence only) ---------- */
 let ROOMNS,ONLINE={code:null,room:null,host:false,nick:'',peers:[],lastStart:null,unsub:null};
-const roomReady=(async()=>{try{ROOMNS=await (window.claude&&window.claude.use?window.claude.use('room'):null)}catch(e){ROOMNS=null}return ROOMNS})();
+const roomReady=(async()=>{try{if(window.claude&&window.claude.use){ROOMNS=await window.claude.use('room');if(ROOMNS)return ROOMNS}}catch(e){ROOMNS=null}
+  if(!window.ARCROOM)await new Promise(r=>{addEventListener('arcb-ready',r,{once:true});setTimeout(r,8000)});ROOMNS=window.ARCROOM||null;return ROOMNS})();
 try{ONLINE.nick=localStorage.getItem('arcNick')||''}catch(e){}
 const hostPeer=()=>ONLINE.peers.find(p=>p.presence&&p.presence.host&&p.presence.code===ONLINE.code);
 function onlineRows(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).map(p=>({n:(p.presence.host?'★ ':'')+p.presence.nick+(p.sameTab?' (you)':''),s:+p.presence.score||0,me:p.sameTab,
@@ -912,9 +920,9 @@ function startOnline(p){MODE='online';const go=()=>{playGame(p.game,{go:true,see
 function onlinePanel(id){
   $('gStage').innerHTML=`<div class="end" id="olBox"><span class="tag">Online room</span><h3>Play with friends on their own devices</h3><p style="margin:0;color:var(--muted)" id="olNote">Checking whether online play works here…</p></div>`;
   roomReady.then(R=>{if(!$('olBox'))return;
-    if(!R){$('olNote').textContent='Online rooms only work for people who are signed in to Claude and have access to this page. Anyone opening it through a public link cannot join. Try vs Robot or Pass & play instead.';return}
+    if(!R){$('olNote').textContent='Online rooms need an internet connection to the class website. Try vs Robot or Pass & play instead.';return}
     if(ONLINE.code){drawLobby();return}
-    $('olBox').insertAdjacentHTML('beforeend',`<label class="row"><b>Your nickname</b><input class="num" style="width:12em" id="olNick" maxlength="16" value="${esc(ONLINE.nick)}"></label>
+    $('olBox').insertAdjacentHTML('beforeend',`<label class="row"><b>Your nickname</b><input class="num" style="width:12em" id="olNick" maxlength="16" value="${esc(ONLINE.nick||(arcMe()||{}).nick||"")}"></label>
       <div class="row"><button class="btn primary" id="olNew">Create a room</button><span style="color:var(--muted)">or</span><input class="num" style="width:7em;text-transform:uppercase" id="olCode" maxlength="4" placeholder="CODE" aria-label="Room code"><button class="btn" id="olJoin">Join</button></div><div id="olErr" style="font-weight:700;color:var(--bad)"></div>`);
     $('olNote').textContent='One person creates a room and shares the 4-letter code. Everyone gets the same questions at the same time, with a live leaderboard.';
     const nick=()=>{const n=$('olNick').value.trim().slice(0,16);if(!n){$('olErr').textContent='Type a nickname first.';return null}ONLINE.nick=n;try{localStorage.setItem('arcNick',n)}catch(e){}return n};
@@ -3035,12 +3043,17 @@ function arcSetMe(m){try{localStorage.setItem('arcMe',JSON.stringify(m))}catch(e
 const BADNICK=/(fuck|shit|bitch|cunt|dick|pussy|sex|porn|nigg|fag|idiot|stupid|bodoh|knn|ccb|lanjiao|chibai|pukimak)/i;
 function arcLog(event,game,score){if(!window.ARCB)return;const me=arcMe();
   window.ARCB.log({event,game:game||'',score:score==null?-1:Math.max(0,Math.min(1000,Math.round(score))),nick:me?me.nick:'',cls:me?me.cls:'',sid:SID,device:innerWidth<600?'phone':innerWidth<1000?'tablet':'computer'}).catch(()=>{})}
+/* difficulty of the game just played: Easy / Medium / Hard for normal games, '-' for games with their own start screen */
+const DIFFS=[['easy','Easy'],['mixed','Medium'],['hard','Hard']],DIFFPTS={easy:1,mixed:2,hard:3};
+const hasDiff=id=>GAMES[id]&&!GAMES[id].custom&&!GAMES[id].ownStart;
 async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();if(!o.again)arcLog('finish',id,score);
   if(!me||!me.nick){lbNote('<button class="btn" id="lbJoin">🏆 Add my name to the leaderboard</button>',()=>$('lbJoin').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));return}
-  const G=GAMES[id];
-  try{await window.ARCB.post({game:id,title:G.title,level:G.level,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
-    const rows=bestPer(await window.ARCB.top(id));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
-    lbNote(`🏆 Score saved to the leaderboard${k>=0?` · you are <b>#${k+1}</b> of ${rows.length} for ${esc(G.title)}`:''}. <a href="#leaderboard/${id}">See the leaderboard →</a>`)}
+  const G=GAMES[id],diff=o.diff||(hasDiff(id)&&ctx&&ctx.id===id?ctx.level:'-');
+  try{await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
+    const rows=bestPer((await window.ARCB.top(id)).filter(r=>r.diff===diff));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
+    const dn=diff!=='-'?` (${LVNAME[diff]})`:'';
+    lbNote(`🏆 Score saved${k>=0?` · you are <b>#${k+1}</b> of ${rows.length} for ${esc(G.title)}${dn}`:''}. <button class="btn sm" id="lbSee">See the leaderboard</button>${o.stars===3&&diff!=='-'?`<br>⭐ 3 stars on ${LVNAME[diff]}: worth ${DIFFPTS[diff]} Champion point${DIFFPTS[diff]>1?'s':''}!`:''}`,
+      ()=>$('lbSee').onclick=()=>lbPopup(id,diff))}
   catch(e){lbNote('Could not reach the leaderboard just now. Your game still counts on this device.')}}
 function lbNote(html,wire){const end=document.querySelector('#gStage .end, #vmOver .end, .ptover .end, .rqrep');if(!end)return;let n=end.querySelector('.lbnote');if(!n){n=document.createElement('p');n.className='lbnote';end.appendChild(n)}n.innerHTML=html;if(wire)wire()}
 /* keep each player's best score only, highest first */
@@ -3059,29 +3072,50 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
     if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(BADNICK.test(nick))return $('lbErr').textContent='Please choose a kinder nickname.';
     arcSetMe({nick,cls});arcLog('join');sfx.ok();close();if(after)after()}}
 function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
-  return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Leaderboard</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
+  return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
 function wireHubPlayer(){const b=$('lbWho');if(b)b.onclick=()=>playerPrompt();
   const i=$('lbIn');if(i)i.onclick=async()=>{try{await arcSignIn();if(!(arcMe()||{}).nick)playerPrompt()}catch(e){}};
   const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();hub()}}
 async function arcSignIn(){await window.ARCB.signIn();for(let k=0;k<40&&!window.ARCB.user;k++)await new Promise(r=>setTimeout(r,150));arcLog('signin')}
 addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(!h&&!document.querySelector('.lbmodal'))hub()});
-async function boardView(gid){const ids=ORDER.filter(id=>id!=='p6-quest'||true);if(!gid||!GAMES[gid])gid=ids.find(id=>GAMES[id].level===level)||ids[0];
-  const me=arcMe()||{};let span='all',cls='';
-  $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="#">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Leaderboard</h2>
-    <div class="row"><select id="lbG" class="num" style="width:auto">${['P4','P5','P6','All levels'].map(l=>`<optgroup label="${l}">${ids.filter(id=>GAMES[id].level===l).map(id=>`<option value="${id}" ${id===gid?'selected':''}>${esc(GAMES[id].title)}</option>`).join('')}</optgroup>`).join('')}</select>
-    <select id="lbC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select></div><div id="lbList" class="lblist"><p>Loading…</p></div><p class="qs">Each player's best score is shown.</p></div>`;
-  let rows=[];
-  const draw=()=>{const now=Date.now(),cut=span==='today'?new Date().setHours(0,0,0,0):span==='week'?now-7*864e5:0;
-    const r=bestPer(rows.filter(x=>x.t>=cut&&(!cls||x.cls===cls))).slice(0,30);
-    const isMe=x=>x.nick===me.nick&&x.cls===(me.cls||'');const stars=x=>x.stars>=0?`<small>${'★'.repeat(x.stars)}</small>`:'';
-    const mood=['party','wave','cheer'];
-    const step=i=>{const x=r[i];if(!x)return `<div class="lbp-col lbp-${i+1} lbp-none"><div class="lbp-who"><b>—</b><span class="lbc">No one yet</span></div><div class="lbp-block"><span>${i+1}</span></div></div>`;
-      return `<div class="lbp-col lbp-${i+1}${isMe(x)?' lbp-me':''}"><div class="lbp-who"><span class="lbp-medal">${['🥇','🥈','🥉'][i]}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${x.score} ${stars(x)}</span></div><div class="lbp-q">${QUBI.replace('class="qubi"',`class="qubi ${mood[i]}"`)}</div><div class="lbp-block"><span>${i+1}</span></div></div>`};
-    $('lbList').innerHTML=r.length?`<div class="lbp">${step(1)}${step(0)}${step(2)}</div>${r.length>3?`<ol class="lbrows" start="4">${r.slice(3).map((x,i)=>`<li class="${isMe(x)?'me':''}"><span class="lbr">${i+4}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${x.score} ${stars(x)}</span></li>`).join('')}</ol>`:''}`:'<p>No scores yet. Be the first!</p>'};
-  const load=async()=>{$('lbList').innerHTML='<p>Loading…</p>';try{rows=await window.ARCB.top(gid);draw()}catch(e){$('lbList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'}};
-  $('lbG').onchange=()=>{gid=$('lbG').value;history.replaceState(null,'','#leaderboard/'+gid);load()};$('lbC').onchange=()=>{cls=$('lbC').value;draw()};
-  if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}load()}
-addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(!h||h==='')hub();else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
+const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
+  const isMe=x=>x.nick===me.nick&&x.cls===(me.cls||''),val=x=>`${x.score}${x.stars>=0?` <small>${'★'.repeat(x.stars)}</small>`:''}${x.sub?` <small class="pts">${x.sub}</small>`:''}`,mood=['party','wave','cheer'];
+  const step=i=>{const x=r[i];if(!x)return `<div class="lbp-col lbp-${i+1} lbp-none"><div class="lbp-who"><b>—</b><span class="lbc">No one yet</span></div><div class="lbp-block"><span>${i+1}</span></div></div>`;
+    return `<div class="lbp-col lbp-${i+1}${isMe(x)?' lbp-me':''}"><div class="lbp-who"><span class="lbp-medal">${['🥇','🥈','🥉'][i]}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${val(x)}</span></div><div class="lbp-q">${QUBI.replace('class="qubi"',`class="qubi ${mood[i]}"`)}</div><div class="lbp-block"><span>${i+1}</span></div></div>`};
+  return `<div class="lbp">${step(1)}${step(0)}${step(2)}</div>${r.length>3?`<ol class="lbrows" start="4">${r.slice(3).map((x,i)=>`<li class="${isMe(x)?'me':''}"><span class="lbr">${i+4}</span><b>${esc(x.nick)}</b><span class="lbc">${esc(x.cls||'')}</span><span class="lbs">${val(x)}</span></li>`).join('')}</ol>`:''}`};
+/* one game's leaderboard, in a pop-up so pupils can check it from the game's start screen */
+function lbPopup(gid,diff){const G=GAMES[gid];if(!G)return;const me=arcMe()||{},dd=hasDiff(gid);let cls='',rows=null;diff=dd?(diff&&diff!=='-'?diff:(ctx&&ctx.id===gid?ctx.level:getLvl(gid))):'-';
+  const o=document.createElement('div');o.className='zoomov lbmodal';
+  o.innerHTML=`<div class="end lbpop"><div class="row" style="justify-content:space-between"><span class="tag">🏆 Leaderboard</span><button class="btn sm" id="lpX" aria-label="Close">✕ Close</button></div><h3>${esc(G.title)}</h3>
+    ${dd?`<div class="levels lbtabs" role="group" aria-label="Difficulty">${DIFFS.map(([k,t])=>`<button aria-pressed="${k===diff}" data-d="${k}">${t}</button>`).join('')}</div>`:''}
+    <div class="row"><select id="lpC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select></div>
+    <div id="lpList" class="lblist"><p>Loading…</p></div><p class="qs">Each player's best score${dd?' on this level':''}. Solo, vs Robot and online-room games count. Pass &amp; play does not.</p></div>`;
+  document.body.appendChild(o);sfx.pop();
+  const close=()=>o.remove();$('lpX').onclick=close;o.addEventListener('click',e=>{if(e.target===o)close()});
+  const draw=()=>{if(!rows)return;$('lpList').innerHTML=lbRows(bestPer(rows.filter(x=>x.diff===diff&&(!cls||x.cls===cls))).slice(0,30),me)};
+  o.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{diff=b.dataset.d;o.querySelectorAll('[data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b));sfx.tap();draw()});
+  $('lpC').onchange=()=>{cls=$('lpC').value;draw()};
+  if(!window.ARCB){$('lpList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
+  window.ARCB.top(gid).then(r=>{rows=r;draw()}).catch(()=>{$('lpList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'})}
+/* Arcade Champions: 3-star solo results, Easy 1 / Medium 2 / Hard 3 points, each game counted once at its hardest 3-star level */
+function champRows(rows){const P=new Map();
+  rows.forEach(r=>{if(r.stars!==3||!DIFFPTS[r.diff]||!GAMES[r.game])return;const k=r.nick+'|'+(r.cls||'');const p=P.get(k)||{nick:r.nick,cls:r.cls,g:{},t:0};
+    p.g[r.game]=Math.max(p.g[r.game]||0,DIFFPTS[r.diff]);p.t=Math.max(p.t,r.t);P.set(k,p)});
+  return [...P.values()].map(p=>{const v=Object.values(p.g);return {nick:p.nick,cls:p.cls,score:v.reduce((a,b)=>a+b,0),games:v.length,hard:v.filter(x=>x===3).length,t:p.t,stars:-1}})
+    .sort((a,b)=>b.score-a.score||b.hard-a.hard||a.t-b.t)}
+async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','#leaderboard');setTimeout(()=>lbPopup(gid),50)}
+  const me=arcMe()||{};let cls='',rows=null;const ids=ORDER.filter(id=>GAMES[id]);
+  $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="#">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Arcade Champions</h2>
+    <div class="howcard champhow"><b>How to earn Champion points</b><ol class="howlist"><li>Play a game in <b>Solo</b> and get <b>3 stars</b>.</li><li>⭐ Easy = <b>1 point</b>, ⚡ Medium = <b>2 points</b>, 🔥 Hard = <b>3 points</b>.</li><li>Each game counts once, at the hardest level you got 3 stars on. Master more games to climb!</li></ol></div>
+    <div class="row"><select id="lbC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select>
+    <select id="lbG" class="num" style="width:auto"><option value="">See one game's leaderboard…</option>${['P4','P5','P6','All levels'].map(l=>`<optgroup label="${l}">${ids.filter(id=>GAMES[id].level===l).map(id=>`<option value="${id}">${esc(GAMES[id].title)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+    <div id="lbList" class="lblist"><p>Loading…</p></div></div>`;
+  const draw=()=>{if(!rows)return;const r=champRows(rows.filter(x=>!cls||x.cls===cls)).slice(0,30).map(x=>({...x,sub:`pts · ${x.games} game${x.games===1?'':'s'}${x.hard?`, ${x.hard} on Hard`:''}`}));
+    $('lbList').innerHTML=r.length?lbRows(r,me):'<p>No champions yet. Get 3 stars in any Solo game to be the first!</p>'};
+  $('lbC').onchange=()=>{cls=$('lbC').value;draw()};$('lbG').onchange=()=>{const g=$('lbG').value;$('lbG').value='';if(g)lbPopup(g)};
+  if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
+  try{rows=await window.ARCB.champs();draw()}catch(e){$('lbList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'}}
+addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(!h||h==='')hub();else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
   const me=arcMe();if(!me&&(!h||h===''))setTimeout(()=>{if(!arcMe())playerPrompt()},400)});
 /* ================= PSLE QUEST: question bank =================
    Modelled on the 2026 P6 prelim papers: Paper 1 Booklet A (MCQ, no calculator),
@@ -3920,6 +3954,7 @@ function hub(){
   $('view').querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{level=b.dataset.l;try{localStorage.setItem('arcLevel',level)}catch(e){}sfx.tap();hub()})}
 function route(){if(MUSIC.timer||MUSIC.key)playMusic(musicKey());document.body.classList.toggle('ingame',!!GAMES[location.hash.slice(1)]);const h=location.hash.slice(1);if(h.startsWith('leaderboard')){cleanup();boardView(h.split('/')[1]);window.scrollTo(0,0)}else if(GAMES[h]){if(ONLINE.pending){const g=ONLINE.pending;ONLINE.pending=null;g()}else playGame(h);window.scrollTo(0,0)}else{cleanup();hub()}}
 addEventListener('hashchange',route);route();
+
 </script>
 <script type="module" src="backend.js"></script>
 </body></html>

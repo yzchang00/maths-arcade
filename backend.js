@@ -1,6 +1,6 @@
-// Connects the Maths Arcade to Firebase: leaderboard, usage log, and optional Google sign-in to save progress.
+// Connects the Maths Arcade to Firebase: leaderboards, usage log, online rooms, and optional Google sign-in to save progress.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, doc, query, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, doc, query, where, limit, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -9,6 +9,7 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
   const db = getFirestore(app);
   const auth = getAuth(app);
   const clean = (s, n) => String(s || "").slice(0, n);
+  const row = d => { const x = d.data(); return { game: x.game, diff: x.diff || "-", mode: x.mode, nick: x.nick, cls: x.cls, score: x.score, stars: x.stars, t: x.ts ? x.ts.toMillis() : Date.now() }; };
 
   // ---- Saved progress (only for pupils who choose to sign in with Google) ----
   // Stored in players/{uid}: just the game progress below. No email or real name is saved.
@@ -37,21 +38,27 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
   };
 
   window.ARCB = {
-    // One document per player per game, holding their best score only (keeps the free Firebase plan well within its limits).
+    // One document per player per game per difficulty, holding their best score only.
+    // Stars are kept from the best solo result, so a higher robot/online score never wipes a 3-star solo result.
     post: async (r) => {
-      const id = [r.game, r.cls, r.nick].map(x => clean(x, 40).replace(/[\/\s]+/g, "_")).join("__");
+      const diff = clean(r.diff || "-", 8);
+      const id = [r.game, diff, r.cls, r.nick].map(x => clean(x, 40).replace(/[\/\s]+/g, "_")).join("__");
       const ref = doc(db, "scores", id), old = await getDoc(ref);
-      if (old.exists() && old.data().score >= r.score) return { kept: true };
+      const o = old.exists() ? old.data() : null;
+      const stars = Math.max(r.stars, o ? o.stars : -1);
+      if (o && o.score >= r.score) {
+        if (stars > o.stars) return setDoc(ref, { ...o, diff, stars, ts: serverTimestamp() }).catch(() => ({ kept: true }));
+        return { kept: true };
+      }
       return setDoc(ref, {
-        game: clean(r.game, 40), title: clean(r.title, 60), level: clean(r.level, 12),
-        nick: clean(r.nick, 14), cls: clean(r.cls, 8), score: r.score, stars: r.stars,
+        game: clean(r.game, 40), title: clean(r.title, 60), level: clean(r.level, 12), diff,
+        nick: clean(r.nick, 14), cls: clean(r.cls, 8), score: r.score, stars,
         mode: clean(r.mode, 8), ts: serverTimestamp()
       });
     },
-    top: async (game) => {
-      const snap = await getDocs(query(collection(db, "scores"), where("game", "==", game), limit(1000)));
-      return snap.docs.map(d => { const x = d.data(); return { nick: x.nick, cls: x.cls, score: x.score, stars: x.stars, t: x.ts ? x.ts.toMillis() : Date.now() }; });
-    },
+    top: async (game) => (await getDocs(query(collection(db, "scores"), where("game", "==", game), limit(2000)))).docs.map(row),
+    // Arcade Champions: every 3-star result (only solo games give stars).
+    champs: async () => (await getDocs(query(collection(db, "scores"), where("stars", "==", 3), limit(5000)))).docs.map(row),
     log: (e) => addDoc(collection(db, "visits"), {
       event: clean(e.event, 10), game: clean(e.game, 40), score: e.score, nick: clean(e.nick, 14), cls: clean(e.cls, 8),
       sid: clean(e.sid, 12), device: clean(e.device, 10), ts: serverTimestamp()
@@ -61,6 +68,28 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
     signIn: () => signInWithPopup(auth, new GoogleAuthProvider().setCustomParameters({ prompt: "select_account" })),
     // Signing out also clears this device's progress, so the next pupil on a shared device starts fresh.
     signOut: async () => { clearTimeout(timer); progKeys().forEach(k => LS.removeItem(k)); await signOut(auth); }
+  };
+
+  // ---- Online rooms: each player is one small document in rooms/arc-<code>/p/. Everyone in the room watches the list live. ----
+  const FIELDS = ["nick", "code", "host", "status", "score", "round", "game", "level", "startAt", "seed"];
+  window.ARCROOM = {
+    join: async (name) => {
+      const pid = Math.random().toString(36).slice(2, 12);
+      const col = collection(db, "rooms", name, "p"), me = doc(col, pid);
+      const bye = () => { deleteDoc(me).catch(() => {}); };
+      addEventListener("pagehide", bye);
+      const beat = setInterval(() => setDoc(me, { seen: serverTimestamp() }, { merge: true }).catch(() => {}), 45000);
+      return {
+        presence: (p) => { const d = {}; FIELDS.forEach(k => { if (p && k in p) d[k] = p[k] === undefined ? null : p[k]; });
+          return setDoc(me, { ...d, seen: serverTimestamp() }, { merge: true }); },
+        onPeers: (cb, err) => onSnapshot(col, snap => {
+          const now = Date.now();
+          cb({ peers: snap.docs.map(d => { const x = d.data(); return { id: d.id, t: x.seen ? x.seen.toMillis() : now, presence: x, sameTab: d.id === pid }; })
+            .filter(p => p.sameTab || now - p.t < 150000) });
+        }, e => err && err(e)),
+        leave: async () => { clearInterval(beat); removeEventListener("pagehide", bye); try { await deleteDoc(me); } catch (e) {} }
+      };
+    }
   };
 
   onAuthStateChanged(auth, async (u) => {

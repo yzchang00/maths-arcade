@@ -9,12 +9,13 @@ service cloud.firestore {
     }
     function shortText(v, n) { return v is string && v.size() <= n; }
 
-    // Leaderboard: one document per player per game with their best score.
-    // Anyone can read; a score can only be replaced by a HIGHER score for the same player; only teachers can delete.
+    // Leaderboard: one document per player per game per difficulty with their best score.
+    // Anyone can read; a score can only be replaced by a HIGHER score (or more stars) for the same player; only teachers can delete.
     function validScore() {
-      return request.resource.data.keys().hasOnly(['game','title','level','nick','cls','score','stars','mode','ts'])
+      return request.resource.data.keys().hasOnly(['game','title','level','diff','nick','cls','score','stars','mode','ts'])
         && shortText(request.resource.data.game, 40) && shortText(request.resource.data.title, 60)
         && shortText(request.resource.data.level, 12) && shortText(request.resource.data.mode, 8)
+        && (!('diff' in request.resource.data) || shortText(request.resource.data.diff, 8))
         && request.resource.data.nick is string && request.resource.data.nick.size() >= 2 && request.resource.data.nick.size() <= 14
         && shortText(request.resource.data.cls, 8)
         && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= 1000
@@ -24,7 +25,7 @@ service cloud.firestore {
     match /scores/{id} {
       allow read: if true;
       allow create: if validScore();
-      allow update: if validScore() && request.resource.data.score > resource.data.score
+      allow update: if validScore() && (request.resource.data.score > resource.data.score || request.resource.data.stars > resource.data.stars)
         && request.resource.data.nick == resource.data.nick && request.resource.data.cls == resource.data.cls
         && request.resource.data.game == resource.data.game;
       allow delete: if isTeacher();
@@ -49,6 +50,17 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['p','ts'])
         && request.resource.data.p is map && request.resource.data.p.size() <= 400
         && request.resource.data.ts == request.time;
+    }
+    // Online rooms: one small document per player in rooms/arc-<code>/p/<player>. Short-lived; players delete their own when they leave.
+    match /rooms/{room}/p/{pid} {
+      allow read: if room.matches('arc-[a-z0-9]{4}');
+      allow create, update: if room.matches('arc-[a-z0-9]{4}')
+        && request.resource.data.keys().hasOnly(['nick','code','host','status','score','round','game','level','startAt','seed','seen'])
+        && request.resource.data.seen == request.time
+        && (!('nick' in request.resource.data) || shortText(request.resource.data.nick, 16))
+        && (!('game' in request.resource.data) || request.resource.data.game == null || shortText(request.resource.data.game, 40))
+        && (!('status' in request.resource.data) || shortText(request.resource.data.status, 10));
+      allow delete: if true;
     }
   }
 }
