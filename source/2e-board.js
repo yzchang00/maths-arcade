@@ -10,6 +10,8 @@ function arcLog(event,game,score){if(!window.ARCB)return;const me=arcMe();
 const DIFFS=[['easy','Easy'],['mixed','Medium'],['hard','Hard'],['old','Older']],DIFFPTS={easy:1,mixed:2,hard:3,old:1};
 /* Champion points for one result: 3 stars in Solo. Easy/Medium/Hard = 1/2/3; scores saved before levels existed ("old") = 1; PSLE Quest = 3. */
 const CHAMP_EXTRA={'p6-quest':3};
+/* Vault Cracker gold adds up over 10 levels, so it needs a bigger cap than other games (must match maxScore in firestore.rules) */
+const SCORECAP={'p5-vault':20000};
 const champPts=(game,diff,stars)=>stars!==3?0:hasDiff(game)?(DIFFPTS[diff]||0):(CHAMP_EXTRA[game]||0);
 /* class must look like a class: letters, numbers or a dash, starting with a letter or number (e.g. 5B, P5-2, 6E1) */
 const okClass=c=>c===''||/^[A-Z0-9][A-Z0-9-]{0,7}$/.test(c);
@@ -18,7 +20,7 @@ async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();
   if(!me||!me.nick){lbNote('<button class="btn" id="lbJoin">🏆 Add my name to the leaderboard</button>',()=>$('lbJoin').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));return}
   if(me.cls&&!okClass(String(me.cls).toUpperCase()))return lbNote(`Your class "${esc(me.cls)}" doesn't look like a class. <button class="btn sm" id="lbFix">Fix my class</button>`,()=>$('lbFix').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
   const G=GAMES[id],diff=o.diff||(hasDiff(id)&&ctx&&ctx.id===id?ctx.level:'-');
-  try{const res=await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
+  try{const res=await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(SCORECAP[id]||1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
     if(res&&res.taken)return lbNote(`Someone on another device already uses the name <b>${esc(me.nick)}</b>${me.cls?' in '+esc(me.cls):''}. <button class="btn sm" id="lbRename">Pick a different nickname</button>`,()=>$('lbRename').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
     const rows=bestPer(window.ARCB.rank?await window.ARCB.rank(id,diff):(await window.ARCB.top(id)).filter(r=>r.diff===diff));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
     const dn=diff!=='-'?` (${LVNAME[diff]})`:'',pts=champPts(id,diff,o.stars);
@@ -66,7 +68,10 @@ function lbPopup(gid,diff){const G=GAMES[gid];if(!G)return;const me=arcMe()||{},
   o.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{diff=b.dataset.d;o.querySelectorAll('[data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b));sfx.tap();draw()});
   $('lpC').onchange=()=>{cls=$('lpC').value;draw()};
   if(!window.ARCB){$('lpList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
-  window.ARCB.top(gid).then(r=>{rows=r;const ob=o.querySelector('[data-d=old]');if(ob&&r.some(x=>x.diff==='old'))ob.hidden=false;draw()}).catch(()=>{$('lpList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'})}
+  window.ARCB.top(gid).then(r=>{rows=r;const ob=o.querySelector('[data-d=old]');if(ob&&r.some(x=>x.diff==='old'))ob.hidden=false;
+    /* if the chosen level has no scores yet, open the first level that does */
+    if(dd&&!r.some(x=>x.diff===diff)){const k=DIFFS.map(d=>d[0]).find(k=>r.some(x=>x.diff===k));if(k){diff=k;o.querySelectorAll('[data-d]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.d===k))}}
+    draw()}).catch(()=>{$('lpList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'})}
 /* Arcade Champions: 3-star solo results (see champPts), each game counted once at its best value */
 function champRows(rows){const P=new Map();
   rows.forEach(r=>{const pts=GAMES[r.game]?champPts(r.game,r.diff,r.stars):0;if(!pts)return;const k=r.nick+'|'+(r.cls||'');const p=P.get(k)||{nick:r.nick,cls:r.cls,g:{},t:0};
