@@ -1,47 +1,69 @@
 rules_version = '2';
 // Paste this into Firebase console → Firestore Database → Rules, then press Publish.
 // Only the email below can open the tracker or delete leaderboard entries. Everything not listed here is blocked.
+// Every device signs in with an invisible anonymous ID (Authentication → Anonymous must be ON), so a device can only change its own entries.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isTeacher() {
       return request.auth != null && request.auth.token.email_verified == true
         && request.auth.token.email in ["xxyanzhangxx@gmail.com"];   // admin: only Yan
     }
+    function signedIn() { return request.auth != null; }
     function shortText(v, n) { return v is string && v.size() <= n; }
     // Server-side backstop for the worst words (the website has a fuller filter; this stops anyone bypassing it).
     function cleanName(v) {
       return !(v is string) || !v.lower().matches('.*(n+[i1!|]+g+[e3]+r|n+[i1!|]+gg+[a@]+|f+[u*v]+c+k|f+u+k|c+u+n+t|ch?[i1]+ba[i1]|lanj[i1]+a?o|puk[i1]+mak|kan[i1]+na|b[i1]+tch|wh[o0]+re|sl[u*]+t|p[o0]+rn).*');
     }
+    // Highest possible score in each game (normal games: 10 points × rounds). A new game must be added here, or its scores are refused.
+    function maxScore() {
+      return {
+        'p4-rounding': 90, 'p4-factors': 80, 'p4-product': 90, 'p4-flip': 30, 'p4-share': 80, 'p4-target': 100,
+        'p4-decimals': 80, 'p4-cashier': 80, 'p4-garden': 80, 'p4-angles': 100, 'p4-mirror': 80, 'p4-nets': 100,
+        'p4-graphs': 100, 'p5-vault': 1000, 'p5-order': 80, 'p5-slide': 80, 'p5-share': 80, 'p5-fgrid': 80,
+        'p5-rate': 80, 'p5-tarea': 80, 'p5-volume': 80, 'p5-angles': 80, 'p5-triangles': 80, 'p5-quads': 80,
+        'p6-fdiv': 80, 'p6-pchange': 80, 'p6-ratio': 80, 'p6-algebra': 80, 'p6-circle': 80, 'p6-cuberoot': 80,
+        'p6-chain': 80, 'p6-average': 80, 'p4-diner': 80, 'p4-train': 80, 'p4-compass': 80, 'p5-pizza': 80,
+        'p5-pshop': 80, 'p6-pie': 80, 'party-tug': 1000, 'party-bingo': 1000, 'party-wall': 1000, 'p6-quest': 100
+      };
+    }
+    // Class: empty, or letters/numbers/dash starting with a letter or number (5B, P5-2, 6E1).
+    function okClass(c) { return c is string && c.matches('^([A-Z0-9][A-Z0-9-]{0,7})?$'); }
 
     // Leaderboard: one document per player per game per difficulty with their best score.
-    // Anyone can read; a score can only be replaced by a HIGHER score (or more stars) for the same player; only teachers can delete.
+    // Anyone can read. Only the device that first saved a name can raise its score (or stars). Only the teacher can delete.
     function validScore() {
-      return request.resource.data.keys().hasOnly(['game','title','level','diff','nick','cls','score','stars','mode','ts'])
-        && shortText(request.resource.data.game, 40) && shortText(request.resource.data.title, 60)
-        && shortText(request.resource.data.level, 12) && shortText(request.resource.data.mode, 8)
-        && (!('diff' in request.resource.data) || shortText(request.resource.data.diff, 8))
-        && request.resource.data.nick is string && request.resource.data.nick.size() >= 2 && request.resource.data.nick.size() <= 14
-        && shortText(request.resource.data.cls, 8)
-        && cleanName(request.resource.data.nick) && cleanName(request.resource.data.cls)
-        && request.resource.data.score is int && request.resource.data.score >= 0 && request.resource.data.score <= 1000
-        && request.resource.data.stars is int && request.resource.data.stars >= -1 && request.resource.data.stars <= 3
-        && request.resource.data.ts == request.time;
+      let d = request.resource.data;
+      return d.keys().hasOnly(['game','title','level','diff','nick','cls','score','stars','mode','ts','uid'])
+        && d.uid == request.auth.uid
+        && d.game in maxScore()
+        && shortText(d.title, 60) && shortText(d.level, 12) && d.mode in ['solo','bot','online']
+        && d.diff in ['easy','mixed','hard','-']
+        && d.nick is string && d.nick.size() >= 2 && d.nick.size() <= 14
+        && okClass(d.cls) && cleanName(d.nick) && cleanName(d.cls)
+        && d.score is int && d.score >= 0 && d.score <= maxScore()[d.game]
+        && d.stars is int && d.stars >= -1 && d.stars <= 3
+        && (d.stars < 3 || d.score * 100 >= maxScore()[d.game] * 85)
+        && d.ts == request.time;
     }
     match /scores/{id} {
       allow read: if true;
-      allow create: if validScore();
-      allow update: if validScore() && (request.resource.data.score > resource.data.score || request.resource.data.stars > resource.data.stars)
+      allow create: if signedIn() && validScore();
+      allow update: if signedIn() && validScore()
+        && (!('uid' in resource.data) || resource.data.uid == request.auth.uid)
+        && (request.resource.data.score > resource.data.score || request.resource.data.stars > resource.data.stars
+            || (!('uid' in resource.data) && request.resource.data.score == resource.data.score))
         && request.resource.data.nick == resource.data.nick && request.resource.data.cls == resource.data.cls
         && request.resource.data.game == resource.data.game;
       allow delete: if isTeacher();
     }
 
-    // Usage log: the website can add entries; only teachers can read or delete them.
+    // Usage log: devices can add entries; only the teacher can read or delete them.
     match /visits/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['event','game','score','nick','cls','sid','device','ts'])
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['event','game','score','nick','cls','sid','device','ts'])
         && request.resource.data.score is int && request.resource.data.score >= -1 && request.resource.data.score <= 1000
         && shortText(request.resource.data.event, 10) && shortText(request.resource.data.game, 40)
         && shortText(request.resource.data.nick, 14) && shortText(request.resource.data.cls, 8)
+        && cleanName(request.resource.data.nick) && cleanName(request.resource.data.cls)
         && shortText(request.resource.data.sid, 12) && shortText(request.resource.data.device, 10)
         && request.resource.data.ts == request.time;
       allow read, delete: if isTeacher();
@@ -56,16 +78,26 @@ service cloud.firestore {
         && request.resource.data.p is map && request.resource.data.p.size() <= 400
         && request.resource.data.ts == request.time;
     }
-    // Online rooms: one small document per player in rooms/arc-<code>/p/<player>. Short-lived; players delete their own when they leave.
+
+    // Online rooms: one small document per player in rooms/arc-<code>/p/<their ID>_<tab>.
+    // A device can only create, change or delete its own document. "joined" is stamped by the server once and never changes,
+    // which is how everyone agrees who the host is (whoever joined first).
     match /rooms/{room}/p/{pid} {
+      function mine() { return signedIn() && pid.split('_')[0] == request.auth.uid; }
+      function okPresence() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['nick','code','status','score','round','game','level','startAt','seed','seen','joined'])
+          && d.seen == request.time
+          && (!('nick' in d) || (shortText(d.nick, 16) && cleanName(d.nick)))
+          && (!('game' in d) || d.game == null || d.game in maxScore())
+          && (!('level' in d) || d.level == null || d.level in ['easy','mixed','hard'])
+          && (!('status' in d) || d.status in ['lobby','playing','done'])
+          && (!('score' in d) || (d.score is int && d.score >= 0 && d.score <= 1000));
+      }
       allow read: if room.matches('arc-[a-z0-9]{4}');
-      allow create, update: if room.matches('arc-[a-z0-9]{4}')
-        && request.resource.data.keys().hasOnly(['nick','code','host','status','score','round','game','level','startAt','seed','seen'])
-        && request.resource.data.seen == request.time
-        && (!('nick' in request.resource.data) || (shortText(request.resource.data.nick, 16) && cleanName(request.resource.data.nick)))
-        && (!('game' in request.resource.data) || request.resource.data.game == null || shortText(request.resource.data.game, 40))
-        && (!('status' in request.resource.data) || shortText(request.resource.data.status, 10));
-      allow delete: if true;
+      allow create: if room.matches('arc-[a-z0-9]{4}') && mine() && okPresence() && request.resource.data.joined == request.time;
+      allow update: if mine() && okPresence() && request.resource.data.joined == resource.data.joined;
+      allow delete: if mine();
     }
   }
 }
