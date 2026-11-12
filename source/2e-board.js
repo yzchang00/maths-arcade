@@ -21,16 +21,22 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
   o.innerHTML=`<div class="end"><span class="tag">Who's playing?</span><h3>Pick a nickname</h3><p style="margin:0">Use a nickname, <b>not your full name</b>. It shows on the leaderboard.</p>
     <label class="row"><b>Nickname</b><input class="num" id="lbNick" maxlength="14" style="width:10em" value="${esc(old.nick)}" placeholder="e.g. Speedy Sam"></label>
     <label class="row"><b>Class</b><input class="num" id="lbCls" maxlength="8" style="width:6em" value="${esc(old.cls)}" placeholder="e.g. 5B"></label><p id="lbErr" class="askneed"></p>
-    <div class="row"><button class="btn primary" id="lbOk">Save</button><button class="btn" id="lbGuest">Play as guest</button></div></div>`;
+    <div class="row"><button class="btn primary" id="lbOk">Save</button><button class="btn" id="lbGuest">Play as guest</button></div>
+    ${window.ARCB&&window.ARCB.canSignIn&&!window.ARCB.user?`<p style="margin:6px 0 0">Have a Google account? Sign in to keep your progress on any device. (Optional)</p><div class="row"><button class="btn" id="lbGoogle">☁️ Sign in with Google</button></div>`:''}</div>`;
   document.body.appendChild(o);$('lbNick').focus();
   const close=()=>{o.remove();if(location.hash===''||location.hash==='#')hub()};
   $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
+  const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
   $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
     if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(BADNICK.test(nick))return $('lbErr').textContent='Please choose a kinder nickname.';
     arcSetMe({nick,cls});arcLog('join');sfx.ok();close();if(after)after()}}
 function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
-  return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Leaderboard</a></div>`}
-function wireHubPlayer(){const b=$('lbWho');if(b)b.onclick=()=>playerPrompt()}
+  return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Leaderboard</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
+function wireHubPlayer(){const b=$('lbWho');if(b)b.onclick=()=>playerPrompt();
+  const i=$('lbIn');if(i)i.onclick=async()=>{try{await arcSignIn();if(!(arcMe()||{}).nick)playerPrompt()}catch(e){}};
+  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();hub()}}
+async function arcSignIn(){await window.ARCB.signIn();for(let k=0;k<40&&!window.ARCB.user;k++)await new Promise(r=>setTimeout(r,150));arcLog('signin')}
+addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(!h&&!document.querySelector('.lbmodal'))hub()});
 async function boardView(gid){const ids=ORDER.filter(id=>id!=='p6-quest'||true);if(!gid||!GAMES[gid])gid=ids.find(id=>GAMES[id].level===level)||ids[0];
   const me=arcMe()||{};let span='all',cls='';
   $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="#">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Leaderboard</h2>
