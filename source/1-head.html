@@ -659,6 +659,20 @@ input.num.ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 1
 .lbrows{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-width:620px}
 .lbrows li{display:grid;grid-template-columns:2.6em 1fr auto auto;gap:10px;align-items:center;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:8px 12px}
 .lbrows li.me{border-color:var(--ink);background:color-mix(in srgb,var(--sun) 18%,var(--surface))}.lbr{font:700 1.2rem var(--display);text-align:center}.lbc{color:var(--muted);font-weight:800}.lbs{font:700 1.25rem var(--display)}.lbs small{color:var(--sun);font-size:.9rem}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end;max-width:620px;margin:4px 0 14px}
+.pod{display:flex;flex-direction:column;align-items:stretch;min-width:0}
+.podwho{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:0 4px 8px;min-width:0}
+.podwho b{font:700 1.1rem var(--display);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podmedal{font-size:2rem;line-height:1}
+.p1 .podmedal{font-size:2.6rem}
+.podblock{border:2.5px solid var(--ink);border-radius:12px 12px 4px 4px;box-shadow:4px 4px 0 var(--ink);display:grid;place-items:center;font:700 2rem var(--display);color:#17202a}
+.p1 .podblock{height:130px;background:var(--sun)}
+.p2 .podblock{height:95px;background:color-mix(in srgb,#b8c2cc 80%,var(--surface))}
+.p3 .podblock{height:70px;background:color-mix(in srgb,#d08a4a 75%,var(--surface))}
+.pod.me .podblock{outline:3px solid #7d5cf0;outline-offset:3px}
+.pod.me .podwho b::after{content:' (you)';font-size:.8em;color:var(--muted)}
+.pod.empty .podblock{opacity:.35;box-shadow:none}
+.pod.empty .podwho{opacity:.5}
 select.num{font-size:1rem}
 </style>
 
