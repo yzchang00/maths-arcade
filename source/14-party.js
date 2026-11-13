@@ -73,19 +73,19 @@ function bingoClues(kind){const out=[],used=new Set(),add=c=>{if(c.a<1||c.a>200|
   while(out.length<24&&guard++<4000){let c;const t=R(0,5);
     if(kind==='P4'){if(t<2){const a=R(3,9),b=R(3,12);c={c:`${a} × ${b}`,a:a*b,trap:[a+b,`${a} + ${b} = ${a+b}, but the sign is ×.`]}}
       else if(t===2){const d=pick([3,4,5,6,8]),n=R(1,d-1),m=d*R(2,9);c={c:`${fr(n,d)} of ${m}`,a:m/d*n,trap:[m/d,`${m/d} is only ${fr(1,d)} of ${m}. Take ${n} parts.`]}}
-      else if(t===3){const a=R(2,9)*10+R(1,9);c={c:`${a} rounded to the nearest 10`,a:Math.round(a/10)*10,trap:[Math.floor(a/10)*10===Math.round(a/10)*10?Math.ceil(a/10)*10:Math.floor(a/10)*10,'Look at the ones digit: 5 or more rounds up, 4 or less rounds down.']}}
-      else if(t===4){const a=pick([4,6,8,9,10,12]),b=pick([6,8,9,10,12,15]);if(a===b)continue;c={c:`the smallest common multiple of ${a} and ${b}`,a:lcm(a,b),trap:[a*b,`${a} × ${b} is a common multiple, but not the smallest.`]}}
+      else if(t===3){const a=R(2,9)*10+R(1,9);c={c:`Round ${a} to the nearest 10.`,a:Math.round(a/10)*10,trap:[Math.floor(a/10)*10===Math.round(a/10)*10?Math.ceil(a/10)*10:Math.floor(a/10)*10,'Look at the ones digit: 5 or more rounds up, 4 or less rounds down.']}}
+      else if(t===4){const a=pick([4,6,8,9,10,12]),b=pick([6,8,9,10,12,15]);if(a===b)continue;c={c:`What is the smallest common multiple of ${a} and ${b}?`,a:lcm(a,b),trap:[a*b,`${a} × ${b} is a common multiple, but not the smallest.`]}}
       else{const p=R(3,9)*R(3,9),a=R(3,9);if(p%a)continue;c={c:`${p} ÷ ${a}`,a:p/a,trap:[p-a,'Divide, don’t subtract.']}}}
     else if(kind==='P5'){if(t<2){const a=R(2,9),b=R(2,9),cc=R(2,9);c={c:`${a} + ${b} × ${cc}`,a:a+b*cc,trap:[(a+b)*cc,`Multiply before you add: ${b} × ${cc} first.`]}}
       else if(t===2){const a=R(2,6),b=R(2,9),cc=R(2,5);c={c:`(${a} + ${b}) × ${cc}`,a:(a+b)*cc,trap:[a+b*cc,'Brackets first!']}}
       else if(t===3){const p=pick([10,20,25,50,75]),m=pick([40,60,80,120,200]);c={c:`${p}% of ${m}`,a:p*m/100,trap:[m-p,`${p}% of ${m} is not ${m} − ${p}.`]}}
       else if(t===4){const n=R(11,99)/10,k=pick([10,100]);c={c:`${n} × ${k}`,a:Math.round(n*k),trap:[Math.round(n*k/10),`× ${k} moves the digits ${k===10?1:2} place${k===10?'':'s'} left.`]}}
-      else{const b=R(4,12),h=R(2,10)*2;c={c:`area of a triangle with base ${b} cm and height ${h} cm (in cm²)`,a:b*h/2,trap:[b*h,'Triangle area is ½ × base × height. Don’t forget the ½.']}}}
+      else{const b=R(4,12),h=R(2,10)*2;c={c:`A triangle has a base of ${b} cm and a height of ${h} cm. What is its area in cm²?`,a:b*h/2,trap:[b*h,'Triangle area is ½ × base × height. Don’t forget the ½.']}}}
     else{if(t<2){const a=R(3,13);c={c:`${a}²`,a:a*a,trap:[2*a,`${a}² is ${a} × ${a}, not ${a} × 2.`]}}
       else if(t===2){const a=R(2,5);c={c:`${a}³`,a:a**3,trap:[3*a,`${a}³ is ${a} × ${a} × ${a}.`]}}
-      else if(t===3){const x=R(2,12),k=R(2,6),b=R(1,15);c={c:`x when ${k}x + ${b} = ${k*x+b}`,a:x,trap:[(k*x+b)/k-b,`Take away ${b} from both sides first, then divide by ${k}.`]}}
-      else if(t===4){const [a,b]=pick([[2,3],[3,5],[1,4],[2,5],[3,4]]),u=R(3,12);c={c:`the bigger share when ${(a+b)*u} is split in the ratio ${a} : ${b}`,a:b*u,trap:[(a+b)*u/b,`Total units = ${a} + ${b} = ${a+b}. 1 unit = ${(a+b)*u} ÷ ${a+b}.`]}}
-      else{const p=pick([10,20,25,50]),n=pick([40,60,80,120,160]);c={c:`${n} increased by ${p}%`,a:n+n*p/100,trap:[n*p/100,'That is only the increase. Add it on.']}}}
+      else if(t===3){const x=R(2,12),k=R(2,6),b=R(1,15);c={c:`${k}x + ${b} = ${k*x+b}. What is the value of x?`,a:x,trap:[(k*x+b)/k-b,`Take away ${b} from both sides first, then divide by ${k}.`]}}
+      else if(t===4){const [a,b]=pick([[2,3],[3,5],[1,4],[2,5],[3,4]]),u=R(3,12);const [n1,n2]=pick([['Ali','Mei'],['Ravi','Siti'],['Ben','Hui Min'],['Aisha','Jun Kai']]);c={c:`${(a+b)*u} stickers are shared between ${n1} and ${n2} in the ratio ${a} : ${b}. How many stickers does ${n2} get?`,a:b*u,trap:[a*u,`${a*u} is ${n1}'s share (${a} units). ${n2} gets ${b} units: 1 unit = ${(a+b)*u} ÷ ${a+b} = ${u}, so ${b} × ${u} = ${b*u}.`]}}
+      else{const p=pick([10,20,25,50]),n=pick([40,60,80,120,160]);c={c:`Increase ${n} by ${p}%.`,a:n+n*p/100,trap:[n*p/100,'That is only the increase. Add it on.']}}}
     add(c)}
   return out}
 addGame('party-bingo',{level:'All levels',strand:'party',glyph:'🎱',title:'Number Bingo',topic:'Whole-class or solo bingo with maths clues',

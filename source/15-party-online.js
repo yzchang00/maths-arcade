@@ -24,7 +24,16 @@ function olPlayers(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick&&
 /* everyone in the room right now (for the lobby) */
 function olRoomPlayers(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).sort((a,b)=>(a.joined||0)-(b.joined||0)||(a.id<b.id?-1:1))}
 /* a player's team: the one they picked in the lobby, or a fair share by join order */
-function olTeamOf(p,list,n){const t=p.presence.team;if(Number.isInteger(t)&&t>=0&&t<n)return t;return Math.max(0,list.indexOf(p))%n}
+/* Balanced teams that every device works out the same way:
+   1. keep each player's own pick, 2. put everyone else in the smallest team (in join order),
+   3. if a team is still 2 or more bigger than another, move its latest joiner across. So no team is ever empty or lopsided. */
+function olAssign(list,n){const t={},size=Array(n).fill(0),mem=Array.from({length:n},()=>[]);
+  list.forEach(p=>{const s=p.presence.team;if(Number.isInteger(s)&&s>=0&&s<n){t[p.id]=s;size[s]++;mem[s].push(p)}});
+  list.forEach(p=>{if(p.id in t)return;const k=size.indexOf(Math.min(...size));t[p.id]=k;size[k]++;mem[k].push(p)});
+  for(let guard=0;guard<50;guard++){const mx=Math.max(...size),mn=Math.min(...size);if(mx-mn<2)break;const a=size.indexOf(mx),b=size.indexOf(mn);
+    const mv=mem[a].reduce((x,y)=>(y.joined||0)>(x.joined||0)?y:x);mem[a]=mem[a].filter(p=>p!==mv);mem[b].push(mv);size[a]--;size[b]++;t[mv.id]=b}
+  return t}
+function olTeamOf(p,list,n){const a=olAssign(list.includes(p)?list:[...list,p],n);return a[p.id]??0}
 /* in the lobby of a team game, make sure I have a team saved: join the smallest team (so teams stay even) */
 function olEnsureTeam(){const O=ctx&&ctx.G.online;if(!O||!(O.teamsChoice||O.fixedTeams)||!ONLINE.room)return;const n=O.fixedTeams||olHostCfg().teams||2,list=olRoomPlayers(),me=list.find(p=>p.sameTab);
   if(!me)return;const t=me.presence.team;if(Number.isInteger(t)&&t>=0&&t<n)return;
@@ -71,7 +80,7 @@ function olTeamBox(){const O=ctx.G.online;if(!O||!(O.teamsChoice||O.fixedTeams))
   const me=list.find(p=>p.sameTab),myT=me?olTeamOf(me,list,n):-1;
   return `<div class="olteams" style="--n:${n}">${cols.map((ps,t)=>`<div class="olteam" style="--tc:${TEAMS[t].c}"><b>${TEAMS[t].e} ${TEAMS[t].n} <small>${ps.length}</small></b>
     <ul>${ps.map(p=>`<li class="${p.sameTab?'me':''}">${hp&&p.id===hp.id?'★ ':''}${esc(safeNick(p.presence.nick))}${p.sameTab?' (you)':''}</li>`).join('')||'<li class="empty">No one yet</li>'}</ul>
-    ${t!==myT&&me?`<button class="btn sm" data-team="${t}">Join ${TEAMS[t].n}</button>`:''}</div>`).join('')}</div><p class="qs" style="margin:4px 0 0">Tap a team to switch. Try to keep the teams the same size!</p>`}
+    ${t!==myT&&me&&ps.length<cols[myT].length?`<button class="btn sm" data-team="${t}">Move to ${TEAMS[t].n}</button>`:''}</div>`).join('')}</div><p class="qs" style="margin:4px 0 0">Teams are shared out evenly by themselves, so there is nothing to tap. You can move to a team that has fewer players.</p>`}
 function wireTeams(){document.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>{sfx.tap();ONLINE.room.presence({team:+b.dataset.team}).catch(()=>{})})}
 /* host presses Start (or Rematch) */
 function olHostStart(){if(!ONLINE.host||!ONLINE.room)return;const id=ctx.id;olCfgDefaults(id);const seed=Math.floor(Math.random()*4294967296),startAt=Date.now(),lvl='mixed'; /* online rooms: everyone gets the same easy-to-harder mix */
@@ -102,7 +111,7 @@ function olTeamGame(stage,cur,id){const rope=id==='party-tug',N=rope?2:Math.max(
   const board=()=>{const t=tally();if(rope){const W=WIN(),pos=Math.max(-W,Math.min(W,t.sum[1]-t.sum[0])),pct=50+pos/W*42;
       $('obBoard').innerHTML=`<div class="obrope"><span class="obend" style="color:${TEAMS[0].c}">${TEAMS[0].e} ${TEAMS[0].n}<b>${t.sum[0]}</b></span><div class="obline"><i class="obzone l"></i><i class="obzone r"></i><span class="obknot" style="left:${pct}%"></span></div><span class="obend" style="color:${TEAMS[1].c}">${TEAMS[1].e} ${TEAMS[1].n}<b>${t.sum[1]}</b></span></div><p class="qs" style="text-align:center;margin:4px 0 0">Pull ${W} steps ahead to win, or be ahead when time runs out.</p>`;return {t,pos,W}}
     const mx=Math.max(1,...t.sum);$('obBoard').innerHTML=`<div class="obbars">${t.sum.map((s,i)=>`<div class="obbar ${i===t.my?'mine':''}" style="--tc:${TEAMS[i].c}"><span>${TEAMS[i].e} ${TEAMS[i].n} <small>(${t.size[i]})</small></span><div><i style="width:${s/mx*100}%"></i></div><b>${s}</b></div>`).join('')}</div>`;return {t}};
-  const ask=()=>{if(S.over)return;const q=olQuick(kind);S.q=q;const plain=String(q.q).replace(/<[^>]+>/g,'');$('obQ').innerHTML=/^[a-z]/i.test(plain)&&!/^\d/.test(plain)?`${q.q}?`:`${q.q} = ?`;
+  const ask=()=>{if(S.over)return;const q=olQuick(kind);S.q=q;const plain=String(q.q).replace(/<[^>]+>/g,'').trim();$('obQ').innerHTML=/[?.:]$/.test(plain)?q.q:`${q.q} = ?`;
     const opts=shuffle([{v:q.a},...q.o.filter((x,i,a)=>x.v!==q.a&&a.findIndex(y=>y.v===x.v)===i)].slice(0,4));
     $('obO').innerHTML=opts.map(x=>`<button class="btn tgb" data-v="${x.v}">${fmtN(x.v)}</button>`).join('');
     $('obO').querySelectorAll('.tgb').forEach(b=>b.onclick=()=>answer(+b.dataset.v,b))};
