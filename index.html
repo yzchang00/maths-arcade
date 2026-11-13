@@ -3000,19 +3000,19 @@ function bingoClues(kind){const out=[],used=new Set(),add=c=>{if(c.a<1||c.a>200|
   while(out.length<24&&guard++<4000){let c;const t=R(0,5);
     if(kind==='P4'){if(t<2){const a=R(3,9),b=R(3,12);c={c:`${a} × ${b}`,a:a*b,trap:[a+b,`${a} + ${b} = ${a+b}, but the sign is ×.`]}}
       else if(t===2){const d=pick([3,4,5,6,8]),n=R(1,d-1),m=d*R(2,9);c={c:`${fr(n,d)} of ${m}`,a:m/d*n,trap:[m/d,`${m/d} is only ${fr(1,d)} of ${m}. Take ${n} parts.`]}}
-      else if(t===3){const a=R(2,9)*10+R(1,9);c={c:`${a} rounded to the nearest 10`,a:Math.round(a/10)*10,trap:[Math.floor(a/10)*10===Math.round(a/10)*10?Math.ceil(a/10)*10:Math.floor(a/10)*10,'Look at the ones digit: 5 or more rounds up, 4 or less rounds down.']}}
-      else if(t===4){const a=pick([4,6,8,9,10,12]),b=pick([6,8,9,10,12,15]);if(a===b)continue;c={c:`the smallest common multiple of ${a} and ${b}`,a:lcm(a,b),trap:[a*b,`${a} × ${b} is a common multiple, but not the smallest.`]}}
+      else if(t===3){const a=R(2,9)*10+R(1,9);c={c:`Round ${a} to the nearest 10.`,a:Math.round(a/10)*10,trap:[Math.floor(a/10)*10===Math.round(a/10)*10?Math.ceil(a/10)*10:Math.floor(a/10)*10,'Look at the ones digit: 5 or more rounds up, 4 or less rounds down.']}}
+      else if(t===4){const a=pick([4,6,8,9,10,12]),b=pick([6,8,9,10,12,15]);if(a===b)continue;c={c:`What is the smallest common multiple of ${a} and ${b}?`,a:lcm(a,b),trap:[a*b,`${a} × ${b} is a common multiple, but not the smallest.`]}}
       else{const p=R(3,9)*R(3,9),a=R(3,9);if(p%a)continue;c={c:`${p} ÷ ${a}`,a:p/a,trap:[p-a,'Divide, don’t subtract.']}}}
     else if(kind==='P5'){if(t<2){const a=R(2,9),b=R(2,9),cc=R(2,9);c={c:`${a} + ${b} × ${cc}`,a:a+b*cc,trap:[(a+b)*cc,`Multiply before you add: ${b} × ${cc} first.`]}}
       else if(t===2){const a=R(2,6),b=R(2,9),cc=R(2,5);c={c:`(${a} + ${b}) × ${cc}`,a:(a+b)*cc,trap:[a+b*cc,'Brackets first!']}}
       else if(t===3){const p=pick([10,20,25,50,75]),m=pick([40,60,80,120,200]);c={c:`${p}% of ${m}`,a:p*m/100,trap:[m-p,`${p}% of ${m} is not ${m} − ${p}.`]}}
       else if(t===4){const n=R(11,99)/10,k=pick([10,100]);c={c:`${n} × ${k}`,a:Math.round(n*k),trap:[Math.round(n*k/10),`× ${k} moves the digits ${k===10?1:2} place${k===10?'':'s'} left.`]}}
-      else{const b=R(4,12),h=R(2,10)*2;c={c:`area of a triangle with base ${b} cm and height ${h} cm (in cm²)`,a:b*h/2,trap:[b*h,'Triangle area is ½ × base × height. Don’t forget the ½.']}}}
+      else{const b=R(4,12),h=R(2,10)*2;c={c:`A triangle has a base of ${b} cm and a height of ${h} cm. What is its area in cm²?`,a:b*h/2,trap:[b*h,'Triangle area is ½ × base × height. Don’t forget the ½.']}}}
     else{if(t<2){const a=R(3,13);c={c:`${a}²`,a:a*a,trap:[2*a,`${a}² is ${a} × ${a}, not ${a} × 2.`]}}
       else if(t===2){const a=R(2,5);c={c:`${a}³`,a:a**3,trap:[3*a,`${a}³ is ${a} × ${a} × ${a}.`]}}
-      else if(t===3){const x=R(2,12),k=R(2,6),b=R(1,15);c={c:`x when ${k}x + ${b} = ${k*x+b}`,a:x,trap:[(k*x+b)/k-b,`Take away ${b} from both sides first, then divide by ${k}.`]}}
-      else if(t===4){const [a,b]=pick([[2,3],[3,5],[1,4],[2,5],[3,4]]),u=R(3,12);c={c:`the bigger share when ${(a+b)*u} is split in the ratio ${a} : ${b}`,a:b*u,trap:[(a+b)*u/b,`Total units = ${a} + ${b} = ${a+b}. 1 unit = ${(a+b)*u} ÷ ${a+b}.`]}}
-      else{const p=pick([10,20,25,50]),n=pick([40,60,80,120,160]);c={c:`${n} increased by ${p}%`,a:n+n*p/100,trap:[n*p/100,'That is only the increase. Add it on.']}}}
+      else if(t===3){const x=R(2,12),k=R(2,6),b=R(1,15);c={c:`${k}x + ${b} = ${k*x+b}. What is the value of x?`,a:x,trap:[(k*x+b)/k-b,`Take away ${b} from both sides first, then divide by ${k}.`]}}
+      else if(t===4){const [a,b]=pick([[2,3],[3,5],[1,4],[2,5],[3,4]]),u=R(3,12);const [n1,n2]=pick([['Ali','Mei'],['Ravi','Siti'],['Ben','Hui Min'],['Aisha','Jun Kai']]);c={c:`${(a+b)*u} stickers are shared between ${n1} and ${n2} in the ratio ${a} : ${b}. How many stickers does ${n2} get?`,a:b*u,trap:[a*u,`${a*u} is ${n1}'s share (${a} units). ${n2} gets ${b} units: 1 unit = ${(a+b)*u} ÷ ${a+b} = ${u}, so ${b} × ${u} = ${b*u}.`]}}
+      else{const p=pick([10,20,25,50]),n=pick([40,60,80,120,160]);c={c:`Increase ${n} by ${p}%.`,a:n+n*p/100,trap:[n*p/100,'That is only the increase. Add it on.']}}}
     add(c)}
   return out}
 addGame('party-bingo',{level:'All levels',strand:'party',glyph:'🎱',title:'Number Bingo',topic:'Whole-class or solo bingo with maths clues',
@@ -3126,7 +3126,16 @@ function olPlayers(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick&&
 /* everyone in the room right now (for the lobby) */
 function olRoomPlayers(){return ONLINE.peers.filter(p=>p.presence&&p.presence.nick).sort((a,b)=>(a.joined||0)-(b.joined||0)||(a.id<b.id?-1:1))}
 /* a player's team: the one they picked in the lobby, or a fair share by join order */
-function olTeamOf(p,list,n){const t=p.presence.team;if(Number.isInteger(t)&&t>=0&&t<n)return t;return Math.max(0,list.indexOf(p))%n}
+/* Balanced teams that every device works out the same way:
+   1. keep each player's own pick, 2. put everyone else in the smallest team (in join order),
+   3. if a team is still 2 or more bigger than another, move its latest joiner across. So no team is ever empty or lopsided. */
+function olAssign(list,n){const t={},size=Array(n).fill(0),mem=Array.from({length:n},()=>[]);
+  list.forEach(p=>{const s=p.presence.team;if(Number.isInteger(s)&&s>=0&&s<n){t[p.id]=s;size[s]++;mem[s].push(p)}});
+  list.forEach(p=>{if(p.id in t)return;const k=size.indexOf(Math.min(...size));t[p.id]=k;size[k]++;mem[k].push(p)});
+  for(let guard=0;guard<50;guard++){const mx=Math.max(...size),mn=Math.min(...size);if(mx-mn<2)break;const a=size.indexOf(mx),b=size.indexOf(mn);
+    const mv=mem[a].reduce((x,y)=>(y.joined||0)>(x.joined||0)?y:x);mem[a]=mem[a].filter(p=>p!==mv);mem[b].push(mv);size[a]--;size[b]++;t[mv.id]=b}
+  return t}
+function olTeamOf(p,list,n){const a=olAssign(list.includes(p)?list:[...list,p],n);return a[p.id]??0}
 /* in the lobby of a team game, make sure I have a team saved: join the smallest team (so teams stay even) */
 function olEnsureTeam(){const O=ctx&&ctx.G.online;if(!O||!(O.teamsChoice||O.fixedTeams)||!ONLINE.room)return;const n=O.fixedTeams||olHostCfg().teams||2,list=olRoomPlayers(),me=list.find(p=>p.sameTab);
   if(!me)return;const t=me.presence.team;if(Number.isInteger(t)&&t>=0&&t<n)return;
@@ -3173,7 +3182,7 @@ function olTeamBox(){const O=ctx.G.online;if(!O||!(O.teamsChoice||O.fixedTeams))
   const me=list.find(p=>p.sameTab),myT=me?olTeamOf(me,list,n):-1;
   return `<div class="olteams" style="--n:${n}">${cols.map((ps,t)=>`<div class="olteam" style="--tc:${TEAMS[t].c}"><b>${TEAMS[t].e} ${TEAMS[t].n} <small>${ps.length}</small></b>
     <ul>${ps.map(p=>`<li class="${p.sameTab?'me':''}">${hp&&p.id===hp.id?'★ ':''}${esc(safeNick(p.presence.nick))}${p.sameTab?' (you)':''}</li>`).join('')||'<li class="empty">No one yet</li>'}</ul>
-    ${t!==myT&&me?`<button class="btn sm" data-team="${t}">Join ${TEAMS[t].n}</button>`:''}</div>`).join('')}</div><p class="qs" style="margin:4px 0 0">Tap a team to switch. Try to keep the teams the same size!</p>`}
+    ${t!==myT&&me&&ps.length<cols[myT].length?`<button class="btn sm" data-team="${t}">Move to ${TEAMS[t].n}</button>`:''}</div>`).join('')}</div><p class="qs" style="margin:4px 0 0">Teams are shared out evenly by themselves, so there is nothing to tap. You can move to a team that has fewer players.</p>`}
 function wireTeams(){document.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>{sfx.tap();ONLINE.room.presence({team:+b.dataset.team}).catch(()=>{})})}
 /* host presses Start (or Rematch) */
 function olHostStart(){if(!ONLINE.host||!ONLINE.room)return;const id=ctx.id;olCfgDefaults(id);const seed=Math.floor(Math.random()*4294967296),startAt=Date.now(),lvl='mixed'; /* online rooms: everyone gets the same easy-to-harder mix */
@@ -3204,7 +3213,7 @@ function olTeamGame(stage,cur,id){const rope=id==='party-tug',N=rope?2:Math.max(
   const board=()=>{const t=tally();if(rope){const W=WIN(),pos=Math.max(-W,Math.min(W,t.sum[1]-t.sum[0])),pct=50+pos/W*42;
       $('obBoard').innerHTML=`<div class="obrope"><span class="obend" style="color:${TEAMS[0].c}">${TEAMS[0].e} ${TEAMS[0].n}<b>${t.sum[0]}</b></span><div class="obline"><i class="obzone l"></i><i class="obzone r"></i><span class="obknot" style="left:${pct}%"></span></div><span class="obend" style="color:${TEAMS[1].c}">${TEAMS[1].e} ${TEAMS[1].n}<b>${t.sum[1]}</b></span></div><p class="qs" style="text-align:center;margin:4px 0 0">Pull ${W} steps ahead to win, or be ahead when time runs out.</p>`;return {t,pos,W}}
     const mx=Math.max(1,...t.sum);$('obBoard').innerHTML=`<div class="obbars">${t.sum.map((s,i)=>`<div class="obbar ${i===t.my?'mine':''}" style="--tc:${TEAMS[i].c}"><span>${TEAMS[i].e} ${TEAMS[i].n} <small>(${t.size[i]})</small></span><div><i style="width:${s/mx*100}%"></i></div><b>${s}</b></div>`).join('')}</div>`;return {t}};
-  const ask=()=>{if(S.over)return;const q=olQuick(kind);S.q=q;const plain=String(q.q).replace(/<[^>]+>/g,'');$('obQ').innerHTML=/^[a-z]/i.test(plain)&&!/^\d/.test(plain)?`${q.q}?`:`${q.q} = ?`;
+  const ask=()=>{if(S.over)return;const q=olQuick(kind);S.q=q;const plain=String(q.q).replace(/<[^>]+>/g,'').trim();$('obQ').innerHTML=/[?.:]$/.test(plain)?q.q:`${q.q} = ?`;
     const opts=shuffle([{v:q.a},...q.o.filter((x,i,a)=>x.v!==q.a&&a.findIndex(y=>y.v===x.v)===i)].slice(0,4));
     $('obO').innerHTML=opts.map(x=>`<button class="btn tgb" data-v="${x.v}">${fmtN(x.v)}</button>`).join('');
     $('obO').querySelectorAll('.tgb').forEach(b=>b.onclick=()=>answer(+b.dataset.v,b))};
