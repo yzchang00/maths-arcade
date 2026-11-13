@@ -718,6 +718,8 @@ body.playing .gbtn{display:none}
 .obknot{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:var(--tomato,#e2504a);border:2px solid var(--ink);transition:left .35s cubic-bezier(.3,1.6,.5,1)}
 .fwrace{display:grid;gap:5px}.fwrrow{display:grid;grid-template-columns:minmax(80px,auto) 1fr 3em;gap:8px;align-items:center;font-weight:700;font-size:.92rem}.fwrrow>div{height:14px;border-radius:7px;background:var(--soft,#e1eeeb);overflow:hidden;border:1.5px solid var(--line)}
 .fwrrow>div i{display:block;height:100%;background:var(--teal);transition:width .4s}.fwrrow.me{color:var(--teal)}.fwrrow b{text-align:right}
+.oltoast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:300;background:var(--ink);color:var(--bg);font-weight:800;padding:10px 16px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center;animation:pillpop .3s ease}
+.olrejoin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:color-mix(in srgb,var(--sun) 25%,var(--surface));border:2px solid var(--ink);border-radius:14px;padding:10px 14px;font-weight:700;margin-bottom:12px}
 </style>
 <style>[hidden]{display:none!important}</style></head><body>
 
@@ -865,6 +867,7 @@ function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id
   $('gRound').hidden=false;
   if(MODE==='pass'){ctx.players=PASS.map(n=>({name:n,score:0}));ctx.per=Math.max(3,Math.floor(G.rounds/PASS.length))}
   if((opts.setup||opts.how)&&MODE!=='online')return showHow(id);
+  if(MODE==='online'&&ONLINE.resuming&&ONLINE.cur){ONLINE.resuming=false;const d=olResGet(ONLINE.cur);if(d){ctx.r=Math.min(d.r,G.rounds-1);ctx.score=d.score;setTimeout(()=>olToast('Welcome back! Carrying on from round '+(ctx.r+1)+'.'),300)}}
   renderScore();startRound()}
 function showHow(id){const G=GAMES[id],H=(typeof HOWTO!=='undefined'&&HOWTO[id])||{},tips=H.steps||G.how.split(/(?<=[.!?])\s+/).filter(Boolean);
   $('gStage').innerHTML=`<div class="howcard"><span class="howic" aria-hidden="true">📖</span><span class="tag">Before you start</span><h3>How to play ${esc(G.title)}</h3><ol class="howlist">${tips.map(t=>`<li>${t}</li>`).join('')}</ol>${H.eg?`<p class="howeg"><b>Example:</b> ${H.eg}</p>`:''}
@@ -892,7 +895,7 @@ function startWizard(id){const G=GAMES[id],modes=G.custom?G.modes.map(m=>m[0]):[
 function mulberry(a){return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
 /* Each round is built from a saved random seed, so a second try rebuilds exactly the same question with a fresh board.
    In an online room every player derives the same seeds from the host's game seed, so everyone gets identical questions. */
-function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach(clearTimeout);c.timers=[];
+function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach(clearTimeout);c.timers=[];if(c.mode==='online'&&!retry)olResSave({r:c.r,score:c.score});
   if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1}
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
@@ -909,7 +912,7 @@ function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ
       <h3>You scored ${c.score} out of ${max}</h3>${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
       <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
     $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id);return}
-  if(c.mode==='online'){c.finished=true;onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
+  if(c.mode==='online'){c.finished=true;try{localStorage.removeItem(OLRES)}catch(e){}onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
   let title,rows;
   if(c.mode==='bot'){const b=BOT[c.level].name;title=c.score>c.botScore?'You beat '+b+'!':c.score<c.botScore?b+' wins this time':'It’s a draw!';rows=[['You',c.score],['🤖 '+b,c.botScore]]}
   else{rows=c.players.map(p=>[p.name,p.score]).sort((a,b)=>b[1]-a[1]);const top=rows.filter(r=>r[1]===rows[0][1]);title=top.length>1?'It’s a tie between '+top.map(t=>esc(t[0])).join(' and ')+'!':esc(rows[0][0])+' wins!'}
@@ -950,7 +953,7 @@ function onlineRows(){const here=new Set(ONLINE.peers.map(p=>p.id));
   Object.entries(ONLINE.seen).forEach(([id,pr])=>{if(!here.has(id)&&pr.nick)rows.push({n:safeNick(pr.nick),s:+pr.score||0,me:false,done:false,left:true,sub:' · left the room'})});
   return rows.sort((a,b)=>b.s-a.s)}
 function onlineReport(done){const c=ctx;if(!ONLINE.room||!c)return;ONLINE.room.presence({score:c.score,round:Math.min(c.r+1,c.G.rounds),status:done?'done':'playing'}).catch(()=>{})}
-function onPeersChange(ch){ONLINE.peers=ch.peers;
+function onPeersChange(ch){ONLINE.peers=ch.peers.filter(p=>p.sameTab||!p.presence||p.presence.status!=='away');if(ONLINE.code&&!(onPeersChange.t>Date.now()-10000)){onPeersChange.t=Date.now();olSave({gid:ONLINE.gid})}
   if(ctx&&ctx.mode==='online'&&ONLINE.lastStart){ch.peers.forEach(p=>{if(!p.sameTab&&olThisGame(p))ONLINE.seen[p.id]={nick:p.presence.nick,score:p.presence.score,team:p.presence.team}});
     if(!ONLINE.deadline&&!(GAMES[ONLINE.gid]||{}).custom&&ch.peers.some(p=>olThisGame(p)&&p.presence.status==='done'))olStartClock()}
   if(ONLINE.hook)try{ONLINE.hook()}catch(e){console.warn(e)}
@@ -959,9 +962,12 @@ function onPeersChange(ch){ONLINE.peers=ch.peers;
   /* guests waiting in the room follow the host when the host picks a different game */
   {const h=hostPeer();if($('olLobby')&&h&&!h.sameTab&&h.presence.status!=='playing'&&h.presence.game&&h.presence.game!==ctx.id&&olCan(h.presence.game)&&!ONLINE.pending){const id=h.presence.game;ONLINE.gid=id;ONLINE.pending=()=>playGame(id,{setup:true,level:'mixed'});location.hash=id;return}}
   {const h=hostPeer(),wasHost=ONLINE.host;ONLINE.host=!!(h&&h.sameTab);
+    /* the host themselves came back after a refresh: carry on with the game they were running */
+    if(h&&h.sameTab&&ONLINE.firstSnap){ONLINE.firstSnap=false;const st=h.presence.status==='playing'&&h.presence.startAt;
+      if(st&&ONLINE.resumeAt===h.presence.startAt&&olValid(h.presence)){ONLINE.resuming=true;ONLINE.cfg={topic:h.presence.topic||null,teams:+h.presence.teams||2};startOnline(h.presence)}else if(ONLINE.resumeAt){ONLINE.resumeAt=null;olBackToRoom(h)}}
     if(h&&!h.sameTab){const st=h.presence.status==='playing'&&h.presence.startAt;
       /* a game that was already running when we joined: wait for the next one instead of starting late */
-      if(ONLINE.firstSnap){ONLINE.firstSnap=false;if(st){ONLINE.lastStart=h.presence.startAt;ONLINE.lateWait=true}}
+      if(ONLINE.firstSnap){ONLINE.firstSnap=false;if(st&&ONLINE.resumeAt===h.presence.startAt&&olValid(h.presence)){ONLINE.resuming=true;startOnline(h.presence)}else if(st){ONLINE.lastStart=h.presence.startAt;ONLINE.lateWait=true}else if(ONLINE.resumeAt){ONLINE.resumeAt=null;olBackToRoom(h)}}
       else if(st&&h.presence.startAt!==ONLINE.lastStart&&olValid(h.presence)){ONLINE.lateWait=false;startOnline(h.presence)}}
     if(wasHost!==ONLINE.host){if($('olLobby'))drawLobby();if(ctx&&ctx.finished&&$('olEnd'))onlineEnd()}}}
 /* when the first player finishes, everyone still playing gets OL_GRACE seconds, then the game ends for all */
@@ -977,15 +983,29 @@ function olStartClock(){ONLINE.deadline=Date.now()+OL_GRACE*1000;clearInterval(O
 function olResetGame(startAt){ONLINE.lastStart=startAt;ONLINE.seen={};ONLINE.peers.forEach(p=>{if(!p.sameTab&&p.presence&&p.presence.nick)ONLINE.seen[p.id]={nick:p.presence.nick,score:0}});ONLINE.deadline=null;ONLINE.timeUp=false;clearInterval(ONLINE.tick);if($('olClock'))$('olClock').remove()}
 /* each player gets the same kinds of questions at the same level, but different numbers, so copying a neighbour's screen doesn't help */
 const olSeed=seed=>(seed^ONLINE.salt)>>>0;
-async function onlineLeave(){clearInterval(ONLINE.tick);const r=ONLINE.room;if(ONLINE.unsub)ONLINE.unsub();Object.assign(ONLINE,{code:null,room:null,host:false,peers:[],unsub:null,seen:{},deadline:null,timeUp:false,gid:null,lastStart:null});try{if(r)await r.leave()}catch(e){}}
-async function joinCode(code,asHost){const R=await roomReady;if(!R)return 'unavailable';
-  try{if(ONLINE.room)await ONLINE.room.leave();ONLINE.salt=Math.floor(Math.random()*4294967296);ONLINE.firstSnap=true;ONLINE.lateWait=false;setTimeout(()=>{ONLINE.firstSnap=false},4000);const room=await R.join('arc-'+code);ONLINE.room=room;ONLINE.code=code;ONLINE.host=asHost;ONLINE.lastStart=null;
+async function onlineLeave(){clearInterval(ONLINE.tick);olForget();try{sessionStorage.removeItem('arcTabRoom')}catch(e){}const r=ONLINE.room;if(ONLINE.unsub)ONLINE.unsub();Object.assign(ONLINE,{code:null,room:null,host:false,peers:[],unsub:null,seen:{},deadline:null,timeUp:false,gid:null,lastStart:null});try{if(r)await r.leave()}catch(e){}}
+/* This device remembers the room it is in (so an accidental refresh, Back or closed tab can rejoin as the same player).
+   Leaving on purpose (Leave room / All games) forgets it. */
+const OLKEY='arcRoom',OLRES='arcResume';
+const olSaved=()=>{try{const s=JSON.parse(localStorage.getItem(OLKEY)||'null');return s&&!s.left&&Date.now()-s.at<20*60000?s:null}catch(e){return null}};
+/* the seat is kept per tab (sessionStorage, survives a refresh) and as "last room on this device" (localStorage, for reopening a closed tab) */
+const olTabSeat=()=>{try{const s=JSON.parse(sessionStorage.getItem(OLKEY)||'null');return s&&Date.now()-s.at<20*60000?s:null}catch(e){return null}};
+const olSave=x=>{try{const v=JSON.stringify({...(olTabSeat()||olSaved()||{}),...x,at:Date.now()});sessionStorage.setItem(OLKEY,v);localStorage.setItem(OLKEY,v)}catch(e){}};
+const olForget=()=>{try{localStorage.removeItem(OLKEY);localStorage.removeItem(OLRES);sessionStorage.removeItem(OLKEY);sessionStorage.removeItem(OLRES)}catch(e){}};
+/* game progress for resuming after a refresh: {code,startAt,game,data} */
+function olResSave(data){if(!ONLINE.code||!ONLINE.lastStart)return;try{const v=JSON.stringify({code:ONLINE.code,startAt:ONLINE.lastStart,game:ONLINE.gid,data,at:Date.now()});sessionStorage.setItem(OLRES,v);localStorage.setItem(OLRES,v)}catch(e){}}
+function olResGet(cur){try{const r=JSON.parse(sessionStorage.getItem(OLRES)||localStorage.getItem(OLRES)||'null');return r&&r.code===ONLINE.code&&r.startAt===cur.startAt&&r.game===cur.game?r.data:null}catch(e){return null}}
+async function joinCode(code,asHost,reuse){const R=await roomReady;if(!R)return 'unavailable';
+  try{if(ONLINE.room)await ONLINE.room.leave();ONLINE.salt=reuse&&Number.isFinite(reuse.salt)?reuse.salt:Math.floor(Math.random()*4294967296);ONLINE.firstSnap=true;ONLINE.lateWait=false;ONLINE.resumeAt=reuse&&reuse.startAt||null;setTimeout(()=>{ONLINE.firstSnap=false},4000);
+    const room=await R.join('arc-'+code,reuse&&reuse.sfx);ONLINE.room=room;ONLINE.code=code;ONLINE.host=asHost;ONLINE.lastStart=null;
+    olSave({code,sfx:room.sfx||null,nick:ONLINE.nick,salt:ONLINE.salt,left:false});try{sessionStorage.setItem('arcTabRoom',code)}catch(e){}
     if(ONLINE.unsub)ONLINE.unsub();ONLINE.unsub=room.onPeers(onPeersChange,()=>{});
+    if(room.rejoined){await room.presence({nick:ONLINE.nick,code,status:ONLINE.resumeAt?'playing':'lobby'});return 'ok'} /* keep score, team and place */
     if(asHost)olCfgDefaults(ctx.id);ctx.level='mixed';
     await room.presence({nick:ONLINE.nick,code,host:asHost,status:'lobby',score:0,round:0,game:asHost?ctx.id:null,level:asHost?'mixed':null,startAt:null,seed:null,...(asHost?{topic:ONLINE.cfg.topic,teams:ONLINE.cfg.teams}:{})});return 'ok'}
   catch(e){return e&&e.code==='not_permitted'?'unavailable':'error'}}
-function startOnline(p){if(!olValid(p))return;MODE='online';olResetGame(p.startAt);ONLINE.gid=p.game;ONLINE.cur={game:p.game,level:p.level,seed:+p.seed,startAt:p.startAt,topic:p.topic||null,teams:+p.teams||2};
-  const go=()=>{ONLINE.room.presence({status:'playing',score:0,round:GAMES[p.game].custom?0:1,startAt:p.startAt}).catch(()=>{});playGame(p.game,{go:true,seedBase:olSeed(p.seed),level:'mixed'})};
+function startOnline(p){if(!olValid(p))return;MODE='online';olResetGame(p.startAt);olSave({startAt:p.startAt});ONLINE.gid=p.game;ONLINE.cur={game:p.game,level:p.level,seed:+p.seed,startAt:p.startAt,topic:p.topic||null,teams:+p.teams||2};
+  const go=()=>{ONLINE.room.presence(ONLINE.resuming?{status:'playing'}:{status:'playing',score:0,round:GAMES[p.game].custom?0:1,startAt:p.startAt}).catch(()=>{});playGame(p.game,{go:true,seedBase:olSeed(p.seed),level:'mixed'})};
   if(location.hash!=='#'+p.game){ONLINE.pending=go;location.hash=p.game}else go()}
 function onlinePanel(id){
   $('gStage').innerHTML=`<div class="end" id="olBox"><span class="tag">Online room</span><h3>Play with friends on their own devices</h3><p style="margin:0;color:var(--muted)" id="olNote">Checking whether online play works here…</p></div>`;
@@ -3155,7 +3175,7 @@ function olWireEnd(){if($('olAgain2'))$('olAgain2').onclick=()=>{sfx.tap();olHos
 function olEndExtras(){const e=$('olEnd');if(!e||$('olLobbyBtn'))return;const r=e.querySelector('.row');if(r)r.insertAdjacentHTML('beforeend','<button class="btn" id="olLobbyBtn">Back to the room</button>');olWireEnd()}
 
 /* ---------- lobby settings (host chooses; everyone sees) ---------- */
-function olCfgDefaults(id){const G=GAMES[id],O=G&&G.online;ONLINE.cfg=ONLINE.cfg||{};
+function olCfgDefaults(id){const G=GAMES[id],O=G&&G.online;if(!ONLINE.cfg){const me=ONLINE.peers.find(p=>p.sameTab);ONLINE.cfg=me&&me.presence.topic!==undefined?{topic:me.presence.topic,teams:+me.presence.teams||2}:{}}
   if(O&&O.topics&&!O.topics.some(t=>t[0]===ONLINE.cfg.topic))ONLINE.cfg.topic=(O.defTopic?O.defTopic():O.topics[0][0]);
   if(!(O&&O.topics))ONLINE.cfg.topic=null;
   if(!ONLINE.cfg.teams)ONLINE.cfg.teams=2;if(O&&O.fixedTeams)ONLINE.cfg.teams=O.fixedTeams}
@@ -3193,13 +3213,15 @@ function olHostStart(){if(!ONLINE.host||!ONLINE.room)return;const id=ctx.id;olCf
 function olPartyCustom(stage,id){if(ctx.go&&ONLINE.cur&&ONLINE.cur.game===id&&ONLINE.room){document.body.classList.add('playing');stage.innerHTML='';return GAMES[id].online.run(stage,ONLINE.cur)}
   return onlinePanel(id)}
 /* final standings card for party games */
-function olPartyEnd(stage,title,body,id,myScore){ONLINE.hook=null;document.body.classList.remove('playing');sfx.win();confetti(110,true);qubi('gQ','party','What a game!');
+function olPartyEnd(stage,title,body,id,myScore){ONLINE.hook=null;if(ctx)ctx.finished=true;try{localStorage.removeItem(OLRES)}catch(e){}document.body.classList.remove('playing');sfx.win();confetti(110,true);qubi('gQ','party','What a game!');
   const o=document.createElement('div');o.className='ptover';o.innerHTML=`<div class="end"><span class="tag">Game over</span><h3>${title}</h3>${body}${olEndButtons()}</div>`;stage.appendChild(o);olWireEnd();
   if(myScore!=null)setTimeout(()=>arcReport(id,myScore,{mode:'online'}),80)}
 
 /* ---------- Team Battle and Tug-of-War (online) ---------- */
 function olTeamGame(stage,cur,id){const rope=id==='party-tug',N=rope?2:Math.max(2,Math.min(4,cur.teams||2)),SECS=rope?90:120,kind=cur.topic||'t29';
   const S={score:0,lock:0,q:null,over:false,wrong:[],end:Date.now()+SECS*1000};
+  const RS=ONLINE.resuming?olResGet(cur):null;ONLINE.resuming=false;if(RS){S.score=RS.score||0;S.end=RS.end||S.end;S.wrong=RS.wrong||[]}
+  const save=()=>olResSave({score:S.score,end:S.end,wrong:S.wrong.slice(-8)});save();
   const me=()=>olPlayers().find(p=>p.sameTab);
   const roster=olRoomPlayers();
   const tally=()=>{const list=olPlayers(),sum=Array(N).fill(0),size=Array(N).fill(0),pl=[];
@@ -3218,9 +3240,9 @@ function olTeamGame(stage,cur,id){const rope=id==='party-tug',N=rope?2:Math.max(
     $('obO').innerHTML=opts.map(x=>`<button class="btn tgb" data-v="${x.v}">${fmtN(x.v)}</button>`).join('');
     $('obO').querySelectorAll('.tgb').forEach(b=>b.onclick=()=>answer(+b.dataset.v,b))};
   const answer=(v,btn)=>{if(S.over||S.lock>Date.now())return;const q=S.q;
-    if(v===q.a){S.score++;sfx.ok();btn.classList.add('ok');$('obM').innerHTML='';$('obMine').textContent=`You: ${S.score} right`;olPush({score:S.score});board();check();if(!S.over)olTimer(ask,250)}
+    if(v===q.a){S.score++;save();sfx.ok();btn.classList.add('ok');$('obM').innerHTML='';$('obMine').textContent=`You: ${S.score} right`;olPush({score:S.score});board();check();if(!S.over)olTimer(ask,250)}
     else{sfx.no();btn.classList.add('no');const w=q.o.find(x=>x.v===v);S.wrong.push(`${q.q} = ${fmtN(q.a)}`);$('obM').innerHTML=`<p class="retrymsg">❌ ${w?w.why:'Not that one.'} <b>${q.tip}</b></p>`;
-      S.lock=Date.now()+1600;$('obO').querySelectorAll('.tgb').forEach(b=>b.disabled=true);olTimer(ask,1600)}};
+      save();S.lock=Date.now()+1600;$('obO').querySelectorAll('.tgb').forEach(b=>b.disabled=true);olTimer(ask,1600)}};
   const check=()=>{if(S.over)return;if(rope){const b=board();if(Math.abs(b.pos)>=b.W)return end()}if(Date.now()>=S.end)end()};
   const end=()=>{if(S.over)return;S.over=true;olPush({score:S.score,status:'done'},true);$('obO').innerHTML='';$('obQ').innerHTML='<b>Time!</b> Collecting the final scores…';
     olTimer(()=>{const t=tally(),best=Math.max(...t.sum),win=t.sum.map((s,i)=>s===best?i:-1).filter(i=>i>=0);
@@ -3231,7 +3253,7 @@ function olTeamGame(stage,cur,id){const rope=id==='party-tug',N=rope?2:Math.max(
         ${S.wrong.length?`<p><b>Facts to practise:</b><br>${uniq(S.wrong).slice(0,6).join('<br>')}</p>`:''}`;
       $('obBoard').innerHTML='';board();olPartyEnd(stage,title,body,id,S.score)},2500)};
   /* keep my team on my room entry so it still counts if I leave */
-  olPush({team:myT,score:0},true);
+  olPush({team:myT,score:S.score},true);$('obMine').textContent=`You: ${S.score} right`;if(RS)olToast('Welcome back! You are still in '+TEAMS[myT].e+' '+TEAMS[myT].n+'.');
   ONLINE.hook=()=>{if(!S.over){board();check()}};
   board();ask();
   olEvery(()=>{if(S.over)return;const left=Math.max(0,Math.ceil((S.end-Date.now())/1000));$('obT').textContent=`⏱ ${left}s`;if(left<=10)$('obT').classList.add('hot');board();check()},500)}
@@ -3241,20 +3263,22 @@ function olBingo(stage,cur){
   const real=Math.random;Math.random=mulberry(cur.seed);const clues=shuffle(bingoClues(cur.topic||'P4'));const answers=clues.map(c=>c.a);
   Math.random=mulberry(olSeed(cur.seed));const mine=shuffle(answers).slice(0,16);Math.random=real;
   const S={idx:-1,resp:0,mk:new Set(),over:false,miss:[],first:true,hostI:null,hostAt:0,wrongs:0};
+  const RS=ONLINE.resuming?olResGet(cur):null;ONLINE.resuming=false;
+  const save=()=>olResSave({idx:S.idx,resp:S.resp,mk:[...S.mk],miss:S.miss.slice(-10)});
   stage.innerHTML=`<div class="bingo"><div class="bgcall" id="bgC"><span class="tag">Get ready…</span><div class="bgclue">The host will call the first clue.</div></div><div id="bgM"></div>
     <div class="bgboards"><div><span class="tag">Your card</span><div class="bgcard" id="bgMine">${mine.map((n,i)=>`<button class="bgcell" data-i="${i}">${n}</button>`).join('')}</div>
     <div class="row"><button class="btn" id="bgNo">Not on my card ➜</button></div></div><div><span class="tag">Players</span><ol class="board" id="bgP"></ol></div></div></div>`;
   const won=set=>lines4.some(l=>l.every(i=>set.has(i)));
   const players=()=>olPlayers();
   const curIdx=()=>{if(ONLINE.host)return S.hostI==null?-1:S.hostI;const h=hostPeer();return h&&olThisGame(h)?(+h.presence.round||0)-1:-1};
-  const respond=()=>{S.resp=S.idx+1;if(!ONLINE.host)olPush({round:S.resp},true)};
+  const respond=()=>{S.resp=S.idx+1;save();if(!ONLINE.host)olPush({round:S.resp},true)};
   const show=i=>{S.idx=i;S.first=true;S.wrongs=0;$('bgM').innerHTML='';if(i>=clues.length)return end([]);
     $('bgC').innerHTML=`<span class="tag">Clue ${i+1} of ${clues.length}</span><div class="bgclue">${clues[i].c}</div>`;sfx.pop()};
   const people=()=>{const ps=players(),hp=hostPeer();$('bgP').innerHTML=ps.map(p=>{const m=p.sameTab?S.mk.size:(+p.presence.score||0);return `<li class="${p.sameTab?'me':''}"><b>${hp&&p.id===hp.id?'★ ':''}${esc(safeNick(p.presence.nick))}${p.sameTab?' (you)':''}</b><span>${m} marked</span></li>`}).join('')};
   const wrong=msg=>{sfx.no();if(S.first){S.first=false;$('bgM').innerHTML=`<p class="retrymsg">🔁 ${msg}</p>`;return}
     const c=clues[S.idx];S.miss.push(`${c.c} = ${c.a}`);$('bgM').innerHTML=`<p class="retrymsg">❌ The answer was <b>${c.a}</b>. ${mine.includes(c.a)?'It was on your card, but this chance is gone.':'It was not on your card.'} Wait for the next clue.</p>`;respond()};
   $('bgMine').querySelectorAll('.bgcell').forEach(b=>b.onclick=()=>{if(S.over||S.idx<0||S.resp>S.idx||b.classList.contains('on'))return;const c=clues[S.idx],v=+b.textContent;
-    if(v===c.a){b.classList.add('on');S.mk.add(+b.dataset.i);sfx.ok();$('bgM').innerHTML='<p class="asknote">✅ Marked! Wait for the next clue.</p>';olPush({score:S.mk.size});respond();people();if(won(S.mk)){olPush({status:'done',score:S.mk.size},true);return end([me()])}return}
+    if(v===c.a){b.classList.add('on');S.mk.add(+b.dataset.i);save();sfx.ok();$('bgM').innerHTML='<p class="asknote">✅ Marked! Wait for the next clue.</p>';olPush({score:S.mk.size});respond();people();if(won(S.mk)){olPush({status:'done',score:S.mk.size},true);return end([me()])}return}
     b.classList.add('shake');PT.timer(()=>b.classList.remove('shake'),400);wrong(c.trap&&v===c.trap[0]?c.trap[1]:`${v} is not the answer to “${c.c}”. Work it out again.`)});
   $('bgNo').onclick=()=>{if(S.over||S.idx<0||S.resp>S.idx)return;const c=clues[S.idx];if(!mine.includes(c.a)){sfx.tap();$('bgM').innerHTML=`<p class="asknote">Right, ${c.a} is not on your card. Wait for the next clue.</p>`;respond();return}
     wrong('Look again. The answer <b>is</b> on your card. Work the clue out carefully.')};
@@ -3270,19 +3294,24 @@ function olBingo(stage,cur){
     if(S.hostI<0?now-S.hostAt>2500:(allIn&&now-S.hostAt>2500||now-S.hostAt>20000)){S.hostI++;S.hostAt=now;ONLINE.room.presence({round:S.hostI+1}).catch(()=>{})}};
   const sync=()=>{if(S.over)return;people();const done=players().filter(p=>!p.sameTab&&p.presence.status==='done');if(done.length)return end(done);
     if(!ONLINE.host)S.hostI=null;drive();const i=curIdx();if(i>S.idx){if(S.idx>=0&&S.resp<=S.idx&&mine.includes(clues[S.idx].a))S.miss.push(`${clues[S.idx].c} = ${clues[S.idx].a}`);show(i)}};
-  olPush({score:0,round:0},true);ONLINE.hook=sync;people();
+  if(RS){S.mk=new Set(RS.mk||[]);S.miss=RS.miss||[];S.mk.forEach(i=>{const c=$('bgMine').children[i];if(c)c.classList.add('on')});if(RS.idx>=0&&RS.idx<clues.length){show(RS.idx);S.resp=RS.resp||0;if(S.resp>S.idx)$('bgM').innerHTML='<p class="asknote">Welcome back! Wait for the next clue.</p>'}else S.resp=RS.resp||0;
+    olPush({score:S.mk.size,round:S.resp},true);olToast('Welcome back! Your bingo card is just as you left it.')}
+  else olPush({score:0,round:0},true);
+  ONLINE.hook=sync;people();
   olEvery(()=>{sync();if(ONLINE.host&&S.idx>=0&&!S.over){const left=Math.max(0,Math.ceil((S.hostAt+20000-Date.now())/1000));const t=$('bgC').querySelector('.tag');if(t)t.textContent=`Clue ${S.idx+1} of ${clues.length} · next in ${left}s`}},500)}
 
 /* ---------- Fraction Wall Race (online): same bricks for everyone, first to 2 bars wins ---------- */
 function olWall(stage,cur){const GOAL=2,real=Math.random;Math.random=mulberry(cur.seed);const deck=Array.from({length:300},()=>[pick(FW),pick(FW)]);Math.random=real;
   const S={t:0,bars:[[]],done:0,over:false,miss:[]},used=fwUsed,prog=()=>S.done*12+used(S.bars[S.bars.length-1]);
+  const RS=ONLINE.resuming?olResGet(cur):null;ONLINE.resuming=false;if(RS){S.t=RS.t||0;S.bars=RS.bars&&RS.bars.length?RS.bars:[[]];S.done=RS.done||0;S.miss=RS.miss||[]}
+  const save=()=>olResSave({t:S.t,bars:S.bars,done:S.done,miss:S.miss.slice(-8)});
   stage.innerHTML=`<div class="fwall"><details class="fwhelp"><summary>📐 Show the fraction wall</summary>${fwWall()}</details>
     <div class="fwrace" id="fwR"></div><div class="fwp" style="--pc:var(--teal)"><div class="row"><b>Your wall</b><span class="pill" id="fwD">0 of ${GOAL} bars</span></div><div class="fwbar" id="fwB"></div></div><div class="fwturn" id="fwT"></div></div>`;
   const cols=['#ffd27a','#ffb3c7','#bcd3fb','#bfe8cf','#d9c6ff','#f3c28b','#c6f0f0'];
   const race=()=>{const ps=olPlayers();$('fwR').innerHTML=ps.map(p=>{const v=p.sameTab?prog():(+p.presence.score||0);return `<div class="fwrrow ${p.sameTab?'me':''}"><span>${esc(safeNick(p.presence.nick))}${p.sameTab?' (you)':''}</span><div><i style="width:${Math.min(100,v/(GOAL*12)*100)}%"></i></div><b>${Math.floor(v/12)}/${GOAL}</b></div>`}).join('')};
   const draw=()=>{const b=S.bars[S.bars.length-1];$('fwB').innerHTML=`<div class="fwtrack">${b.map(([n,d])=>`<span class="fwbrick" style="flex:${n*12/d};background:${cols[(d+n)%cols.length]}">${fr(n,d)}</span>`).join('')}${used(b)<12?`<span class="fwgap" style="flex:${12-used(b)}"></span>`:''}</div><div class="fwticks">${Array.from({length:12},()=>'<i></i>').join('')}</div>`;
     $('fwD').textContent=`${S.done} of ${GOAL} bars`;race()};
-  const turn=()=>{if(S.over)return;draw();const b=S.bars[S.bars.length-1],left=12-used(b),cards=deck[S.t%deck.length];S.t++;
+  const turn=()=>{if(S.over)return;draw();const b=S.bars[S.bars.length-1],left=12-used(b),cards=deck[S.t%deck.length];S.t++;save();
     $('fwT').innerHTML=`<div class="fwtc" style="--pc:var(--teal)"><h3>Pick a brick</h3><p class="qs">Space left on the bar: <b>${fr(left,12)}</b>${frq(left,12)[1]!==12?` = ${rshow(frq(left,12))}`:''}. Pick a brick that fits.</p>
       <div class="row fwcards">${cards.map((c,i)=>`<button class="btn fwcard" data-i="${i}">${fr(c[0],c[1])}</button>`).join('')}<button class="btn" id="fwPass">Neither fits: new bricks</button></div><div id="fwM"></div></div>`;
     let tries=0;
@@ -3294,7 +3323,7 @@ function olWall(stage,cur){const GOAL=2,real=Math.random;Math.random=mulberry(cu
         if(x.ok){bt.classList.add('ok');sfx.ok();b.push(c);if(used(b)===12){S.done++;confetti(50);$('fwM').innerHTML=`<p class="asknote">🎉 Bar complete! ${b.map(y=>fr(y[0],y[1])).join(' + ')} = 1 whole.</p>`;
             if(S.done>=GOAL){draw();olPush({score:prog(),status:'done'},true);return olTimer(()=>end([me()]),600)}S.bars.push([])}
           else $('fwM').innerHTML=`<p class="asknote">✅ ${fr(Q.before,12)} + ${fr(Q.after-Q.before,12)} = ${fr(Q.after,12)}</p>`;
-          olPush({score:prog()});draw();return olTimer(turn,1100)}
+          save();olPush({score:prog()});draw();return olTimer(turn,1100)}
         bt.classList.add('no');sfx.no();S.miss.push(x.why);$('fwM').innerHTML=`<p class="retrymsg">❌ ${x.why} The brick bounces off.</p>`;olTimer(turn,2600)})};
     const pass=()=>{if(cards.some(c=>c[0]*12/c[1]<=left)){sfx.no();$('fwM').innerHTML=`<p class="retrymsg">🔁 One of these bricks does fit! Change each one to twelfths and compare with ${fr(left,12)}.</p>`;return}sfx.tap();turn()};
     $('fwT').querySelectorAll('.fwcard').forEach(bt=>bt.onclick=()=>choose(+bt.dataset.i));$('fwPass').onclick=pass;fitView()};
@@ -3304,7 +3333,7 @@ function olWall(stage,cur){const GOAL=2,real=Math.random;Math.random=mulberry(cu
     const body=`<ol class="board">${ps.map(p=>`<li class="${p.me?'me':''}"><b>${esc(p.n)}${p.me?' (you)':''}</b><span>${Math.floor(p.v/12)} bar${Math.floor(p.v/12)===1?'':'s'} + ${fr(p.v%12,12)}</span></li>`).join('')}</ol>${S.miss.length?`<p><b>Things to remember:</b><br>${uniq(S.miss).slice(0,4).join('<br>')}</p>`:''}`;
     if(iWon)setBest('party-wall',S.miss.length===0?3:S.miss.length<3?2:1);
     olPartyEnd(stage,`${esc(names.join(' and '))||'Someone'} ${names.length>1?'win':'wins'} the race!${iWon?' 🏆':''}`,body,'party-wall',iWon?Math.max(10,100-10*S.miss.length):null)};
-  olPush({score:0},true);
+  olPush({score:prog()},true);if(RS)olToast('Welcome back! Your wall is just as you left it.');
   ONLINE.hook=()=>{if(S.over)return;race();const done=olPlayers().filter(p=>!p.sameTab&&p.presence.status==='done');if(done.length)end(done)};
   turn()}
 
@@ -3320,6 +3349,29 @@ Object.assign(GAMES['party-bingo'],{online:{topics:[['P4','P4 clues'],['P5','P5 
 Object.assign(GAMES['party-wall'],{online:{run:olWall}});
 ['party-tug','party-bingo','party-wall'].forEach(id=>{const G=GAMES[id],orig=G.custom;if(!G.modes.some(m=>m[0]==='online'))G.modes.push(['online','Online room','Play with classmates on their own devices.','🌐']);
   G.custom=function(stage,mode){if(mode==='online')return olPartyCustom(stage,id);return orig.call(this,stage,mode)}});
+
+/* ---------- coming back after an accidental refresh, Back or closed tab ---------- */
+function olToast(msg){const t=document.createElement('div');t.className='oltoast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),4200)}
+/* go to the room's current game screen (the lobby) */
+function olBackToRoom(h){const id=h&&olCan(h.presence.game)?h.presence.game:(ONLINE.gid||(ctx&&ctx.id)||'p4-rounding');ONLINE.gid=id;MODE='online';
+  const go=()=>{playGame(id,{setup:true,level:'mixed'})};if(location.hash==='#'+id)go();else{ONLINE.pending=go;location.hash=id}}
+/* rejoin the remembered room as the same player */
+function olRejoin(s){if(!s||ONLINE.room)return false;MODE='online';ONLINE.nick=s.nick||ONLINE.nick;const id=olCan(s.gid)?s.gid:'p4-rounding';
+  const after=()=>{joinCode(s.code,false,{sfx:s.sfx,salt:s.salt,startAt:s.startAt}).then(r=>{if(r!=='ok'){olForget();return}if($('olBox'))drawLobby();olToast('Welcome back to room '+s.code.toUpperCase()+'!')})};
+  ONLINE.gid=id;const go=()=>{playGame(id,{setup:true,level:'mixed'});after()};if(location.hash==='#'+id){cleanup();go()}else{ONLINE.pending=go;location.hash=id}return true}
+/* mid-game, ask before leaving (the browser asks too if the page is closed or refreshed) */
+const olInGame=()=>!!(ONLINE.room&&ctx&&ctx.mode==='online'&&ctx.go&&!ctx.finished&&!$('olEnd')&&!document.querySelector('.ptover'));
+const OL_ASK='Leave this game? Your team or room will carry on without you. If you leave by mistake, open the room link again to carry on.';
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#gMenu,#gChange');if(b&&olInGame()&&!confirm(OL_ASK)){e.preventDefault();e.stopImmediatePropagation()}},true);
+addEventListener('beforeunload',e=>{if(olInGame()){e.preventDefault();e.returnValue=''}});
+/* on page load: rejoin straight away after a refresh in the same tab, or offer to rejoin on the home page */
+addEventListener('arcb-ready',()=>{const ts=olTabSeat();if(ts&&!ts.left){const h0=location.hash.slice(1);if(!h0.startsWith('join/'))olRejoin(ts);return}const s=olSaved();if(!s)return;let tab='';try{tab=sessionStorage.getItem('arcTabRoom')||''}catch(e){}
+  const h=location.hash.slice(1);if(h.startsWith('join/'))return; /* the join link handles it */
+  if(tab===s.code){olRejoin(s);return}});
+
+/* home page: offer to rejoin a room this device was in during the last 20 minutes */
+function olRejoinBar(){const s=olSaved();if(!s||ONLINE.room||Date.now()-s.at<15000)return ''; /* still in use by another tab */return `<div class="olrejoin"><span>🌐 You were in online room <b>${esc(s.code.toUpperCase())}</b>.</span><button class="btn primary sm" id="olRj">Rejoin</button><button class="btn sm" id="olRjNo">No thanks</button></div>`}
+function wireRejoin(){if($('olRj'))$('olRj').onclick=()=>{const s=olSaved();if(s)olRejoin(s)};if($('olRjNo'))$('olRjNo').onclick=()=>{olForget();const b=document.querySelector('.olrejoin');if(b)b.remove()}}
 /* ---------- Step-by-step instructions shown before each game ---------- */
 const HOWTO={
 'p4-rounding':{steps:['A rocket hovers over a number line with its number on top, e.g. <b>27,104</b>. The digit that decides the rounding is in red.','<b>Step 1:</b> tap the two landing pads the rocket is between, e.g. 27,100 and 27,110.','<b>Step 2:</b> land the rocket on the <b>nearer</b> pad. If the red digit is 5 or more, go to the bigger pad. If it is 4 or less, go to the smaller pad.','You round to the nearest 10 first, then 100, then 1000.'],eg:'27,104 to the nearest 10 → the ones digit is 4, so land on 27,100.'},
@@ -4342,11 +4394,11 @@ function hub(){
   if(!body)body=`<div class="empty"><b>No ${level} games yet.</b> They are coming next.</div>`;
   $('view').innerHTML=`<div style="display:grid;gap:22px">
     <div class="hero"><div class="ht"><h1>${[...'Maths '].map((c,i)=>c===' '?' ':`<span class="hl" style="--i:${i}">${c}</span>`).join('')}<span>${[...'Arcade'].map((c,i)=>`<span class="hl" style="--i:${i+6}">${c}</span>`).join('')}</span></h1></div>${qubiBox('hubQ',pick(['Hi! I\u2019m Qubi. Pick a game!','Ready to play? Pick a game!','Which topic today?']),'wave')}</div>
-    <div class="levels" role="group" aria-label="Level">${['P4','P5','P6'].map(l=>`<button aria-pressed="${l===level}" data-l="${l}">Primary ${l[1]}</button>`).join('')}</div>${hubPlayerBar()}${body}</div>`;wireHubPlayer();
+    <div class="levels" role="group" aria-label="Level">${['P4','P5','P6'].map(l=>`<button aria-pressed="${l===level}" data-l="${l}">Primary ${l[1]}</button>`).join('')}</div>${hubPlayerBar()}${window.ARCROOM&&typeof olRejoinBar==='function'?olRejoinBar():''}${body}</div>`;wireHubPlayer();if(typeof wireRejoin==='function')wireRejoin();
   $('view').querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{level=b.dataset.l;try{localStorage.setItem('arcLevel',level)}catch(e){}sfx.tap();hub()})}
-function route(){{const hh=location.hash.slice(1);if(ONLINE.room&&!ONLINE.pending&&!hh.startsWith('join/')&&hh!==ONLINE.gid)onlineLeave()}if(MUSIC.timer||MUSIC.key)playMusic(musicKey());document.body.classList.toggle('ingame',!!GAMES[location.hash.slice(1)]);const h=location.hash.slice(1);if(h.startsWith('join/')){const [,code,gid]=h.split('/'),g=olCan(gid)?gid:'p4-rounding';cleanup();ONLINE.autoCode=/^[a-z0-9]{4}$/i.test(code||'')?code.toLowerCase():null;MODE='online';history.replaceState(null,'','#'+g);document.body.classList.add('ingame');playGame(g,{setup:true});window.scrollTo(0,0);return}if(h.startsWith('leaderboard')){cleanup();boardView(h.split('/')[1]);window.scrollTo(0,0)}else if(GAMES[h]){if(ONLINE.pending){const g=ONLINE.pending;ONLINE.pending=null;g()}else playGame(h);window.scrollTo(0,0)}else{cleanup();hub()}}
+function route(){{const hh=location.hash.slice(1);if(ONLINE.room&&!ONLINE.pending&&!hh.startsWith('join/')&&hh!==ONLINE.gid){if(olInGame()&&!confirm(OL_ASK)){history.replaceState(null,'','#'+ONLINE.gid);return}onlineLeave()}}if(MUSIC.timer||MUSIC.key)playMusic(musicKey());document.body.classList.toggle('ingame',!!GAMES[location.hash.slice(1)]);const h=location.hash.slice(1);if(h.startsWith('join/')&&olSaved()&&olSaved().code===(h.split('/')[1]||'').toLowerCase()&&!ONLINE.room&&Date.now()-olSaved().at>15000){const s=olSaved();history.replaceState(null,'','#');olRejoin(s);return}if(h.startsWith('join/')){const [,code,gid]=h.split('/'),g=olCan(gid)?gid:'p4-rounding';cleanup();ONLINE.autoCode=/^[a-z0-9]{4}$/i.test(code||'')?code.toLowerCase():null;MODE='online';history.replaceState(null,'','#'+g);document.body.classList.add('ingame');playGame(g,{setup:true});window.scrollTo(0,0);return}if(h.startsWith('leaderboard')){cleanup();boardView(h.split('/')[1]);window.scrollTo(0,0)}else if(GAMES[h]){if(ONLINE.pending){const g=ONLINE.pending;ONLINE.pending=null;g()}else playGame(h);window.scrollTo(0,0)}else{cleanup();hub()}}
 addEventListener('hashchange',route);route();
 
 </script>
-<script type="module" src="backend.js?v=5"></script>
+<script type="module" src="backend.js?v=6"></script>
 </body></html>

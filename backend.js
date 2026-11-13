@@ -107,16 +107,21 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
     // true if nobody is in that room right now (used to avoid giving two classes the same code)
     isFree: async (name) => { await ensureAuth(); const s = await getDocs(query(collection(db, "rooms", name, "p"), limit(20)));
       const now = Date.now(); return !s.docs.some(d => { const t = d.data().seen; return !t || now - t.toMillis() < 75000; }); },
-    join: async (name) => {
+    // reuse: the same device rejoining the same room gets its old entry back (same place in the join order, same team, same score).
+    join: async (name, reuse) => {
       const u = await ensureAuth();
-      const pid = u.uid + "_" + Math.random().toString(36).slice(2, 8);
+      const sfx = reuse && /^[a-z0-9]{4,8}$/.test(reuse) ? reuse : Math.random().toString(36).slice(2, 8);
+      const pid = u.uid + "_" + sfx;
       const col = collection(db, "rooms", name, "p"), me = doc(col, pid);
       let created = false;
-      const bye = () => { deleteDoc(me).catch(() => {}); };
+      if (reuse) { try { created = (await getDoc(me)).exists(); } catch (e) {} }
+      // Closing the tab or refreshing only marks us "away", so we can come back as the same player. Leaving on purpose deletes the entry.
+      const bye = () => { if (created) setDoc(me, { status: "away", seen: serverTimestamp() }, { merge: true }).catch(() => {}); };
       addEventListener("pagehide", bye);
       // Check in every 30 seconds so others can tell we are still here.
       const beat = setInterval(() => { if (created) setDoc(me, { seen: serverTimestamp() }, { merge: true }).catch(() => {}); }, 30000);
       return {
+        sfx, rejoined: created,
         presence: async (p) => { const d = {}; FIELDS.forEach(k => { if (p && k in p) d[k] = p[k] === undefined ? null : p[k]; });
           if (!created) { await setDoc(me, { ...d, joined: serverTimestamp(), seen: serverTimestamp() }); created = true; return; }
           return setDoc(me, { ...d, seen: serverTimestamp() }, { merge: true }); },
