@@ -131,21 +131,24 @@ addGame('party-wall',{level:'All levels',strand:'party',glyph:'🧱',title:'Frac
  how:'Take turns to add fraction bricks to your wall. Fill exactly 2 whole bars first to win.',rounds:1,
  modes:[['solo','vs Robot'],['bot','vs Robot'],['pass','2 players']],
  custom(stage,mode){partyStart(stage,'party-wall',mode,'',o=>wallGame(stage,mode,o))}});
+/* how many twelfths of a bar are filled, and the "how much is filled now?" question (shared with the online race) */
+const fwUsed=b=>b.reduce((s,[n,d])=>s+n*12/d,0);
+function fwQ(b,[n,d]){const before=fwUsed(b),after=before+n*12/d,right=frq(after,12),opts=[];
+    if(b.length){const last=b.reduce((acc,x)=>radd(acc,x),[0,1]);const tt=frq(last[0]+n,last[1]+d);opts.push({v:tt,why:`You added the tops and the bottoms (${last[0]}+${n})/(${last[1]}+${d}). Use the wall: change both to twelfths, ${fr(before,12)} + ${fr(n*12/d,12)}.`});
+      opts.push({v:frq(last[0]+n,Math.max(last[1],d)),why:`You added the tops but kept one bottom number. The pieces are different sizes, so change both to twelfths first.`})}
+    else{if(d!==n*12/d&&d<12)opts.push({v:frq(d,12),why:`${fr(n,d)} is ${fr(n*12/d,12)}, not ${fr(d,12)}. A bigger bottom number means <b>smaller</b> pieces: ${d} of them make the whole bar.`});opts.push({v:frq(12-n*12/d||1,12),why:'That is how much is <b>left</b>, not how much is filled.'})}
+    opts.push({v:frq(after+1,12),why:`Count the twelfths carefully: ${fr(before,12)} + ${fr(n*12/d,12)} = ${fr(after,12)}.`});
+    const clean=opts.filter((x,i,a)=>x.v[0]*right[1]!==right[0]*x.v[1]&&a.findIndex(y=>y.v[0]*x.v[1]===x.v[0]*y.v[1])===i).slice(0,2);
+    return {right,opts:shuffle([{v:right,ok:1},...clean]),before,after}}
 function wallGame(stage,mode,o){const bot=mode!=='pass',GOAL=2,S={turn:R(0,1),bars:[[[]],[[]]],done:[0,0],over:false,miss:[[],[]]};
-  const used=b=>b.reduce((s,[n,d])=>s+n*12/d,0);
+  const used=fwUsed;
   stage.innerHTML=`<div class="fwall"><details class="fwhelp"><summary>📐 Show the fraction wall</summary>${fwWall()}</details>
     <div class="fwplayers">${[0,1].map(p=>`<div class="fwp" id="fwP${p}" style="--pc:${p?'var(--violet)':'var(--teal)'}"><div class="row"><b>${esc(o.names[p])}</b><span class="pill" id="fwD${p}">0 of ${GOAL} bars</span></div><div class="fwbar" id="fwB${p}"></div></div>`).join('')}</div>
     <div class="fwturn" id="fwT"></div></div>`;
   const cols=['#ffd27a','#ffb3c7','#bcd3fb','#bfe8cf','#d9c6ff','#f3c28b','#c6f0f0'];
   const draw=()=>{[0,1].forEach(p=>{const b=S.bars[p][S.bars[p].length-1];$('fwB'+p).innerHTML=`<div class="fwtrack">${b.map(([n,d],i)=>`<span class="fwbrick" style="flex:${n*12/d};background:${cols[(d+n)%cols.length]}">${fr(n,d)}</span>`).join('')}${used(b)<12?`<span class="fwgap" style="flex:${12-used(b)}"></span>`:''}</div><div class="fwticks">${Array.from({length:12},()=>'<i></i>').join('')}</div>`;
     $('fwD'+p).textContent=`${S.done[p]} of ${GOAL} bars`;$('fwP'+p).classList.toggle('now',S.turn===p&&!S.over)})};
-  const qFor=(b,[n,d])=>{const before=used(b),after=before+n*12/d,right=frq(after,12),opts=[];
-    if(b.length){const last=b.reduce((acc,x)=>radd(acc,x),[0,1]);const tt=frq(last[0]+n,last[1]+d);opts.push({v:tt,why:`You added the tops and the bottoms (${last[0]}+${n})/(${last[1]}+${d}). Use the wall: change both to twelfths, ${fr(before,12)} + ${fr(n*12/d,12)}.`});
-      opts.push({v:frq(last[0]+n,Math.max(last[1],d)),why:`You added the tops but kept one bottom number. The pieces are different sizes, so change both to twelfths first.`})}
-    else{if(d!==n*12/d&&d<12)opts.push({v:frq(d,12),why:`${fr(n,d)} is ${fr(n*12/d,12)}, not ${fr(d,12)}. A bigger bottom number means <b>smaller</b> pieces: ${d} of them make the whole bar.`});opts.push({v:frq(12-n*12/d||1,12),why:'That is how much is <b>left</b>, not how much is filled.'})}
-    opts.push({v:frq(after+1,12),why:`Count the twelfths carefully: ${fr(before,12)} + ${fr(n*12/d,12)} = ${fr(after,12)}.`});
-    const clean=opts.filter((x,i,a)=>x.v[0]*right[1]!==right[0]*x.v[1]&&a.findIndex(y=>y.v[0]*x.v[1]===x.v[0]*y.v[1])===i).slice(0,2);
-    return {right,opts:shuffle([{v:right,ok:1},...clean]),before,after}};
+  const qFor=fwQ;
   const turn=()=>{if(S.over)return;draw();const p=S.turn,b=S.bars[p][S.bars[p].length-1],left=12-used(b),cards=[pick(FW),pick(FW)];const isBot=bot&&p===1;
     $('fwT').innerHTML=`<div class="fwtc" style="--pc:${p?'var(--violet)':'var(--teal)'}"><h3>${isBot?'🤖 Robo’s turn':esc(o.names[p])+'’s turn'}</h3><p class="qs">Space left on the bar: <b>${fr(left,12)}</b>${frq(left,12)[1]!==12?` = ${rshow(frq(left,12))}`:''}. Pick a brick that fits.</p>
       <div class="row fwcards">${cards.map((c,i)=>`<button class="btn fwcard" data-i="${i}" ${isBot?'disabled':''}>${fr(c[0],c[1])}</button>`).join('')}<button class="btn" id="fwPass" ${isBot?'disabled':''}>Neither fits: pass</button></div><div id="fwM"></div></div>`;

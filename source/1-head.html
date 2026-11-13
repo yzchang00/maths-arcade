@@ -704,6 +704,18 @@ body.playing .gbtn{display:none}
 .olbig{max-width:min(560px,94vw)!important;text-align:center;justify-items:center;display:grid;gap:10px}.olbig .qrsvg{width:min(420px,80vw,60vh);height:auto;border:2px solid var(--ink);border-radius:10px}.ollinkbig{margin:0;font-weight:800;word-break:break-all}
 .olclock{margin:6px 0 0;padding:8px 12px;border-radius:12px;font-weight:800;background:color-mix(in srgb,var(--sun) 30%,var(--surface));border:2px solid var(--ink);animation:pillpop .3s ease}
 .olfair{margin:0;font-weight:700;font-size:.92rem;color:var(--muted)}.olwait{margin:0;font-weight:800;color:var(--muted)}.board li.olleft{opacity:.55;text-decoration:line-through}
+.olsettings{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.olsettings label{display:grid;gap:3px;font-size:.9rem}.olsettings select{max-width:100%}.olset{margin:0;font-weight:700}.olfix{display:grid;gap:3px;font-size:.9rem;font-weight:700;color:var(--muted)}.olfix b{color:var(--ink)}
+.olteams{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:8px}.olteam{border:2px solid var(--tc);border-radius:12px;padding:8px;display:grid;gap:6px;align-content:start;background:color-mix(in srgb,var(--tc) 10%,var(--surface))}
+.olteam b small{font-weight:700;color:var(--muted)}.olteam ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-weight:700;font-size:.92rem}.olteam li.me{color:var(--tc)}.olteam li.empty{color:var(--muted);font-weight:600}
+@media (max-width:560px){.olteams{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.olbattle{display:grid;gap:12px}.obq{border:2.5px solid var(--tc);border-radius:14px;padding:12px;display:grid;gap:8px;background:var(--surface)}
+.obbars{display:grid;gap:8px}.obbar{display:grid;grid-template-columns:minmax(90px,auto) 1fr 3em;gap:8px;align-items:center;font-weight:800}.obbar>div{height:22px;border-radius:11px;background:var(--soft,#e1eeeb);overflow:hidden;border:2px solid var(--tc)}
+.obbar>div i{display:block;height:100%;background:var(--tc);transition:width .4s ease}.obbar b{font:700 1.3rem var(--display);text-align:right}.obbar.mine span{text-decoration:underline}
+.obrope{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}.obend{display:grid;justify-items:center;font-weight:800}.obend b{font:700 1.5rem var(--display)}
+.obline{position:relative;height:16px;border-radius:8px;background:linear-gradient(90deg,#b07a3c,#c99257,#b07a3c);border:2px solid var(--ink)}.obzone{position:absolute;top:-6px;bottom:-6px;width:8%;opacity:.35}.obzone.l{left:0;background:#2f7de1}.obzone.r{right:0;background:#e2504a}
+.obknot{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:var(--tomato,#e2504a);border:2px solid var(--ink);transition:left .35s cubic-bezier(.3,1.6,.5,1)}
+.fwrace{display:grid;gap:5px}.fwrrow{display:grid;grid-template-columns:minmax(80px,auto) 1fr 3em;gap:8px;align-items:center;font-weight:700;font-size:.92rem}.fwrrow>div{height:14px;border-radius:7px;background:var(--soft,#e1eeeb);overflow:hidden;border:1.5px solid var(--line)}
+.fwrrow>div i{display:block;height:100%;background:var(--teal);transition:width .4s}.fwrrow.me{color:var(--teal)}.fwrrow b{text-align:right}
 </style>
 
 <canvas id="bgfx" aria-hidden="true"></canvas>

@@ -100,31 +100,44 @@ function perms(a){if(a.length<=1)return [a];const out=[];a.forEach((x,i)=>perms(
 addGame('p4-product',{level:'P4',strand:'num',glyph:'×',title:'Digit Duel',topic:'Multiplication: 3 digits × 1 digit, 2 digits × 2 digits, 3 digits × 2 digits',
  how:'Place the digit cards to make the biggest (or smallest) product. Then work out the multiplication yourself for bonus points.',rounds:9,
  round(api,r){
-  const sh=r<3?[3,1]:r<6?[2,2]:[3,2],n=sh[0]+sh[1],goal=r%2===0?'big':'small';
-  const digs=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,n);let best=null;
-  perms(digs).forEach(p=>{const A=+p.slice(0,sh[0]).join(''),B=+p.slice(sh[0]).join(''),v=A*B;if(!best||(goal==='big'?v>best.v:v<best.v))best={A,B,v}});
-  api.q(`<p class="qt">Use all ${n} cards to make the <b>${goal==='big'?'BIGGEST':'SMALLEST'}</b> product.</p><p class="qs">Tap a card to place it. Tap a box to take a card back.</p>`);
-  api.body.innerHTML=`<div class="frame" id="dF"></div><div class="row" id="dC"></div><div class="row"><button class="btn primary" id="dLock" disabled>Lock in</button><button class="btn" id="dClr">Clear all cards</button></div><div id="dS2"></div>`;
-  const slots=Array(n).fill(null);let locked=false;
-  function draw(){let h='';slots.forEach((s,k)=>{if(k===sh[0])h+='<span>×</span>';h+=`<button class="slot ${s!==null?'full':''}" data-k="${k}" aria-label="Box ${k+1}">${s!==null?digs[s]:''}</button>`});
-    $('dF').innerHTML=h;$('dC').innerHTML=digs.map((d,i)=>`<button class="dcard" data-i="${i}" ${slots.includes(i)||locked?'disabled':''}>${d}</button>`).join('');
-    $('dF').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{if(locked)return;slots[+b.dataset.k]=null;sfx.tap();draw()});
-    $('dC').querySelectorAll('.dcard').forEach(b=>b.onclick=()=>{const k=slots.indexOf(null);if(k<0)return;slots[k]=+b.dataset.i;sfx.pop();draw()});
-    $('dLock').disabled=locked||slots.includes(null)}
-  draw();
-  $('dClr').onclick=()=>{if(locked)return;slots.fill(null);sfx.tap();draw()};
-  $('dLock').onclick=()=>{const ds=slots.map(i=>digs[i]),A=+ds.slice(0,sh[0]).join(''),B=+ds.slice(sh[0]).join(''),v=A*B,aok=v===best.v;
-    if(!aok&&api.first('arr')){api.retry($('dS2'),`${A} × ${B} is not the ${goal==='big'?'biggest':'smallest'} product yet. Tap a box to take a card back and try a different arrangement.`);return}
-    locked=true;draw();$('dClr').disabled=true;
-    $('dS2').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${aok?'That is the best possible arrangement!':`Not the ${goal==='big'?'biggest':'smallest'} possible (the best is ${best.A} × ${best.B} = ${fmt(best.v)}). Now multiply your numbers.`}</p>
-      <div class="row"><b style="font:700 1.5rem var(--display)">${A} × ${B} =</b><input class="num" id="dIn" inputmode="numeric" aria-label="Product"><button class="btn primary" id="dChk">Check</button></div>`;
-    $('dIn').focus();
-    $('dChk').onclick=()=>{const g=parseInt($('dIn').value.replace(/[,\s]/g,''),10);if(isNaN(g))return;const pok=g===v;$('dIn').disabled=true;
-      const part=B<10?[`${fmt(A)} × ${B} = <b>${fmt(v)}</b>`]:[`${fmt(A)} × ${B%10} = ${fmt(A*(B%10))}`,`${fmt(A)} × ${B-B%10} = ${fmt(A*(B-B%10))}`,`${fmt(A*(B%10))} + ${fmt(A*(B-B%10))} = <b>${fmt(v)}</b>`];
-      api.done(aok&&pok,aok&&pok?'Best arrangement and the right product.':`${aok?'Best arrangement. ':''}${pok?'Your multiplication is right.':`${A} × ${B} = ${fmt(v)}.`}`,
-        [aok?`${A} × ${B} is the ${goal==='big'?'biggest':'smallest'} product you can make.`:`The ${goal==='big'?'biggest':'smallest'} product is <b>${best.A} × ${best.B} = ${fmt(best.v)}</b>. Yours was ${fmt(v)}.`,
-         goal==='big'?'Tip: the biggest digits should go in the highest place values. Try a few arrangements and compare.':'Tip: the smallest digits should go in the highest place values.',
-         `Working for ${A} × ${B}:`,...part],(aok?5:0)+(pok?5:0))}}}});
+  const sh=r<3?[3,1]:r<6?[2,2]:[3,2],n=sh[0]+sh[1],goal=r%2===0?'big':'small',G=goal==='big'?'biggest':'smallest';
+  const bestOf=digs=>{let best=null;perms(digs).forEach(p=>{const A=+p.slice(0,sh[0]).join(''),B=+p.slice(sh[0]).join(''),v=A*B;if(!best||(goal==='big'?v>best.v:v<best.v))best={A,B,v}});return best};
+  const working=(A,B,v)=>B<10?[`${fmt(A)} × ${B} = <b>${fmt(v)}</b>`]:[`${fmt(A)} × ${B%10} = ${fmt(A*(B%10))}`,`${fmt(A)} × ${B-B%10} = ${fmt(A*(B-B%10))}`,`${fmt(A*(B%10))} + ${fmt(A*(B-B%10))} = <b>${fmt(v)}</b>`];
+  const tip=goal==='big'?'Tip: the biggest digits should go in the highest place values. Try a few arrangements and compare.':'Tip: the smallest digits should go in the highest place values.';
+  /* one Digit Duel question. practice=true: an extra try after a mistake (no points, no second try).
+     done(aok,pok,A,B,v) is called after Step 2. */
+  function play(box,digs,practice,done){const best=bestOf(digs);
+    box.innerHTML=`<div class="frame" id="${box.id}F"></div><div class="row" id="${box.id}C"></div><div class="row"><button class="btn primary" id="${box.id}L" disabled>Lock in</button><button class="btn" id="${box.id}X">Clear all cards</button></div><div id="${box.id}S"></div>`;
+    const $$=k=>$(box.id+k),slots=Array(n).fill(null);let locked=false,tries=0;
+    function draw(){let h='';slots.forEach((s,k)=>{if(k===sh[0])h+='<span>×</span>';h+=`<button class="slot ${s!==null?'full':''}" data-k="${k}" aria-label="Box ${k+1}">${s!==null?digs[s]:''}</button>`});
+      $$('F').innerHTML=h;$$('C').innerHTML=digs.map((d,i)=>`<button class="dcard" data-i="${i}" ${slots.includes(i)||locked?'disabled':''}>${d}</button>`).join('');
+      $$('F').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{if(locked)return;slots[+b.dataset.k]=null;sfx.tap();draw()});
+      $$('C').querySelectorAll('.dcard').forEach(b=>b.onclick=()=>{const k=slots.indexOf(null);if(k<0)return;slots[k]=+b.dataset.i;sfx.pop();draw()});
+      $$('L').disabled=locked||slots.includes(null)}
+    draw();
+    $$('X').onclick=()=>{if(locked)return;slots.fill(null);sfx.tap();draw()};
+    $$('L').onclick=()=>{const ds=slots.map(i=>digs[i]),mA=+ds.slice(0,sh[0]).join(''),mB=+ds.slice(sh[0]).join(''),aok=mA*mB===best.v;tries++;
+      if(!aok&&!practice&&tries===1){api.retry($$('S'),`${mA} × ${mB} is not the ${G} product yet. Tap a box to take a card back and try a different arrangement.`);return}
+      locked=true;draw();$$('X').disabled=true;
+      /* Step 2 always uses the best arrangement, so pupils practise multiplying the right numbers */
+      const A=aok?mA:best.A,B=aok?mB:best.B,v=A*B;
+      $$('S').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${aok?'That is the best possible arrangement!':`${mA} × ${mB} = ${fmt(mA*mB)} is not the ${G}. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Now multiply these numbers.`}</p>
+        <div class="row"><b style="font:700 1.5rem var(--display)">${A} × ${B} =</b><input class="num" id="${box.id}I" inputmode="numeric" aria-label="Product"><button class="btn primary" id="${box.id}K">Check</button></div><div id="${box.id}R"></div>`;
+      $$('I').focus();
+      $$('K').onclick=()=>{const g=parseInt($$('I').value.replace(/[,\s]/g,''),10);if(isNaN(g))return;const pok=g===v;$$('I').disabled=true;$$('K').disabled=true;done(aok,pok,A,B,v,best,mA,mB)}}}
+  const mainDigs=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,n);
+  api.q(`<p class="qt">Use all ${n} cards to make the <b>${G.toUpperCase()}</b> product.</p><p class="qs">Tap a card to place it. Tap a box to take a card back.</p>`);
+  api.body.innerHTML=`<div id="dM"></div><div id="dP"></div>`;
+  play($('dM'),mainDigs,false,(aok,pok,A,B,v,best,mA,mB)=>{
+    const work=[aok?`${A} × ${B} is the ${G} product you can make.`:`The ${G} product is <b>${best.A} × ${best.B} = ${fmt(best.v)}</b>. Yours was ${mA} × ${mB} = ${fmt(mA*mB)}.`,tip,`Working for ${A} × ${B}:`,...working(A,B,v)];
+    const finish=extra=>api.done(aok&&pok,(aok&&pok?'Best arrangement and the right product.':`${aok?'Best arrangement. ':''}${pok?'Your multiplication is right.':`${A} × ${B} = ${fmt(v)}.`}`)+(extra||''),work,(aok?5:0)+(pok?5:0),{noRetry:!aok});
+    if(aok){$('dM').querySelector('[id$=R]').innerHTML='';return finish()}
+    /* a mistake in Step 1: show the answer to Step 2, then give one more practice question of the same kind (no points) */
+    $('dM').querySelector('[id$=R]').innerHTML=`<p class="${pok?'asknote':'retrymsg'}">${pok?'✅ Right!':'❌'} ${A} × ${B} = <b>${fmt(v)}</b>.</p><p style="margin:10px 0 4px;font-weight:800">🔁 Practice: try one more like this (no points, just practice).</p>`;
+    let pd;do{pd=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,n)}while(pd.slice().sort().join()===mainDigs.slice().sort().join());
+    play($('dP'),pd,true,(a2,p2,A2,B2,v2,b2)=>{$('dP').querySelector('[id$=R]').innerHTML=`<p class="${a2&&p2?'asknote':'retrymsg'}">${a2?'✅ Best arrangement!':`The ${G} was ${b2.A} × ${b2.B}.`} ${p2?'✅':'❌'} ${A2} × ${B2} = <b>${fmt(v2)}</b>.</p>`;
+      finish(` Practice: ${a2&&p2?'all correct, well done!':a2?'best arrangement found.':'keep practising the place-value tip.'}`)});
+    fitView()})}});
 
 /* 4. Fraction Flip — Mixed numbers and improper fractions 1.1 (fraction card game) */
 function piesSVG(n,d){const w=Math.floor(n/d),rem=n%d,cnt=w+(rem?1:0);let s='';
