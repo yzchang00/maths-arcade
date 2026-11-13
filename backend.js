@@ -102,7 +102,7 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
 
   // ---- Online rooms: each player is one small document in rooms/arc-<code>/p/<their id>_<tab>. Everyone in the room watches the list live.
   // The rules only let a device change or remove its own document, and "joined" is stamped by the server once, so nobody can pretend to be the host. ----
-  const FIELDS = ["nick", "code", "status", "score", "round", "game", "level", "startAt", "seed"];
+  const FIELDS = ["nick", "code", "status", "score", "round", "game", "level", "startAt", "seed", "topic", "team", "teams"];
   window.ARCROOM = {
     // true if nobody is in that room right now (used to avoid giving two classes the same code)
     isFree: async (name) => { await ensureAuth(); const s = await getDocs(query(collection(db, "rooms", name, "p"), limit(20)));

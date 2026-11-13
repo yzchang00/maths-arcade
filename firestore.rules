@@ -23,7 +23,8 @@ service cloud.firestore {
         'p5-rate': 80, 'p5-tarea': 80, 'p5-volume': 80, 'p5-angles': 80, 'p5-triangles': 80, 'p5-quads': 80,
         'p6-fdiv': 80, 'p6-pchange': 80, 'p6-ratio': 80, 'p6-algebra': 80, 'p6-circle': 80, 'p6-cuberoot': 80,
         'p6-chain': 80, 'p6-average': 80, 'p4-diner': 80, 'p4-train': 80, 'p4-compass': 80, 'p5-pizza': 80,
-        'p5-pshop': 80, 'p6-pie': 80, 'party-tug': 1000, 'party-bingo': 1000, 'party-wall': 1000, 'p6-quest': 100
+        'p5-pshop': 80, 'p6-pie': 80, 'party-tug': 1000, 'party-bingo': 1000, 'party-wall': 1000, 'p6-quest': 100,
+        'party-team': 1000
       };
     }
     // Class: empty, or letters/numbers/dash starting with a letter or number (5B, P5-2, 6E1).
@@ -86,13 +87,16 @@ service cloud.firestore {
       function mine() { return signedIn() && pid.split('_')[0] == request.auth.uid; }
       function okPresence() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['nick','code','status','score','round','game','level','startAt','seed','seen','joined'])
+        return d.keys().hasOnly(['nick','code','status','score','round','game','level','startAt','seed','seen','joined','topic','team','teams'])
           && d.seen == request.time
           && (!('nick' in d) || (shortText(d.nick, 16) && cleanName(d.nick)))
           && (!('game' in d) || d.game == null || d.game in maxScore())
           && (!('level' in d) || d.level == null || d.level in ['easy','mixed','hard'])
           && (!('status' in d) || d.status in ['lobby','playing','done'])
-          && (!('score' in d) || (d.score is int && d.score >= 0 && d.score <= 1000));
+          && (!('score' in d) || (d.score is int && d.score >= 0 && d.score <= 1000))
+          && (!('topic' in d) || d.topic == null || shortText(d.topic, 12))
+          && (!('team' in d) || (d.team is int && d.team >= 0 && d.team <= 3))
+          && (!('teams' in d) || (d.teams is int && d.teams >= 2 && d.teams <= 4));
       }
       allow read: if room.matches('arc-[a-z0-9]{4}');
       allow create: if room.matches('arc-[a-z0-9]{4}') && mine() && okPresence() && request.resource.data.joined == request.time;
