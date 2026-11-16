@@ -28,13 +28,14 @@ addGame('p5-pizza',{level:'P5',strand:'num',glyph:'🍕',title:'Pizza Party Orde
   const pickPair=(needCarry,needBorrow)=>{for(let t=0;t<200;t++){[b,d]=pick(PAIRS);a=R(1,b-1);c=R(1,d-1);const s=a*d+c*b,L=b*d;
     if(gcd(a,b)>1||gcd(c,d)>1)continue;if(needCarry===true&&s<=L)continue;if(needCarry===false&&s>=L)continue;if(needBorrow&&a*d>=c*b)continue;if(needBorrow===false&&a*d<=c*b)continue;return}};
   const L=()=>lcm(b,d);
-  const cdStep=(then)=>{const l=L(),opts=uniq([l,b+d,b*d,Math.max(b,d)].filter((x,i)=>i===0||x!==l)).slice(0,4);
+  const cdStep=(then)=>{const l=L(),opts=shuffle(uniq([l,b+d,b*d,Math.max(b,d)].filter((x,i)=>i===0||x!==l)).slice(0,4));
     const msg={[b+d]:`We never add the denominators. The new denominator must be a number that both ${b} and ${d} go into exactly.`,[b*d]:`${b} × ${d} = ${b*d} works, but ${l} is smaller and keeps the numbers easy. Use the smallest number both ${b} and ${d} go into.`,[Math.max(b,d)]:`${Math.max(b,d)} is not a multiple of ${Math.min(b,d)}, so the ${Math.min(b,d)}ths cannot be cut into ${Math.max(b,d)}ths evenly.`};
     api.body.insertAdjacentHTML('beforeend',`<p class="asklab">Step 1: cut the pizzas into equal slices. What is the <b>smallest</b> common denominator for ${fr(a,b)} and ${fr(c,d)}?</p><div class="choices" id="pzC"></div><div id="pzCM"></div>`);
     opts.forEach(x=>{const btn=document.createElement('button');btn.className='btn';btn.textContent=x;btn.onclick=()=>{if(api.answered||btn.disabled)return;
-      if(x===l){[...$('pzC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');$('pzCM').innerHTML=`<p class="asknote">${fr(a,b)} = ${fr(a*l/b,l)} and ${fr(c,d)} = ${fr(c*l/d,l)}</p>`;return then()}
+      if(x===l){ctx.keep.pzC=1;btn.style.boxShadow='';[...$('pzC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');$('pzCM').innerHTML=`<p class="asknote">${fr(a,b)} = ${fr(a*l/b,l)} and ${fr(c,d)} = ${fr(c*l/d,l)}</p>`;return then()}
       if(api.first('pzC')){btn.disabled=true;btn.classList.add('no');api.retry($('pzCM'),msg[x]||'Not that one.');return}
-      [...$('pzC').children].forEach(y=>{y.disabled=true;if(+y.textContent===l)y.classList.add('ok')});btn.classList.add('no');api.done(false,(msg[x]||'')+` The smallest common denominator is ${l}.`,[])};$('pzC').appendChild(btn)})};
+      ctx.keep.pen=1;btn.classList.add('no');sfx.no();[...$('pzC').children].forEach(y=>{if(+y.textContent===l){y.disabled=false;y.style.boxShadow='0 0 0 4px #ffd257'}else y.disabled=true});$('pzCM').innerHTML=`<p class="retrymsg">${msg[x]||''} The smallest common denominator is <b>${l}</b>. Tap it to carry on.</p>`};$('pzC').appendChild(btn)});
+    if(ctx.keep.pzC)[...$('pzC').children].find(y=>+y.textContent===l).click()};
   const workAdd=(A,B,res,sub)=>{const l=L();return [`${rshow(A)} ${sub?'−':'+'} ${rshow(B)}`,`Change to ${l}ths: ${fr(a*l/b,l)} ${sub?'−':'+'} ${fr(c*l/d,l)}${w1||w2?` (wholes: ${w1} ${sub?'−':'+'} ${w2})`:''}`,`= ${rshow(res)}`]};
   if(type==='add'){pickPair(Math.random()<.5);const A=[a,b],B=[c,d],S=radd(A,B);
     api.q(`<p class="qt">${F[0]} ate ${fr(a,b)} of a pizza and ${F[1]} ate ${fr(c,d)} of a pizza. How much pizza did they eat altogether?</p>`);
@@ -118,10 +119,11 @@ addGame('p5-pshop',{level:'P5',strand:'num',glyph:'%',title:'Percent Shop',topic
     api.q(`<p class="qt">Two shops sell the same ${item.toLowerCase()} for <b>$${P}</b>. Shop A gives <b>${p}% off</b>. Shop B gives <b>$${off} off</b>. Which shop is cheaper?</p>`);
     api.body.innerHTML=`<div class="row">${tag('Shop A · '+ic,'$'+P,`${p}% off`)}${tag('Shop B · '+ic,'$'+P,`$${off} off`)}</div><div class="choices" id="psC"></div><div id="psCM"></div>`;
     ['A','B'].forEach(x=>{const btn=document.createElement('button');btn.className='btn';btn.textContent='Shop '+x;btn.onclick=()=>{if(api.answered||btn.disabled)return;
-      if(x===cheap){[...$('psC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');return askOne(api,{id:'psC2',label:'How much cheaper is it?',pre:'<span class="askunit">$</span>',right:diff,traps:[[Math.abs(p-off),`Compare dollars with dollars: ${p}% of $${P} is ${pmoney(D)}, not $${p}.`]],
+      if(x===cheap){ctx.keep.psC=1;[...$('psC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');return askOne(api,{id:'psC2',label:'How much cheaper is it?',pre:'<span class="askunit">$</span>',right:diff,traps:[[Math.abs(p-off),`Compare dollars with dollars: ${p}% of $${P} is ${pmoney(D)}, not $${p}.`]],
         ok:`Shop ${cheap} is ${pmoney(diff)} cheaper.`,work:[`Shop A: ${p}% of $${P} = ${pmoney(D)} off → ${pmoney(pay)}`,`Shop B: $${off} off → $${payB}`,`Difference: ${pmoney(diff)}`]})}
       const m=p>off&&cheap!==(p>off?'A':'B')?`${p} is bigger than ${off}, but ${p}% is not $${p}. Work out ${p}% of $${P} first.`:`Work out ${p}% of $${P} in dollars, then compare.`;
-      if(api.first('psC')){btn.disabled=true;btn.classList.add('no');api.retry($('psCM'),m);return}api.done(false,m,[`Shop A: ${p}% of $${P} = ${pmoney(D)} off`,`Shop B: $${off} off`])};$('psC').appendChild(btn)});return}
+      if(api.first('psC')){btn.disabled=true;btn.classList.add('no');api.retry($('psCM'),m);return}api.done(false,m,[`Shop A: ${p}% of $${P} = ${pmoney(D)} off`,`Shop B: $${off} off`])};$('psC').appendChild(btn)});
+    if(ctx.keep.psC)[...$('psC').children].find(y=>y.textContent==='Shop '+cheap).click();return}
   if(type==='gst'){const P=pick([20,50,80,120,150,200,300,60]),G=P*9/100;
     api.q(`<p class="qt">The ${item.toLowerCase()} costs <b>$${P}</b> before GST. GST is <b>9%</b>. How much do you pay altogether?</p>`);
     api.body.innerHTML=`<div class="row">${tag(ic+' '+item,'$'+P,'+ 9% GST')}</div>`;

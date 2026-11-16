@@ -31,25 +31,27 @@ addGame('p4-rounding',{level:'P4',strand:'num',glyph:'≈',title:'Rounding Rocke
   const big=place===1000?10000:place*10;
   const pair=(a,b)=>`${fmt(a)} and ${fmt(b)}`,right=pair(lo,hi);
   const wrongs=[pair(lo-place,lo),pair(hi,hi+place),pair(Math.floor(N/big)*big,Math.floor(N/big)*big+big),pair(Math.floor(N/(place/10||1))*(place/10||1),Math.floor(N/(place/10||1))*(place/10||1)+(place/10||1))].filter(x=>x!==right);
-  let step1ok=true;
+  let step1ok=true,s1miss=ctx.keep.pads==='pen';
   const opts=shuffle([right,...shuffle([...new Set(wrongs)]).slice(0,3)]);
   opts.forEach(v=>{const b=document.createElement('button');b.className='btn';b.textContent=v;b.onclick=()=>{if(api.answered||$('rCh').dataset.s==='2')return;
     if(v!==right&&api.first('pads')){b.disabled=true;b.classList.add('no');api.retry($('rMsg'),`Not quite. Look at the ${place===10?'tens':place===100?'hundreds':'thousands'} in ${fmt(N)} and try once more.`);return}
-    step1ok=v===right;[...$('rCh').children].forEach(x=>{x.disabled=true;if(x.textContent===right)x.classList.add('ok')});if(!step1ok){b.classList.add('no');sfx.no()}else sfx.ok();
+    if(v!==right){s1miss=true;b.disabled=true;b.classList.add('no');sfx.no();[...$('rCh').children].forEach(x=>{if(x.textContent===right){x.disabled=false;x.style.boxShadow='0 0 0 4px #ffd257'}else x.disabled=true});$('rMsg').innerHTML=`Not quite. The rocket is between <b>${right}</b>. Tap it to carry on.`;return}
+    step1ok=!s1miss;ctx.keep.pads=step1ok?'ok':'pen';b.style.boxShadow='';[...$('rCh').children].forEach(x=>{x.disabled=true;if(x.textContent===right)x.classList.add('ok')});sfx.ok();
     $('rPadL').querySelector('text').textContent=fmt(lo);$('rPadR').querySelector('text').textContent=fmt(hi);$('rMidG').setAttribute('opacity','1');$('rPadL').classList.add('lit');$('rPadR').classList.add('lit');
-    $('rMsg').innerHTML=`${step1ok?'✓ Pads ready!':'Not quite. The rocket is between <b>'+right+'</b>.'} The halfway mark is <b>${fmt(mid)}</b>. Look at the <b>${digName}</b> digit (in red on the rocket).`;
+    $('rMsg').innerHTML=`✓ Pads ready! The halfway mark is <b>${fmt(mid)}</b>. Look at the <b>${digName}</b> digit (in red on the rocket).`;
     api.later(()=>step2(),650)};$('rCh').appendChild(b)});
+  if(ctx.keep.pads)[...$('rCh').children].find(x=>x.textContent===right).click();
   const step2=()=>{$('rCh').dataset.s='2';api.q(`<p class="qt">🚀 Rocket <b>${fmt(N)}</b> must land on the nearest <b>${fmt(place)}</b>.</p><p class="qs">Step 2: Land the rocket on the nearer pad. Tap a pad or a button.</p>`);
     $('rCh').innerHTML='';[lo,hi].forEach(v=>{const b=document.createElement('button');b.className='btn';b.innerHTML=`🛬 Land on ${fmt(v)}`;b.onclick=()=>land(v);$('rCh').appendChild(b)});
     $('rPadL').onclick=()=>land(lo);$('rPadR').onclick=()=>land(hi)};
   const land=v=>{if(api.answered||$('rCh').dataset.s==='3')return;$('rCh').dataset.s='3';[...$('rCh').children].forEach(x=>x.disabled=true);
-    const ok=v===ans&&step1ok,tx=v===lo?x0:x1,g=$('rRocket');g.classList.add('fly');g.style.transform=`translate(${tx}px,${Y-92}px)`;sfx.pop();
+    const ok=v===ans,tx=v===lo?x0:x1,g=$('rRocket');g.classList.add('fly');g.style.transform=`translate(${tx}px,${Y-92}px)`;sfx.pop();
     api.later(()=>{if(v===ans){g.classList.add('landed');(v===lo?$('rPadL'):$('rPadR')).classList.add('win')}else{g.classList.add('wobble')}
       api.done(ok,v===ans?(step1ok?`Perfect landing! ${fmt(N)} ≈ ${fmt(ans)}`:`Good landing, but check the pads in Step 1. ${fmt(N)} ≈ ${fmt(ans)}`):`Bumpy landing! ${fmt(N)} is nearer to ${fmt(ans)}.`,
         [`${fmt(N)} is between the pads ${fmt(lo)} and ${fmt(hi)}. The halfway mark is ${fmt(mid)}.`,
          `Look at the <b>${digName}</b> digit: it is <b>${d}</b>.`,
          d>=5?`${d} is 5 or more, so the rocket is past halfway: round <b>up</b> to ${fmt(hi)}.`:`${d} is less than 5, so the rocket has not reached halfway: round <b>down</b> to ${fmt(lo)}.`,
-         `${fmt(N)} ≈ <b>${fmt(ans)}</b> (to the nearest ${fmt(place)})`])},1000)};
+         `${fmt(N)} ≈ <b>${fmt(ans)}</b> (to the nearest ${fmt(place)})`],v===ans?(step1ok?10:6):0)},1000)};
  }});
 
 /* 2. Factor Hunt — Factors and multiples 2.1–2.5 */
@@ -108,7 +110,7 @@ addGame('p4-product',{level:'P4',strand:'num',glyph:'×',title:'Digit Duel',topi
      done(aok,pok,A,B,v) is called after Step 2. */
   function play(box,digs,practice,done){const best=bestOf(digs);
     box.innerHTML=`<div class="frame" id="${box.id}F"></div><div class="row" id="${box.id}C"></div><div class="row"><button class="btn primary" id="${box.id}L" disabled>Lock in</button><button class="btn" id="${box.id}X">Clear all cards</button></div><div id="${box.id}S"></div>`;
-    const $$=k=>$(box.id+k),slots=Array(n).fill(null);let locked=false,tries=0;
+    const $$=k=>$(box.id+k),slots=Array(n).fill(null);let locked=false,tries=0,forced=!practice&&!!(ctx.keep&&ctx.keep.ddPen);
     function draw(){let h='';slots.forEach((s,k)=>{if(k===sh[0])h+='<span>×</span>';h+=`<button class="slot ${s!==null?'full':''}" data-k="${k}" aria-label="Box ${k+1}">${s!==null?digs[s]:''}</button>`});
       $$('F').innerHTML=h;$$('C').innerHTML=digs.map((d,i)=>`<button class="dcard" data-i="${i}" ${slots.includes(i)||locked?'disabled':''}>${d}</button>`).join('');
       $$('F').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{if(locked)return;slots[+b.dataset.k]=null;sfx.tap();draw()});
@@ -118,13 +120,16 @@ addGame('p4-product',{level:'P4',strand:'num',glyph:'×',title:'Digit Duel',topi
     $$('X').onclick=()=>{if(locked)return;slots.fill(null);sfx.tap();draw()};
     $$('L').onclick=()=>{const ds=slots.map(i=>digs[i]),mA=+ds.slice(0,sh[0]).join(''),mB=+ds.slice(sh[0]).join(''),aok=mA*mB===best.v;tries++;
       if(!aok&&!practice&&tries===1){api.retry($$('S'),`${mA} × ${mB} is not the ${G} product yet. Tap a box to take a card back and try a different arrangement.`);return}
+      if(!aok){forced=true;sfx.no();$$('S').innerHTML=`<p class="retrymsg">${mA} × ${mB} is not the ${G} product. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Move the cards to make ${best.A} × ${best.B}, then press Lock in.</p>`;return}
+      if(!practice&&ctx.keep){ctx.keep.dd=slots.slice();ctx.keep.ddPen=forced}
       locked=true;draw();$$('X').disabled=true;
       /* Step 2 always uses the best arrangement, so pupils practise multiplying the right numbers */
       const A=aok?mA:best.A,B=aok?mB:best.B,v=A*B;
-      $$('S').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${aok?'That is the best possible arrangement!':`${mA} × ${mB} = ${fmt(mA*mB)} is not the ${G}. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Now multiply these numbers.`}</p>
+      $$('S').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${aok?(forced?'Now you have the best arrangement.':'That is the best possible arrangement!'):`${mA} × ${mB} = ${fmt(mA*mB)} is not the ${G}. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Now multiply these numbers.`}</p>
         <div class="row"><b style="font:700 1.5rem var(--display)">${A} × ${B} =</b><input class="num" id="${box.id}I" inputmode="numeric" aria-label="Product"><button class="btn primary" id="${box.id}K">Check</button></div><div id="${box.id}R"></div>`;
       $$('I').focus();
-      $$('K').onclick=()=>{const g=parseInt($$('I').value.replace(/[,\s]/g,''),10);if(isNaN(g))return;const pok=g===v;$$('I').disabled=true;$$('K').disabled=true;done(aok,pok,A,B,v,best,mA,mB)}}}
+      $$('K').onclick=()=>{const g=parseInt($$('I').value.replace(/[,\s]/g,''),10);if(isNaN(g))return;const pok=g===v;$$('I').disabled=true;$$('K').disabled=true;done(aok&&!forced,pok,A,B,v,best,mA,mB)}}
+    if(!practice&&ctx.keep&&ctx.keep.dd){ctx.keep.dd.forEach((s,k)=>slots[k]=s);draw();$$('L').onclick()}}
   const mainDigs=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,n);
   api.q(`<p class="qt">Use all ${n} cards to make the <b>${G.toUpperCase()}</b> product.</p><p class="qs">Tap a card to place it. Tap a box to take a card back.</p>`);
   api.body.innerHTML=`<div id="dM"></div><div id="dP"></div>`;
@@ -182,20 +187,21 @@ addGame('p4-share',{level:'P4',strand:'num',glyph:'⅓',title:'Sweet Share',topi
   $('sG').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{if(api.answered)return;const g=+btn.dataset.g;sfx.tap();
     const per=Math.floor(N/g),rem=N%g;let h='';for(let j=0;j<g;j++)h+=`<div class="grp static">${Array.from({length:per},(_,i)=>sweet(j)).join('')}</div>`;
     if(rem)h+=`<div class="grp static" style="border-style:dashed">${Array.from({length:rem},()=>sweet(9)).join('')}</div>`;$('sP').innerHTML=h;
-    if(g!==b){mistakes++;$('sMsg').textContent=rem?`${N} sweets cannot be shared equally into ${g} groups. Look at the fraction again.`:`These are equal groups, but the bottom number of the fraction (${b}) tells you how many groups you need.`;return}
-    $('sG').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');
+    if(g!==b){mistakes++;$('sMsg').textContent=rem?`${N} sweets cannot be shared equally into ${g} groups. Look at the fraction again.`:`These are equal groups, but the bottom number of the fraction (${b}) tells you how many groups you need.`;if(mistakes>=2){$('sMsg').textContent+=` Tap ${b} groups to carry on.`;$('sG').querySelector(`[data-g="${b}"]`).style.boxShadow='0 0 0 4px #ffd257'}return}
+    ctx.keep.sg=1;btn.style.boxShadow='';$('sG').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');
     $('sMsg').textContent=`${N} ÷ ${b} = ${k} sweets in each group.`;
     $('sSt').innerHTML=`Step 2: Tap ${a} group${a>1?'s':''} to show the ${fr(a,b)} ${left?'that is given away':`that ${who} takes`}.`;
     $('sP').innerHTML=Array.from({length:b},(_,j)=>`<button class="grp" data-j="${j}" aria-pressed="false">${Array.from({length:k},()=>sweet(j)).join('')}</button>`).join('');
     $('sP').querySelectorAll('.grp').forEach(gb=>gb.onclick=()=>{if(api.answered)return;const j=+gb.dataset.j;chosen.has(j)?chosen.delete(j):chosen.add(j);sfx.tap();
       gb.classList.toggle('sel',chosen.has(j));gb.setAttribute('aria-pressed',String(chosen.has(j)));
-      if(chosen.size===a){$('sSt').innerHTML='Step 3: Count the sweets.';
+      if(chosen.size===a){ctx.keep.sgSel=[...chosen];$('sSt').innerHTML='Step 3: Count the sweets.';
         $('sS3').innerHTML=`<div class="row"><b>${left?'Sweets left:':`Sweets ${who} takes:`}</b><input class="num" id="sIn" inputmode="numeric" aria-label="Answer"><button class="btn primary" id="sChk">Check</button></div>`;
         $('sChk').onclick=()=>{const v=parseInt($('sIn').value,10);if(isNaN(v))return;const ans=left?(b-a)*k:a*k,ok=v===ans;$('sIn').disabled=true;
           api.done(ok,ok?`${left?'There are':who+' takes'} ${ans} sweets${left?' left':''}.`:`The answer is ${ans} sweets.`,
             [`${N} ÷ ${b} = ${k} sweets in each group`,left?`${a} group${a>1?'s are':' is'} given away, so ${b-a} group${b-a>1?'s are':' is'} left: ${b-a} × ${k} = <b>${ans}</b>`:`${fr(a,b)} of ${N} is ${a} group${a>1?'s':''}: ${a} × ${k} = <b>${ans}</b>`],
             ok?Math.max(4,10-3*mistakes):0)}}
-      else $('sS3').innerHTML=''})})}});
+      else $('sS3').innerHTML=''})});
+  if(ctx.keep.sg){$('sG').querySelector(`[data-g="${b}"]`).click();if(ctx.keep.sgSel)ctx.keep.sgSel.forEach(j=>$('sP').querySelector(`[data-j="${j}"]`).click())}}});
 
 /* 6. Fraction Target — Addition and subtraction of fractions 3.1 */
 function barsSVG(cells,D){const rows=Math.ceil(cells.length/D),cw=400/D;let s='';

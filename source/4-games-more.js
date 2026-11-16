@@ -48,22 +48,25 @@ addGame('p4-cashier',{level:'P4',strand:'num',glyph:'$',title:'Canteen Cashier',
       <div class="scanner" id="ccScan"><div class="laser"></div><b>SCAN</b></div></div>
     <div class="pos"><div class="posh"><span>Canteen POS</span><span id="ccCnt">0 / ${tray.length} scanned</span></div><div class="posl" id="ccLines"><div class="pose">Waiting for items…</div></div></div></div>
     <div id="ccS2" style="display:grid;gap:10px"></div><div id="ccS3" style="display:grid;gap:10px"></div>`;
+  if(ctx.keep.cc)Promise.resolve().then(()=>{scanned.push(...tray);api.body.querySelectorAll('.titem').forEach(b=>{b.disabled=true;b.classList.add('gone')});$('ccLines').innerHTML=scanned.map(n=>`<div><span>${n}</span><span>${$c(MENU.find(m=>m[0]===n)[1])}</span></div>`).join('');$('ccCnt').textContent=`${scanned.length} / ${tray.length} scanned`;tabulate();
+    items.forEach((it,i)=>{$('bq'+i).value=it.q;$('ba'+i).value=$c(it.p*it.q).replace('$','')});$('bt').value=$c(total).replace('$','');$('bChk').click()});
   const beep=()=>{tone(1650,0,.09,{type:'square',vol:.08});tone(2200,.09,.07,{type:'square',vol:.06})};
   api.body.querySelectorAll('.titem').forEach(b=>b.onclick=()=>{if(b.disabled||api.answered)return;b.disabled=true;const nm=tray[+b.dataset.i];
-    const fin=()=>{beep();$('ccScan').classList.remove('flash');void $('ccScan').offsetWidth;$('ccScan').classList.add('flash');scanned.push(nm);b.classList.add('gone');
+    const fin=()=>{if(!$('ccScan')||!b.isConnected)return;beep();$('ccScan').classList.remove('flash');void $('ccScan').offsetWidth;$('ccScan').classList.add('flash');scanned.push(nm);b.classList.add('gone');
       $('ccLines').innerHTML=scanned.map(n=>`<div><span>${n}</span><span>${$c(MENU.find(m=>m[0]===n)[1])}</span></div>`).join('');$('ccLines').scrollTop=9999;$('ccCnt').textContent=`${scanned.length} / ${tray.length} scanned`;
       if(scanned.length===tray.length)tabulate()};
     if(calm)return fin();const a=b.getBoundingClientRect(),z=$('ccScan').getBoundingClientRect(),cl=b.querySelector('svg').cloneNode(true);
     cl.style.cssText=`position:fixed;left:${a.left+a.width/2-28}px;top:${a.top+6}px;width:56px;height:56px;z-index:60;pointer-events:none`;document.body.appendChild(cl);
     cl.animate([{transform:'none'},{transform:`translate(${z.left+z.width/2-a.left-a.width/2}px,${z.top-a.top-20}px) scale(.8) rotate(12deg)`,offset:.7},{transform:`translate(${z.left+z.width/2-a.left-a.width/2}px,${z.top-a.top+10}px) scale(.3)`,opacity:0}],{duration:520,easing:'ease-in'}).onfinish=()=>{cl.remove();fin()}});
-  function tabulate(){api.q(`<p class="qt">Step 2: Fill in the bill.</p><p class="qs">Count each item from the screen, then work out each amount and the total.</p>`);
+  function tabulate(){let billMiss=!!(ctx.keep.cc&&ctx.keep.cc.pen);api.q(`<p class="qt">Step 2: Fill in the bill.</p><p class="qs">Count each item from the screen, then work out each amount and the total.</p>`);
     $('ccS2').innerHTML=`<div style="overflow-x:auto"><table class="bill"><thead><tr><th>Item</th><th>Price each</th><th>Qty</th><th>Amount</th></tr></thead><tbody>${items.map((it,i)=>`<tr><td><span class="bi">${artSVG(it.nm)}</span>${it.nm}</td><td>${$c(it.p)}</td><td><input class="num sm" id="bq${i}" inputmode="numeric" aria-label="Quantity of ${it.nm}"></td><td>$<input class="num sm" id="ba${i}" inputmode="decimal" aria-label="Amount for ${it.nm}"></td></tr>`).join('')}
       <tr class="tot"><td colspan="3">Total</td><td>$<input class="num sm" id="bt" inputmode="decimal" aria-label="Total"></td></tr></tbody></table></div><div><button class="btn primary" id="bChk">Check the bill</button></div><div id="bMsg" style="font-weight:800"></div>`;
     $('bChk').onclick=()=>{const marks=[];items.forEach((it,i)=>{marks.push([`bq${i}`,+$('bq'+i).value===it.q],[`ba${i}`,parseMoney($('ba'+i).value)===it.p*it.q])});marks.push(['bt',parseMoney($('bt').value)===total]);
       if(marks.some(m=>!m[1])&&api.first('bill')){marks.forEach(([id,g])=>{$(id).classList.remove('okc','noc');$(id).classList.add(g?'okc':'noc');if(g)$(id).disabled=true});api.retry($('bMsg'),'Some boxes are not right yet (the red ones). Fix them and press Check the bill again.');return}
+      if(marks.some(m=>!m[1])){billMiss=true;sfx.no();marks.forEach(([id,g])=>{$(id).classList.remove('okc','noc');$(id).classList.add(g?'okc':'noc');if(g)$(id).disabled=true});$('bMsg').innerHTML='Still not right. The correct bill: '+items.map(it=>`${it.nm} ${it.q} × ${$c(it.p)} = ${$c(it.p*it.q)}`).join('; ')+`; total ${$c(total)}. Fix the red boxes to carry on.`;return}
       let ok=true;marks.slice(0,-1).forEach(([id,g])=>{$(id).classList.remove('okc','noc');$(id).classList.add(g?'okc':'noc');$(id).disabled=true;if(!g)ok=false});
       const t=parseMoney($('bt').value),tok=t===total;$('bt').classList.remove('okc','noc');$('bt').classList.add(tok?'okc':'noc');$('bt').disabled=true;$('bChk').disabled=true;
-      const billOk=ok&&tok;billOk?sfx.pop():sfx.soft();$('bMsg').textContent=billOk?'Bill correct!':`Not quite. The total is ${$c(total)}.`;pay(billOk)}}
+      const billOk=ok&&tok&&!billMiss;ctx.keep.cc={pen:billMiss};sfx.pop();$('bMsg').textContent='Bill correct!';pay(billOk)}}
   function pay(billOk){api.q(`<p class="qt">Step 3: ${kid.name} pays with a <b>${$c(note)}</b> note. Give the change.</p>`);
     $('ccCust').querySelector('.say').textContent=`Here’s ${$c(note)}!`;$('ccCust').insertAdjacentHTML('beforeend',`<div class="paynote">${$c(note)}</div>`);
     $('ccS3').innerHTML=`<div class="money" id="cM">${CASH.filter(c=>c[0]<note).map(c=>`<button class="cash ${c[2]}" data-v="${c[0]}">${c[1]}</button>`).join('')}</div>
@@ -74,7 +77,7 @@ addGame('p4-cashier',{level:'P4',strand:'num',glyph:'$',title:'Canteen Cashier',
     $('ccS3').scrollIntoView({behavior:calm?'auto':'smooth',block:'nearest'});
     $('cGive').onclick=()=>{const given=tr.reduce((a,b)=>a+b,0),cok=given===change;let rest=change;const way=[];CASH.forEach(([v,l])=>{while(rest>=v){way.push(l);rest-=v}});
       const k=$('ccCust').querySelector('.kid');k.classList.remove('in');k.classList.add(cok?'yay':'huh');$('ccCust').querySelector('.say').textContent=cok?'Thank you!':'Hmm, is this right?';
-      api.done(billOk&&cok,cok?`You gave ${$c(change)} change.`:`You gave ${$c(given)}. The change should be ${$c(change)}.`,
+      api.done(cok,cok?`You gave ${$c(change)} change.`:`You gave ${$c(given)}. The change should be ${$c(change)}.`,
         [...items.map(i=>`${i.nm}: ${i.q} × ${$c(i.p)} = ${$c(i.p*i.q)}`),`Total = ${items.map(i=>$c(i.p*i.q)).join(' + ')} = <b>${$c(total)}</b>`,
          `Change = ${$c(note)} − ${$c(total)} = <b>${$c(change)}</b>`,`One way to give it: ${way.join(' + ')}`],(billOk?5:0)+(cok?5:0))}}}});
 
@@ -127,7 +130,7 @@ function balloonSVG(t,col,hidden){const [x,y]=arm(t,158);return `<g id="aBal" st
 function skySVG(){return `<rect x="0" y="-30" width="360" height="220" fill="#bfe3fb" fill-opacity=".55"/><rect x="0" y="190" width="360" height="40" fill="#7cc77f" fill-opacity=".7"/>
   ${[[60,20,1],[250,5,1.2],[150,-12,.8],[320,60,.7],[30,90,.75]].map(([x,y,s])=>`<g transform="translate(${x},${y}) scale(${s})" fill="#fff" fill-opacity=".9"><ellipse cx="0" cy="0" rx="26" ry="11"/><ellipse cx="-14" cy="-6" rx="13" ry="10"/><ellipse cx="10" cy="-9" rx="15" ry="12"/></g>`).join('')}`}
 const GUN=`<g transform="translate(180,190)"><g id="aBar"><rect x="0" y="-7" width="58" height="14" rx="6" fill="#3d4b63" stroke="#16233a" stroke-width="2"/><rect x="52" y="-9" width="10" height="18" rx="3" fill="#16233a"/></g><circle r="17" style="fill:var(--tomato)" stroke="#16233a" stroke-width="2.5"/><rect x="-26" y="12" width="52" height="11" rx="4" fill="#16233a"/></g>`;
-function fireAt(svg,ang,hit,balT,done){const b=document.createElementNS('http://www.w3.org/2000/svg','circle');b.setAttribute('r','4.5');b.setAttribute('fill','#16233a');svg.appendChild(b);
+function fireAt(svg,ang,hit,balT,done){if(!svg||!svg.isConnected)return;const b=document.createElementNS('http://www.w3.org/2000/svg','circle');b.setAttribute('r','4.5');b.setAttribute('fill','#16233a');svg.appendChild(b);
   tone(900,0,.18,{type:'sawtooth',vol:.12,to:120});tone(140,0,.25,{type:'square',vol:.1,to:60});
   const t0=performance.now(),dur=calm?1:520,end=hit?158:210;
   const step=now=>{if(!b.isConnected)return;const k=Math.min(1,(now-t0)/dur),[x,y]=arm(ang,62+(end-62)*k);b.setAttribute('cx',x);b.setAttribute('cy',y);

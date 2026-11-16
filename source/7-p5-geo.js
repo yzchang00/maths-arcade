@@ -17,15 +17,18 @@ addGame('p5-tarea',{level:'P5',strand:'geo',glyph:'◺',title:'Height Finder',to
     <polygon points="${[A,B1,B2].map(p=>P(p).join(',')).join(' ')}" style="fill:color-mix(in srgb,var(--sun) 30%,transparent)" stroke="var(--ink)" stroke-width="2.5"/>
     ${ext?`<line ${ext} stroke="var(--ink)" stroke-width="2" stroke-dasharray="2 4"/>`:''}<line ${ln(B1,B2)} stroke="var(--tomato)" stroke-width="6" stroke-linecap="round"/>${segs}</svg>
     <div class="row" id="hC">${L.map((l,i)=>`<button class="btn" data-i="${i}" style="border-color:${cc[i]}">Line ${l}</button>`).join('')}</div><div id="hS"></div>`;
-  let pk=null;
-  $('hC').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pk!==null||api.answered)return;if(!cands[+b.dataset.i].ok&&api.first('h')){b.disabled=true;b.classList.add('no');api.retry($('hS'),'Not that one. The height must meet the base at a right angle. Try again!');return}pk=+b.dataset.i;const ok=cands[pk].ok;
-    $('hC').querySelectorAll('button').forEach((x,i)=>{x.disabled=true;if(cands[i].ok)x.classList.add('ok')});if(!ok)b.classList.add('no');ok?sfx.pop():sfx.soft();
-    $('hS').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${ok?'Yes!':`Not that one. Line ${L[cands.findIndex(c=>c.ok)]} is the height.`} The height is ${h} cm.</p>
+  let pk=null,hMiss=ctx.keep.h==='pen';
+  $('hC').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pk!==null||api.answered)return;if(!cands[+b.dataset.i].ok&&api.first('h')){b.disabled=true;b.classList.add('no');api.retry($('hS'),'Not that one. The height must meet the base at a right angle. Try again!');return}
+    if(!cands[+b.dataset.i].ok){hMiss=true;b.disabled=true;b.classList.add('no');sfx.no();$('hC').querySelectorAll('button').forEach((x,i)=>{if(cands[i].ok){x.disabled=false;x.style.boxShadow='0 0 0 4px #ffd257'}else x.disabled=true});$('hS').innerHTML=`<p class="retrymsg">Not quite. Line ${L[cands.findIndex(c=>c.ok)]} is the height: it meets the base at a right angle. Tap it to carry on.</p>`;return}
+    pk=+b.dataset.i;const ok=!hMiss;ctx.keep.h=ok?'ok':'pen';b.style.boxShadow='';
+    $('hC').querySelectorAll('button').forEach((x,i)=>{x.disabled=true;if(cands[i].ok)x.classList.add('ok')});sfx.pop();
+    $('hS').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${ok?'Yes!':'Now you have the height.'} The height is ${h} cm.</p>
       <div class="row"><b>Area =</b><input class="num" id="hIn" inputmode="decimal" aria-label="Area"><span>cm²</span><button class="btn primary" id="hChk">Check</button></div>`;
     $('hChk').onclick=()=>{const v=parseFloat($('hIn').value);if(isNaN(v))return;const ar=bl*h/2,o2=Math.abs(v-ar)<.001;$('hIn').disabled=true;
-      api.done(ok&&o2,`Area = ${ar} cm²`,['The height goes from the opposite corner and meets the base (or the base extended) at a right angle.',
+      api.done(o2,`Area = ${ar} cm²`,['The height goes from the opposite corner and meets the base (or the base extended) at a right angle.',
         xa<x1||xa>x1+bl?'Here the height falls outside the triangle, so the base is extended with a dotted line.':xa===x1||xa===x1+bl?'Here one side of the triangle is already at right angles to the base, so that side is the height.':'',
-        `Area = ½ × base × height = ½ × ${bl} × ${h} = <b>${ar} cm²</b>`].filter(Boolean),(ok?4:0)+(o2?6:0))}})}});
+        `Area = ½ × base × height = ½ × ${bl} × ${h} = <b>${ar} cm²</b>`].filter(Boolean),(ok?4:0)+(o2?6:0))}});
+  if(ctx.keep.h)$('hC').querySelectorAll('button')[cands.findIndex(c=>c.ok)].click()}});
 
 /* P5-8. Cube Builder — Volume of cube and cuboid, liquid in a tank */
 function isoCubes(L,B,H){const s=20,c=.866,P=(x,y,z)=>[(x-y)*s*c,(x+y)*s*.5-z*s],cubes=[];
@@ -87,10 +90,11 @@ addGame('p5-angles',{level:'P5',strand:'geo',glyph:'∡',title:'Angle Detective'
     x=val[xi];prop=type==='vert'?'vert':'line';work=type==='vert'?[`${PROPS.vert}.`,`x is opposite the ${th}° angle, so x = <b>${th}°</b>`]:[`x and ${th}° sit next to each other on a straight line.`,`${PROPS.line}, so x = 180° − ${th}° = <b>${x}°</b>`]}
   api.q(`<p class="qt">Find the value of <b>x</b>.</p>`);
   api.body.innerHTML=angSVG(dirs,secs,lines)+`<div style="font-weight:800">Step 1: Which angle fact do you need?</div><div class="choices one" id="adP">${Object.entries(PROPS).map(([k,t])=>`<button class="btn" data-k="${k}">${t}</button>`).join('')}</div><div id="adS"></div>`;
-  let pOk=null;
-  $('adP').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pOk!==null)return;if(b.dataset.k!==prop&&api.first('fact')){b.disabled=true;b.classList.add('no');api.retry($('adS'),'That fact does not fit this diagram. Look at where x is and try another!');return}pOk=b.dataset.k===prop;$('adP').querySelectorAll('button').forEach(y=>{y.disabled=true;if(y.dataset.k===prop)y.classList.add('ok')});if(!pOk)b.classList.add('no');pOk?sfx.pop():sfx.soft();
+  let pOk=null,fMiss=ctx.keep.fact==='pen';
+  $('adP').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pOk!==null)return;if(b.dataset.k!==prop&&api.first('fact')){b.disabled=true;b.classList.add('no');api.retry($('adS'),'That fact does not fit this diagram. Look at where x is and try another!');return}if(b.dataset.k!==prop){fMiss=true;b.disabled=true;b.classList.add('no');sfx.no();$('adP').querySelectorAll('button').forEach(y=>{if(y.dataset.k===prop){y.disabled=false;y.style.boxShadow='0 0 0 4px #ffd257'}else y.disabled=true});$('adS').innerHTML='<p class="retrymsg">Not quite. The fact you need is glowing. Tap it to carry on.</p>';return}pOk=!fMiss;ctx.keep.fact=pOk?'ok':'pen';b.style.boxShadow='';$('adP').querySelectorAll('button').forEach(y=>{y.disabled=true;if(y.dataset.k===prop)y.classList.add('ok')});sfx.pop();
     $('adS').innerHTML=`<div class="row"><b>Step 2: x =</b><input class="num" id="adIn" inputmode="numeric" aria-label="x"><span>°</span><button class="btn primary" id="adChk">Check</button></div>`;
-    $('adChk').onclick=()=>{const v=parseInt($('adIn').value,10);if(isNaN(v))return;$('adIn').disabled=true;const o=v===x;api.done(pOk&&o,`x = ${x}°`,work,(pOk?4:0)+(o?6:0))}})}});
+    $('adChk').onclick=()=>{const v=parseInt($('adIn').value,10);if(isNaN(v))return;$('adIn').disabled=true;const o=v===x;api.done(o,`x = ${x}°`,work,(pOk?4:0)+(o?6:0))}});
+  if(ctx.keep.fact)$('adP').querySelector(`[data-k="${prop}"]`).click()}});
 
 /* P5-10. Triangle Sorter — Properties of triangles, angle sum */
 function triPts(al,be){const L=200,ga=(180-al-be)*Math.PI/180,a=al*Math.PI/180,b=be*Math.PI/180,AC=L*Math.sin(b)/Math.sin(ga);return [[0,0],[L,0],[AC*Math.cos(a),AC*Math.sin(a)]]}

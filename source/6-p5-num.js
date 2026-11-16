@@ -212,8 +212,8 @@ addGame('p5-share',{level:'P5',strand:'num',glyph:'÷',title:'Fair Share',topic:
   let tries=0;
   $('zC').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{if(api.answered)return;const g=+btn.dataset.g,total=a*g;sfx.tap();
     $('zP').innerHTML=Array.from({length:a},()=>pizzaSVG(g,()=>'#ffcf6e')).join('');
-    if(total%b){tries++;$('zMsg').textContent=`${a} × ${g} = ${total} slices. ${total} slices cannot be shared equally among ${b} children. Try another cut.`;return}
-    $('zC').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');const each=total/b;
+    if(total%b){tries++;$('zMsg').textContent=`${a} × ${g} = ${total} slices. ${total} slices cannot be shared equally among ${b} children. Try another cut.`;if(tries>=2){const ok2=[2,3,4,5,6,8].filter(x=>(a*x)%b===0);$('zMsg').textContent+=` Hint: try ${ok2.map(x=>x+' slices').join(' or ')} (glowing).`;ok2.forEach(x=>$('zC').querySelector(`[data-g="${x}"]`).style.boxShadow='0 0 0 4px #ffd257')}return}
+    ctx.keep.zc=g;$('zC').querySelectorAll('button').forEach(x=>{x.disabled=true;x.style.boxShadow=''});btn.classList.add('ok');const each=total/b;
     $('zMsg').textContent=`${total} slices ÷ ${b} children = ${each} slice${each>1?'s':''} each.`;
     $('zP').innerHTML=Array.from({length:a},(_,p)=>pizzaSVG(g,k=>KIDC[(p*g+k)%b])).join('');
     $('zSt').textContent='Step 2: Each colour is one child’s share. How much pizza does each child get?';
@@ -222,7 +222,8 @@ addGame('p5-share',{level:'P5',strand:'num',glyph:'÷',title:'Fair Share',topic:
     shuffle(cand).forEach(c=>{const x=document.createElement('button');x.className='btn';x.innerHTML=c;
       x.onclick=()=>{if(api.answered)return;const ok=c===right;[...$('zA').children].forEach(y=>{y.disabled=true;if(y.innerHTML===right)y.classList.add('ok')});if(!ok)x.classList.add('no');
         api.done(ok,`Each child gets ${right} of a pizza.`,[`${a} ÷ ${b} = ${fr(a,b)}${a>b?` = ${right}`:gcd(a,b)>1?` = ${right}`:''}`,`Each child gets ${each} slice${each>1?'s':''}, and each slice is ${fr(1,g)} of a pizza: ${each} × ${fr(1,g)} = ${fr(each,g)}${fr(each,g)!==right?` = ${right}`:''}.`,
-          'Dividing a whole number by a whole number can give a fraction: the number shared goes on top, the number of shares goes below.'],ok?Math.max(5,10-2*tries):0)};$('zA').appendChild(x)})})}});
+          'Dividing a whole number by a whole number can give a fraction: the number shared goes on top, the number of shares goes below.'],ok?Math.max(5,10-2*tries):0)};$('zA').appendChild(x)})});
+  if(ctx.keep.zc)$('zC').querySelector(`[data-g="${ctx.keep.zc}"]`).click()}});
 
 /* P5-5. Fraction Grid — Multiplying fractions */
 addGame('p5-fgrid',{level:'P5',strand:'num',glyph:'⊞',title:'Fraction Grid',topic:'Multiplying fractions',

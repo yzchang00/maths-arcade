@@ -820,6 +820,7 @@ const api={
     if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
     if(c.inBonus){c.bonusOk=ok;pts=0}
+    if(ok&&c.keep&&c.keep.pen&&pts>6)pts=6;
     let extra='';
     if(c.mode==='pass'){const p=c.players[c.r%c.players.length];p.score+=pts}else c.score+=pts;
     c.streak=ok&&c.try===1?c.streak+1:0;
@@ -898,7 +899,7 @@ function mulberry(a){return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,
 /* Each round is built from a saved random seed, so a second try rebuilds exactly the same question with a fresh board.
    In an online room every player derives the same seeds from the host's game seed, so everyone gets identical questions. */
 function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach(clearTimeout);c.timers=[];if(c.mode==='online'&&!retry)olResSave({r:c.r,score:c.score});
-  if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1}
+  if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1;c.keep={}}
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
   $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
@@ -1157,25 +1158,27 @@ addGame('p4-rounding',{level:'P4',strand:'num',glyph:'≈',title:'Rounding Rocke
   const big=place===1000?10000:place*10;
   const pair=(a,b)=>`${fmt(a)} and ${fmt(b)}`,right=pair(lo,hi);
   const wrongs=[pair(lo-place,lo),pair(hi,hi+place),pair(Math.floor(N/big)*big,Math.floor(N/big)*big+big),pair(Math.floor(N/(place/10||1))*(place/10||1),Math.floor(N/(place/10||1))*(place/10||1)+(place/10||1))].filter(x=>x!==right);
-  let step1ok=true;
+  let step1ok=true,s1miss=ctx.keep.pads==='pen';
   const opts=shuffle([right,...shuffle([...new Set(wrongs)]).slice(0,3)]);
   opts.forEach(v=>{const b=document.createElement('button');b.className='btn';b.textContent=v;b.onclick=()=>{if(api.answered||$('rCh').dataset.s==='2')return;
     if(v!==right&&api.first('pads')){b.disabled=true;b.classList.add('no');api.retry($('rMsg'),`Not quite. Look at the ${place===10?'tens':place===100?'hundreds':'thousands'} in ${fmt(N)} and try once more.`);return}
-    step1ok=v===right;[...$('rCh').children].forEach(x=>{x.disabled=true;if(x.textContent===right)x.classList.add('ok')});if(!step1ok){b.classList.add('no');sfx.no()}else sfx.ok();
+    if(v!==right){s1miss=true;b.disabled=true;b.classList.add('no');sfx.no();[...$('rCh').children].forEach(x=>{if(x.textContent===right){x.disabled=false;x.style.boxShadow='0 0 0 4px #ffd257'}else x.disabled=true});$('rMsg').innerHTML=`Not quite. The rocket is between <b>${right}</b>. Tap it to carry on.`;return}
+    step1ok=!s1miss;ctx.keep.pads=step1ok?'ok':'pen';b.style.boxShadow='';[...$('rCh').children].forEach(x=>{x.disabled=true;if(x.textContent===right)x.classList.add('ok')});sfx.ok();
     $('rPadL').querySelector('text').textContent=fmt(lo);$('rPadR').querySelector('text').textContent=fmt(hi);$('rMidG').setAttribute('opacity','1');$('rPadL').classList.add('lit');$('rPadR').classList.add('lit');
-    $('rMsg').innerHTML=`${step1ok?'✓ Pads ready!':'Not quite. The rocket is between <b>'+right+'</b>.'} The halfway mark is <b>${fmt(mid)}</b>. Look at the <b>${digName}</b> digit (in red on the rocket).`;
+    $('rMsg').innerHTML=`✓ Pads ready! The halfway mark is <b>${fmt(mid)}</b>. Look at the <b>${digName}</b> digit (in red on the rocket).`;
     api.later(()=>step2(),650)};$('rCh').appendChild(b)});
+  if(ctx.keep.pads)[...$('rCh').children].find(x=>x.textContent===right).click();
   const step2=()=>{$('rCh').dataset.s='2';api.q(`<p class="qt">🚀 Rocket <b>${fmt(N)}</b> must land on the nearest <b>${fmt(place)}</b>.</p><p class="qs">Step 2: Land the rocket on the nearer pad. Tap a pad or a button.</p>`);
     $('rCh').innerHTML='';[lo,hi].forEach(v=>{const b=document.createElement('button');b.className='btn';b.innerHTML=`🛬 Land on ${fmt(v)}`;b.onclick=()=>land(v);$('rCh').appendChild(b)});
     $('rPadL').onclick=()=>land(lo);$('rPadR').onclick=()=>land(hi)};
   const land=v=>{if(api.answered||$('rCh').dataset.s==='3')return;$('rCh').dataset.s='3';[...$('rCh').children].forEach(x=>x.disabled=true);
-    const ok=v===ans&&step1ok,tx=v===lo?x0:x1,g=$('rRocket');g.classList.add('fly');g.style.transform=`translate(${tx}px,${Y-92}px)`;sfx.pop();
+    const ok=v===ans,tx=v===lo?x0:x1,g=$('rRocket');g.classList.add('fly');g.style.transform=`translate(${tx}px,${Y-92}px)`;sfx.pop();
     api.later(()=>{if(v===ans){g.classList.add('landed');(v===lo?$('rPadL'):$('rPadR')).classList.add('win')}else{g.classList.add('wobble')}
       api.done(ok,v===ans?(step1ok?`Perfect landing! ${fmt(N)} ≈ ${fmt(ans)}`:`Good landing, but check the pads in Step 1. ${fmt(N)} ≈ ${fmt(ans)}`):`Bumpy landing! ${fmt(N)} is nearer to ${fmt(ans)}.`,
         [`${fmt(N)} is between the pads ${fmt(lo)} and ${fmt(hi)}. The halfway mark is ${fmt(mid)}.`,
          `Look at the <b>${digName}</b> digit: it is <b>${d}</b>.`,
          d>=5?`${d} is 5 or more, so the rocket is past halfway: round <b>up</b> to ${fmt(hi)}.`:`${d} is less than 5, so the rocket has not reached halfway: round <b>down</b> to ${fmt(lo)}.`,
-         `${fmt(N)} ≈ <b>${fmt(ans)}</b> (to the nearest ${fmt(place)})`])},1000)};
+         `${fmt(N)} ≈ <b>${fmt(ans)}</b> (to the nearest ${fmt(place)})`],v===ans?(step1ok?10:6):0)},1000)};
  }});
 
 /* 2. Factor Hunt — Factors and multiples 2.1–2.5 */
@@ -1234,7 +1237,7 @@ addGame('p4-product',{level:'P4',strand:'num',glyph:'×',title:'Digit Duel',topi
      done(aok,pok,A,B,v) is called after Step 2. */
   function play(box,digs,practice,done){const best=bestOf(digs);
     box.innerHTML=`<div class="frame" id="${box.id}F"></div><div class="row" id="${box.id}C"></div><div class="row"><button class="btn primary" id="${box.id}L" disabled>Lock in</button><button class="btn" id="${box.id}X">Clear all cards</button></div><div id="${box.id}S"></div>`;
-    const $$=k=>$(box.id+k),slots=Array(n).fill(null);let locked=false,tries=0;
+    const $$=k=>$(box.id+k),slots=Array(n).fill(null);let locked=false,tries=0,forced=!practice&&!!(ctx.keep&&ctx.keep.ddPen);
     function draw(){let h='';slots.forEach((s,k)=>{if(k===sh[0])h+='<span>×</span>';h+=`<button class="slot ${s!==null?'full':''}" data-k="${k}" aria-label="Box ${k+1}">${s!==null?digs[s]:''}</button>`});
       $$('F').innerHTML=h;$$('C').innerHTML=digs.map((d,i)=>`<button class="dcard" data-i="${i}" ${slots.includes(i)||locked?'disabled':''}>${d}</button>`).join('');
       $$('F').querySelectorAll('.slot').forEach(b=>b.onclick=()=>{if(locked)return;slots[+b.dataset.k]=null;sfx.tap();draw()});
@@ -1244,13 +1247,16 @@ addGame('p4-product',{level:'P4',strand:'num',glyph:'×',title:'Digit Duel',topi
     $$('X').onclick=()=>{if(locked)return;slots.fill(null);sfx.tap();draw()};
     $$('L').onclick=()=>{const ds=slots.map(i=>digs[i]),mA=+ds.slice(0,sh[0]).join(''),mB=+ds.slice(sh[0]).join(''),aok=mA*mB===best.v;tries++;
       if(!aok&&!practice&&tries===1){api.retry($$('S'),`${mA} × ${mB} is not the ${G} product yet. Tap a box to take a card back and try a different arrangement.`);return}
+      if(!aok){forced=true;sfx.no();$$('S').innerHTML=`<p class="retrymsg">${mA} × ${mB} is not the ${G} product. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Move the cards to make ${best.A} × ${best.B}, then press Lock in.</p>`;return}
+      if(!practice&&ctx.keep){ctx.keep.dd=slots.slice();ctx.keep.ddPen=forced}
       locked=true;draw();$$('X').disabled=true;
       /* Step 2 always uses the best arrangement, so pupils practise multiplying the right numbers */
       const A=aok?mA:best.A,B=aok?mB:best.B,v=A*B;
-      $$('S').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${aok?'That is the best possible arrangement!':`${mA} × ${mB} = ${fmt(mA*mB)} is not the ${G}. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Now multiply these numbers.`}</p>
+      $$('S').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${aok?(forced?'Now you have the best arrangement.':'That is the best possible arrangement!'):`${mA} × ${mB} = ${fmt(mA*mB)} is not the ${G}. The ${G} product comes from <b>${best.A} × ${best.B}</b>: ${goal==='big'?'put the biggest digits':'put the smallest digits'} in the highest place values. Now multiply these numbers.`}</p>
         <div class="row"><b style="font:700 1.5rem var(--display)">${A} × ${B} =</b><input class="num" id="${box.id}I" inputmode="numeric" aria-label="Product"><button class="btn primary" id="${box.id}K">Check</button></div><div id="${box.id}R"></div>`;
       $$('I').focus();
-      $$('K').onclick=()=>{const g=parseInt($$('I').value.replace(/[,\s]/g,''),10);if(isNaN(g))return;const pok=g===v;$$('I').disabled=true;$$('K').disabled=true;done(aok,pok,A,B,v,best,mA,mB)}}}
+      $$('K').onclick=()=>{const g=parseInt($$('I').value.replace(/[,\s]/g,''),10);if(isNaN(g))return;const pok=g===v;$$('I').disabled=true;$$('K').disabled=true;done(aok&&!forced,pok,A,B,v,best,mA,mB)}}
+    if(!practice&&ctx.keep&&ctx.keep.dd){ctx.keep.dd.forEach((s,k)=>slots[k]=s);draw();$$('L').onclick()}}
   const mainDigs=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,n);
   api.q(`<p class="qt">Use all ${n} cards to make the <b>${G.toUpperCase()}</b> product.</p><p class="qs">Tap a card to place it. Tap a box to take a card back.</p>`);
   api.body.innerHTML=`<div id="dM"></div><div id="dP"></div>`;
@@ -1308,20 +1314,21 @@ addGame('p4-share',{level:'P4',strand:'num',glyph:'⅓',title:'Sweet Share',topi
   $('sG').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{if(api.answered)return;const g=+btn.dataset.g;sfx.tap();
     const per=Math.floor(N/g),rem=N%g;let h='';for(let j=0;j<g;j++)h+=`<div class="grp static">${Array.from({length:per},(_,i)=>sweet(j)).join('')}</div>`;
     if(rem)h+=`<div class="grp static" style="border-style:dashed">${Array.from({length:rem},()=>sweet(9)).join('')}</div>`;$('sP').innerHTML=h;
-    if(g!==b){mistakes++;$('sMsg').textContent=rem?`${N} sweets cannot be shared equally into ${g} groups. Look at the fraction again.`:`These are equal groups, but the bottom number of the fraction (${b}) tells you how many groups you need.`;return}
-    $('sG').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');
+    if(g!==b){mistakes++;$('sMsg').textContent=rem?`${N} sweets cannot be shared equally into ${g} groups. Look at the fraction again.`:`These are equal groups, but the bottom number of the fraction (${b}) tells you how many groups you need.`;if(mistakes>=2){$('sMsg').textContent+=` Tap ${b} groups to carry on.`;$('sG').querySelector(`[data-g="${b}"]`).style.boxShadow='0 0 0 4px #ffd257'}return}
+    ctx.keep.sg=1;btn.style.boxShadow='';$('sG').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');
     $('sMsg').textContent=`${N} ÷ ${b} = ${k} sweets in each group.`;
     $('sSt').innerHTML=`Step 2: Tap ${a} group${a>1?'s':''} to show the ${fr(a,b)} ${left?'that is given away':`that ${who} takes`}.`;
     $('sP').innerHTML=Array.from({length:b},(_,j)=>`<button class="grp" data-j="${j}" aria-pressed="false">${Array.from({length:k},()=>sweet(j)).join('')}</button>`).join('');
     $('sP').querySelectorAll('.grp').forEach(gb=>gb.onclick=()=>{if(api.answered)return;const j=+gb.dataset.j;chosen.has(j)?chosen.delete(j):chosen.add(j);sfx.tap();
       gb.classList.toggle('sel',chosen.has(j));gb.setAttribute('aria-pressed',String(chosen.has(j)));
-      if(chosen.size===a){$('sSt').innerHTML='Step 3: Count the sweets.';
+      if(chosen.size===a){ctx.keep.sgSel=[...chosen];$('sSt').innerHTML='Step 3: Count the sweets.';
         $('sS3').innerHTML=`<div class="row"><b>${left?'Sweets left:':`Sweets ${who} takes:`}</b><input class="num" id="sIn" inputmode="numeric" aria-label="Answer"><button class="btn primary" id="sChk">Check</button></div>`;
         $('sChk').onclick=()=>{const v=parseInt($('sIn').value,10);if(isNaN(v))return;const ans=left?(b-a)*k:a*k,ok=v===ans;$('sIn').disabled=true;
           api.done(ok,ok?`${left?'There are':who+' takes'} ${ans} sweets${left?' left':''}.`:`The answer is ${ans} sweets.`,
             [`${N} ÷ ${b} = ${k} sweets in each group`,left?`${a} group${a>1?'s are':' is'} given away, so ${b-a} group${b-a>1?'s are':' is'} left: ${b-a} × ${k} = <b>${ans}</b>`:`${fr(a,b)} of ${N} is ${a} group${a>1?'s':''}: ${a} × ${k} = <b>${ans}</b>`],
             ok?Math.max(4,10-3*mistakes):0)}}
-      else $('sS3').innerHTML=''})})}});
+      else $('sS3').innerHTML=''})});
+  if(ctx.keep.sg){$('sG').querySelector(`[data-g="${b}"]`).click();if(ctx.keep.sgSel)ctx.keep.sgSel.forEach(j=>$('sP').querySelector(`[data-j="${j}"]`).click())}}});
 
 /* 6. Fraction Target — Addition and subtraction of fractions 3.1 */
 function barsSVG(cells,D){const rows=Math.ceil(cells.length/D),cw=400/D;let s='';
@@ -1431,22 +1438,25 @@ addGame('p4-cashier',{level:'P4',strand:'num',glyph:'$',title:'Canteen Cashier',
       <div class="scanner" id="ccScan"><div class="laser"></div><b>SCAN</b></div></div>
     <div class="pos"><div class="posh"><span>Canteen POS</span><span id="ccCnt">0 / ${tray.length} scanned</span></div><div class="posl" id="ccLines"><div class="pose">Waiting for items…</div></div></div></div>
     <div id="ccS2" style="display:grid;gap:10px"></div><div id="ccS3" style="display:grid;gap:10px"></div>`;
+  if(ctx.keep.cc)Promise.resolve().then(()=>{scanned.push(...tray);api.body.querySelectorAll('.titem').forEach(b=>{b.disabled=true;b.classList.add('gone')});$('ccLines').innerHTML=scanned.map(n=>`<div><span>${n}</span><span>${$c(MENU.find(m=>m[0]===n)[1])}</span></div>`).join('');$('ccCnt').textContent=`${scanned.length} / ${tray.length} scanned`;tabulate();
+    items.forEach((it,i)=>{$('bq'+i).value=it.q;$('ba'+i).value=$c(it.p*it.q).replace('$','')});$('bt').value=$c(total).replace('$','');$('bChk').click()});
   const beep=()=>{tone(1650,0,.09,{type:'square',vol:.08});tone(2200,.09,.07,{type:'square',vol:.06})};
   api.body.querySelectorAll('.titem').forEach(b=>b.onclick=()=>{if(b.disabled||api.answered)return;b.disabled=true;const nm=tray[+b.dataset.i];
-    const fin=()=>{beep();$('ccScan').classList.remove('flash');void $('ccScan').offsetWidth;$('ccScan').classList.add('flash');scanned.push(nm);b.classList.add('gone');
+    const fin=()=>{if(!$('ccScan')||!b.isConnected)return;beep();$('ccScan').classList.remove('flash');void $('ccScan').offsetWidth;$('ccScan').classList.add('flash');scanned.push(nm);b.classList.add('gone');
       $('ccLines').innerHTML=scanned.map(n=>`<div><span>${n}</span><span>${$c(MENU.find(m=>m[0]===n)[1])}</span></div>`).join('');$('ccLines').scrollTop=9999;$('ccCnt').textContent=`${scanned.length} / ${tray.length} scanned`;
       if(scanned.length===tray.length)tabulate()};
     if(calm)return fin();const a=b.getBoundingClientRect(),z=$('ccScan').getBoundingClientRect(),cl=b.querySelector('svg').cloneNode(true);
     cl.style.cssText=`position:fixed;left:${a.left+a.width/2-28}px;top:${a.top+6}px;width:56px;height:56px;z-index:60;pointer-events:none`;document.body.appendChild(cl);
     cl.animate([{transform:'none'},{transform:`translate(${z.left+z.width/2-a.left-a.width/2}px,${z.top-a.top-20}px) scale(.8) rotate(12deg)`,offset:.7},{transform:`translate(${z.left+z.width/2-a.left-a.width/2}px,${z.top-a.top+10}px) scale(.3)`,opacity:0}],{duration:520,easing:'ease-in'}).onfinish=()=>{cl.remove();fin()}});
-  function tabulate(){api.q(`<p class="qt">Step 2: Fill in the bill.</p><p class="qs">Count each item from the screen, then work out each amount and the total.</p>`);
+  function tabulate(){let billMiss=!!(ctx.keep.cc&&ctx.keep.cc.pen);api.q(`<p class="qt">Step 2: Fill in the bill.</p><p class="qs">Count each item from the screen, then work out each amount and the total.</p>`);
     $('ccS2').innerHTML=`<div style="overflow-x:auto"><table class="bill"><thead><tr><th>Item</th><th>Price each</th><th>Qty</th><th>Amount</th></tr></thead><tbody>${items.map((it,i)=>`<tr><td><span class="bi">${artSVG(it.nm)}</span>${it.nm}</td><td>${$c(it.p)}</td><td><input class="num sm" id="bq${i}" inputmode="numeric" aria-label="Quantity of ${it.nm}"></td><td>$<input class="num sm" id="ba${i}" inputmode="decimal" aria-label="Amount for ${it.nm}"></td></tr>`).join('')}
       <tr class="tot"><td colspan="3">Total</td><td>$<input class="num sm" id="bt" inputmode="decimal" aria-label="Total"></td></tr></tbody></table></div><div><button class="btn primary" id="bChk">Check the bill</button></div><div id="bMsg" style="font-weight:800"></div>`;
     $('bChk').onclick=()=>{const marks=[];items.forEach((it,i)=>{marks.push([`bq${i}`,+$('bq'+i).value===it.q],[`ba${i}`,parseMoney($('ba'+i).value)===it.p*it.q])});marks.push(['bt',parseMoney($('bt').value)===total]);
       if(marks.some(m=>!m[1])&&api.first('bill')){marks.forEach(([id,g])=>{$(id).classList.remove('okc','noc');$(id).classList.add(g?'okc':'noc');if(g)$(id).disabled=true});api.retry($('bMsg'),'Some boxes are not right yet (the red ones). Fix them and press Check the bill again.');return}
+      if(marks.some(m=>!m[1])){billMiss=true;sfx.no();marks.forEach(([id,g])=>{$(id).classList.remove('okc','noc');$(id).classList.add(g?'okc':'noc');if(g)$(id).disabled=true});$('bMsg').innerHTML='Still not right. The correct bill: '+items.map(it=>`${it.nm} ${it.q} × ${$c(it.p)} = ${$c(it.p*it.q)}`).join('; ')+`; total ${$c(total)}. Fix the red boxes to carry on.`;return}
       let ok=true;marks.slice(0,-1).forEach(([id,g])=>{$(id).classList.remove('okc','noc');$(id).classList.add(g?'okc':'noc');$(id).disabled=true;if(!g)ok=false});
       const t=parseMoney($('bt').value),tok=t===total;$('bt').classList.remove('okc','noc');$('bt').classList.add(tok?'okc':'noc');$('bt').disabled=true;$('bChk').disabled=true;
-      const billOk=ok&&tok;billOk?sfx.pop():sfx.soft();$('bMsg').textContent=billOk?'Bill correct!':`Not quite. The total is ${$c(total)}.`;pay(billOk)}}
+      const billOk=ok&&tok&&!billMiss;ctx.keep.cc={pen:billMiss};sfx.pop();$('bMsg').textContent='Bill correct!';pay(billOk)}}
   function pay(billOk){api.q(`<p class="qt">Step 3: ${kid.name} pays with a <b>${$c(note)}</b> note. Give the change.</p>`);
     $('ccCust').querySelector('.say').textContent=`Here’s ${$c(note)}!`;$('ccCust').insertAdjacentHTML('beforeend',`<div class="paynote">${$c(note)}</div>`);
     $('ccS3').innerHTML=`<div class="money" id="cM">${CASH.filter(c=>c[0]<note).map(c=>`<button class="cash ${c[2]}" data-v="${c[0]}">${c[1]}</button>`).join('')}</div>
@@ -1457,7 +1467,7 @@ addGame('p4-cashier',{level:'P4',strand:'num',glyph:'$',title:'Canteen Cashier',
     $('ccS3').scrollIntoView({behavior:calm?'auto':'smooth',block:'nearest'});
     $('cGive').onclick=()=>{const given=tr.reduce((a,b)=>a+b,0),cok=given===change;let rest=change;const way=[];CASH.forEach(([v,l])=>{while(rest>=v){way.push(l);rest-=v}});
       const k=$('ccCust').querySelector('.kid');k.classList.remove('in');k.classList.add(cok?'yay':'huh');$('ccCust').querySelector('.say').textContent=cok?'Thank you!':'Hmm, is this right?';
-      api.done(billOk&&cok,cok?`You gave ${$c(change)} change.`:`You gave ${$c(given)}. The change should be ${$c(change)}.`,
+      api.done(cok,cok?`You gave ${$c(change)} change.`:`You gave ${$c(given)}. The change should be ${$c(change)}.`,
         [...items.map(i=>`${i.nm}: ${i.q} × ${$c(i.p)} = ${$c(i.p*i.q)}`),`Total = ${items.map(i=>$c(i.p*i.q)).join(' + ')} = <b>${$c(total)}</b>`,
          `Change = ${$c(note)} − ${$c(total)} = <b>${$c(change)}</b>`,`One way to give it: ${way.join(' + ')}`],(billOk?5:0)+(cok?5:0))}}}});
 
@@ -1510,7 +1520,7 @@ function balloonSVG(t,col,hidden){const [x,y]=arm(t,158);return `<g id="aBal" st
 function skySVG(){return `<rect x="0" y="-30" width="360" height="220" fill="#bfe3fb" fill-opacity=".55"/><rect x="0" y="190" width="360" height="40" fill="#7cc77f" fill-opacity=".7"/>
   ${[[60,20,1],[250,5,1.2],[150,-12,.8],[320,60,.7],[30,90,.75]].map(([x,y,s])=>`<g transform="translate(${x},${y}) scale(${s})" fill="#fff" fill-opacity=".9"><ellipse cx="0" cy="0" rx="26" ry="11"/><ellipse cx="-14" cy="-6" rx="13" ry="10"/><ellipse cx="10" cy="-9" rx="15" ry="12"/></g>`).join('')}`}
 const GUN=`<g transform="translate(180,190)"><g id="aBar"><rect x="0" y="-7" width="58" height="14" rx="6" fill="#3d4b63" stroke="#16233a" stroke-width="2"/><rect x="52" y="-9" width="10" height="18" rx="3" fill="#16233a"/></g><circle r="17" style="fill:var(--tomato)" stroke="#16233a" stroke-width="2.5"/><rect x="-26" y="12" width="52" height="11" rx="4" fill="#16233a"/></g>`;
-function fireAt(svg,ang,hit,balT,done){const b=document.createElementNS('http://www.w3.org/2000/svg','circle');b.setAttribute('r','4.5');b.setAttribute('fill','#16233a');svg.appendChild(b);
+function fireAt(svg,ang,hit,balT,done){if(!svg||!svg.isConnected)return;const b=document.createElementNS('http://www.w3.org/2000/svg','circle');b.setAttribute('r','4.5');b.setAttribute('fill','#16233a');svg.appendChild(b);
   tone(900,0,.18,{type:'sawtooth',vol:.12,to:120});tone(140,0,.25,{type:'square',vol:.1,to:60});
   const t0=performance.now(),dur=calm?1:520,end=hit?158:210;
   const step=now=>{if(!b.isConnected)return;const k=Math.min(1,(now-t0)/dur),[x,y]=arm(ang,62+(end-62)*k);b.setAttribute('cx',x);b.setAttribute('cy',y);
@@ -1959,8 +1969,8 @@ addGame('p5-share',{level:'P5',strand:'num',glyph:'÷',title:'Fair Share',topic:
   let tries=0;
   $('zC').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{if(api.answered)return;const g=+btn.dataset.g,total=a*g;sfx.tap();
     $('zP').innerHTML=Array.from({length:a},()=>pizzaSVG(g,()=>'#ffcf6e')).join('');
-    if(total%b){tries++;$('zMsg').textContent=`${a} × ${g} = ${total} slices. ${total} slices cannot be shared equally among ${b} children. Try another cut.`;return}
-    $('zC').querySelectorAll('button').forEach(x=>x.disabled=true);btn.classList.add('ok');const each=total/b;
+    if(total%b){tries++;$('zMsg').textContent=`${a} × ${g} = ${total} slices. ${total} slices cannot be shared equally among ${b} children. Try another cut.`;if(tries>=2){const ok2=[2,3,4,5,6,8].filter(x=>(a*x)%b===0);$('zMsg').textContent+=` Hint: try ${ok2.map(x=>x+' slices').join(' or ')} (glowing).`;ok2.forEach(x=>$('zC').querySelector(`[data-g="${x}"]`).style.boxShadow='0 0 0 4px #ffd257')}return}
+    ctx.keep.zc=g;$('zC').querySelectorAll('button').forEach(x=>{x.disabled=true;x.style.boxShadow=''});btn.classList.add('ok');const each=total/b;
     $('zMsg').textContent=`${total} slices ÷ ${b} children = ${each} slice${each>1?'s':''} each.`;
     $('zP').innerHTML=Array.from({length:a},(_,p)=>pizzaSVG(g,k=>KIDC[(p*g+k)%b])).join('');
     $('zSt').textContent='Step 2: Each colour is one child’s share. How much pizza does each child get?';
@@ -1969,7 +1979,8 @@ addGame('p5-share',{level:'P5',strand:'num',glyph:'÷',title:'Fair Share',topic:
     shuffle(cand).forEach(c=>{const x=document.createElement('button');x.className='btn';x.innerHTML=c;
       x.onclick=()=>{if(api.answered)return;const ok=c===right;[...$('zA').children].forEach(y=>{y.disabled=true;if(y.innerHTML===right)y.classList.add('ok')});if(!ok)x.classList.add('no');
         api.done(ok,`Each child gets ${right} of a pizza.`,[`${a} ÷ ${b} = ${fr(a,b)}${a>b?` = ${right}`:gcd(a,b)>1?` = ${right}`:''}`,`Each child gets ${each} slice${each>1?'s':''}, and each slice is ${fr(1,g)} of a pizza: ${each} × ${fr(1,g)} = ${fr(each,g)}${fr(each,g)!==right?` = ${right}`:''}.`,
-          'Dividing a whole number by a whole number can give a fraction: the number shared goes on top, the number of shares goes below.'],ok?Math.max(5,10-2*tries):0)};$('zA').appendChild(x)})})}});
+          'Dividing a whole number by a whole number can give a fraction: the number shared goes on top, the number of shares goes below.'],ok?Math.max(5,10-2*tries):0)};$('zA').appendChild(x)})});
+  if(ctx.keep.zc)$('zC').querySelector(`[data-g="${ctx.keep.zc}"]`).click()}});
 
 /* P5-5. Fraction Grid — Multiplying fractions */
 addGame('p5-fgrid',{level:'P5',strand:'num',glyph:'⊞',title:'Fraction Grid',topic:'Multiplying fractions',
@@ -2044,15 +2055,18 @@ addGame('p5-tarea',{level:'P5',strand:'geo',glyph:'◺',title:'Height Finder',to
     <polygon points="${[A,B1,B2].map(p=>P(p).join(',')).join(' ')}" style="fill:color-mix(in srgb,var(--sun) 30%,transparent)" stroke="var(--ink)" stroke-width="2.5"/>
     ${ext?`<line ${ext} stroke="var(--ink)" stroke-width="2" stroke-dasharray="2 4"/>`:''}<line ${ln(B1,B2)} stroke="var(--tomato)" stroke-width="6" stroke-linecap="round"/>${segs}</svg>
     <div class="row" id="hC">${L.map((l,i)=>`<button class="btn" data-i="${i}" style="border-color:${cc[i]}">Line ${l}</button>`).join('')}</div><div id="hS"></div>`;
-  let pk=null;
-  $('hC').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pk!==null||api.answered)return;if(!cands[+b.dataset.i].ok&&api.first('h')){b.disabled=true;b.classList.add('no');api.retry($('hS'),'Not that one. The height must meet the base at a right angle. Try again!');return}pk=+b.dataset.i;const ok=cands[pk].ok;
-    $('hC').querySelectorAll('button').forEach((x,i)=>{x.disabled=true;if(cands[i].ok)x.classList.add('ok')});if(!ok)b.classList.add('no');ok?sfx.pop():sfx.soft();
-    $('hS').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${ok?'Yes!':`Not that one. Line ${L[cands.findIndex(c=>c.ok)]} is the height.`} The height is ${h} cm.</p>
+  let pk=null,hMiss=ctx.keep.h==='pen';
+  $('hC').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pk!==null||api.answered)return;if(!cands[+b.dataset.i].ok&&api.first('h')){b.disabled=true;b.classList.add('no');api.retry($('hS'),'Not that one. The height must meet the base at a right angle. Try again!');return}
+    if(!cands[+b.dataset.i].ok){hMiss=true;b.disabled=true;b.classList.add('no');sfx.no();$('hC').querySelectorAll('button').forEach((x,i)=>{if(cands[i].ok){x.disabled=false;x.style.boxShadow='0 0 0 4px #ffd257'}else x.disabled=true});$('hS').innerHTML=`<p class="retrymsg">Not quite. Line ${L[cands.findIndex(c=>c.ok)]} is the height: it meets the base at a right angle. Tap it to carry on.</p>`;return}
+    pk=+b.dataset.i;const ok=!hMiss;ctx.keep.h=ok?'ok':'pen';b.style.boxShadow='';
+    $('hC').querySelectorAll('button').forEach((x,i)=>{x.disabled=true;if(cands[i].ok)x.classList.add('ok')});sfx.pop();
+    $('hS').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${ok?'Yes!':'Now you have the height.'} The height is ${h} cm.</p>
       <div class="row"><b>Area =</b><input class="num" id="hIn" inputmode="decimal" aria-label="Area"><span>cm²</span><button class="btn primary" id="hChk">Check</button></div>`;
     $('hChk').onclick=()=>{const v=parseFloat($('hIn').value);if(isNaN(v))return;const ar=bl*h/2,o2=Math.abs(v-ar)<.001;$('hIn').disabled=true;
-      api.done(ok&&o2,`Area = ${ar} cm²`,['The height goes from the opposite corner and meets the base (or the base extended) at a right angle.',
+      api.done(o2,`Area = ${ar} cm²`,['The height goes from the opposite corner and meets the base (or the base extended) at a right angle.',
         xa<x1||xa>x1+bl?'Here the height falls outside the triangle, so the base is extended with a dotted line.':xa===x1||xa===x1+bl?'Here one side of the triangle is already at right angles to the base, so that side is the height.':'',
-        `Area = ½ × base × height = ½ × ${bl} × ${h} = <b>${ar} cm²</b>`].filter(Boolean),(ok?4:0)+(o2?6:0))}})}});
+        `Area = ½ × base × height = ½ × ${bl} × ${h} = <b>${ar} cm²</b>`].filter(Boolean),(ok?4:0)+(o2?6:0))}});
+  if(ctx.keep.h)$('hC').querySelectorAll('button')[cands.findIndex(c=>c.ok)].click()}});
 
 /* P5-8. Cube Builder — Volume of cube and cuboid, liquid in a tank */
 function isoCubes(L,B,H){const s=20,c=.866,P=(x,y,z)=>[(x-y)*s*c,(x+y)*s*.5-z*s],cubes=[];
@@ -2114,10 +2128,11 @@ addGame('p5-angles',{level:'P5',strand:'geo',glyph:'∡',title:'Angle Detective'
     x=val[xi];prop=type==='vert'?'vert':'line';work=type==='vert'?[`${PROPS.vert}.`,`x is opposite the ${th}° angle, so x = <b>${th}°</b>`]:[`x and ${th}° sit next to each other on a straight line.`,`${PROPS.line}, so x = 180° − ${th}° = <b>${x}°</b>`]}
   api.q(`<p class="qt">Find the value of <b>x</b>.</p>`);
   api.body.innerHTML=angSVG(dirs,secs,lines)+`<div style="font-weight:800">Step 1: Which angle fact do you need?</div><div class="choices one" id="adP">${Object.entries(PROPS).map(([k,t])=>`<button class="btn" data-k="${k}">${t}</button>`).join('')}</div><div id="adS"></div>`;
-  let pOk=null;
-  $('adP').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pOk!==null)return;if(b.dataset.k!==prop&&api.first('fact')){b.disabled=true;b.classList.add('no');api.retry($('adS'),'That fact does not fit this diagram. Look at where x is and try another!');return}pOk=b.dataset.k===prop;$('adP').querySelectorAll('button').forEach(y=>{y.disabled=true;if(y.dataset.k===prop)y.classList.add('ok')});if(!pOk)b.classList.add('no');pOk?sfx.pop():sfx.soft();
+  let pOk=null,fMiss=ctx.keep.fact==='pen';
+  $('adP').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(pOk!==null)return;if(b.dataset.k!==prop&&api.first('fact')){b.disabled=true;b.classList.add('no');api.retry($('adS'),'That fact does not fit this diagram. Look at where x is and try another!');return}if(b.dataset.k!==prop){fMiss=true;b.disabled=true;b.classList.add('no');sfx.no();$('adP').querySelectorAll('button').forEach(y=>{if(y.dataset.k===prop){y.disabled=false;y.style.boxShadow='0 0 0 4px #ffd257'}else y.disabled=true});$('adS').innerHTML='<p class="retrymsg">Not quite. The fact you need is glowing. Tap it to carry on.</p>';return}pOk=!fMiss;ctx.keep.fact=pOk?'ok':'pen';b.style.boxShadow='';$('adP').querySelectorAll('button').forEach(y=>{y.disabled=true;if(y.dataset.k===prop)y.classList.add('ok')});sfx.pop();
     $('adS').innerHTML=`<div class="row"><b>Step 2: x =</b><input class="num" id="adIn" inputmode="numeric" aria-label="x"><span>°</span><button class="btn primary" id="adChk">Check</button></div>`;
-    $('adChk').onclick=()=>{const v=parseInt($('adIn').value,10);if(isNaN(v))return;$('adIn').disabled=true;const o=v===x;api.done(pOk&&o,`x = ${x}°`,work,(pOk?4:0)+(o?6:0))}})}});
+    $('adChk').onclick=()=>{const v=parseInt($('adIn').value,10);if(isNaN(v))return;$('adIn').disabled=true;const o=v===x;api.done(o,`x = ${x}°`,work,(pOk?4:0)+(o?6:0))}});
+  if(ctx.keep.fact)$('adP').querySelector(`[data-k="${prop}"]`).click()}});
 
 /* P5-10. Triangle Sorter — Properties of triangles, angle sum */
 function triPts(al,be){const L=200,ga=(180-al-be)*Math.PI/180,a=al*Math.PI/180,b=be*Math.PI/180,AC=L*Math.sin(b)/Math.sin(ga);return [[0,0],[L,0],[AC*Math.cos(a),AC*Math.sin(a)]]}
@@ -2259,12 +2274,12 @@ addGame('p6-pchange',{level:'P6',strand:'num',glyph:'%↑',title:'Before & After
   api.q(`<p class="qt">${q}</p>`);
   api.body.innerHTML=`<div id="pb"></div><div class="row"><label for="pS" style="font-weight:800">${two?'Step 1: Set the After bar':'Step 1: Shade the part you know'}</label><input type="range" id="pS" min="0" max="150" step="5" value="${two?100:50}" style="flex:1;min-width:180px;accent-color:var(--tomato)"><span class="pill" id="pV"></span><button class="btn" id="pSet">Set</button></div><div id="pS2"></div>`;
   const draw=()=>{const v=+$('pS').value;$('pV').textContent=v+'%';$('pb').innerHTML=two?pctBars(100,v,lab1,lab2,true):pctBars(v,0,type==='whole'?(u?'$':'')+String(q.match(/\d+/)[0]):'',null,false)+`<p class="qs" style="margin:0">The whole bar is 100%.</p>`};
-  $('pS').oninput=draw;draw();let s1=null;
-  $('pSet').onclick=()=>{if(s1!==null)return;const v=+$('pS').value;if(v!==P&&api.first('bar')){api.retry($('pS2'),`Not quite. ${two?`Think: what percentage of the before amount is the after amount?`:`Read the percentage in the question again.`} Move the slider and press Set again.`);return}s1=v===P;$('pS').disabled=true;$('pSet').disabled=true;s1?sfx.pop():sfx.soft();
-    if(!s1){$('pS').value=P;draw()}
-    $('pS2').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${s1?'Bar model set correctly!':`The bar should be at ${P}%. I have moved it for you.`}</p><div class="row"><b>Step 2:</b>${u==='$'?'<b>$</b>':''}<input class="num" id="pIn" inputmode="decimal" aria-label="Answer">${u&&u!=='$'?`<span>${u}</span>`:''}<button class="btn primary" id="pChk">Check</button></div>`;
+  $('pS').oninput=draw;draw();let s1=null,bMiss=ctx.keep.bar==='pen';
+  $('pSet').onclick=()=>{if(s1!==null)return;const v=+$('pS').value;if(v!==P&&api.first('bar')){api.retry($('pS2'),`Not quite. ${two?`Think: what percentage of the before amount is the after amount?`:`Read the percentage in the question again.`} Move the slider and press Set again.`);return}if(v!==P){bMiss=true;sfx.no();$('pS2').innerHTML=`<p class="retrymsg">Not quite. The bar should be at <b>${P}%</b>. Move the slider to ${P}% and press Set to carry on.</p>`;return}s1=!bMiss;ctx.keep.bar=s1?'ok':'pen';$('pS').disabled=true;$('pSet').disabled=true;sfx.pop();
+    $('pS2').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${s1?'Bar model set correctly!':'Now the bar model is right.'}</p><div class="row"><b>Step 2:</b>${u==='$'?'<b>$</b>':''}<input class="num" id="pIn" inputmode="decimal" aria-label="Answer">${u&&u!=='$'?`<span>${u}</span>`:''}<button class="btn primary" id="pChk">Check</button></div>`;
     $('pChk').onclick=()=>{const v2=parseFloat($('pIn').value.replace(/[$,%\s]/g,''));if(isNaN(v2))return;$('pIn').disabled=true;const o=Math.abs(v2-ans)<.001;
-      api.done(s1&&o,`The answer is ${u==='$'?'$':''}${ans}${u==='%'?'%':''}.`,work,(s1?4:0)+(o?6:0))}}}});
+      api.done(o,`The answer is ${u==='$'?'$':''}${ans}${u==='%'?'%':''}.`,work,(s1?4:0)+(o?6:0))}};
+  if(ctx.keep.bar){$('pS').value=P;draw();$('pSet').click()}}});
 
 /* P6-3. Ratio Kitchen — Ratio */
 function cupsRow(s,w){return `<div class="cups">${Array.from({length:s},()=>'<span class="cup syr" aria-hidden="true"></span>').join('')}${Array.from({length:w},()=>'<span class="cup wat" aria-hidden="true"></span>').join('')}</div>`}
@@ -2385,16 +2400,21 @@ addGame('p6-circle',{level:'P6',strand:'geo',glyph:'π',title:'Circle Lab',topic
   api.q(`<p class="qt">Find the ${isP?'perimeter':'area'} of the figure.</p><p class="qs">Take π = ${piTxt}. Give your answer to 2 decimal places if needed.</p>`);
   api.body.innerHTML=`<svg viewBox="0 0 360 260" class="msvg" style="max-width:400px" id="clS" role="img" aria-label="Figure">${S.pcs.map((p,i)=>`<path d="${p.d}" fill="none" stroke="var(--ink)" stroke-width="3" ${p.b?'':'stroke-dasharray="7 6"'} data-i="${i}" class="clp"/><path d="${p.d}" fill="none" stroke="transparent" stroke-width="22" data-i="${i}" class="clh" style="cursor:pointer"/>`).join('')}${S.labs}</svg><div id="clS1"></div><div id="clS2"></div>`;
   const step2=s1=>{$('clS2').innerHTML=`<div class="row"><b>${isP?'Perimeter':'Area'} =</b><input class="num" id="clIn" inputmode="decimal" aria-label="Answer"><span>${unit}</span><button class="btn primary" id="clChk">Check</button></div>`;
-    $('clChk').onclick=()=>{const g=parseFloat($('clIn').value);if(isNaN(g))return;$('clIn').disabled=true;const o=Math.abs(g-ans)<.015;api.done(s1&&o,`The ${isP?'perimeter':'area'} is ${ans} ${unit}.`,work,(s1?4:0)+(o?6:0))}};
+    $('clChk').onclick=()=>{const g=parseFloat($('clIn').value);if(isNaN(g))return;$('clIn').disabled=true;const o=Math.abs(g-ans)<.015;api.done(o,`The ${isP?'perimeter':'area'} is ${ans} ${unit}.`,work,(s1?4:0)+(o?6:0))}};
+  const K=ctx.keep;let eMiss=K.cl==='pen';
   if(isP){const sel=new Set();$('clS1').innerHTML=`<div class="row"><b>Step 1: Tap every edge of the perimeter.</b><button class="btn" id="clOk">Done</button></div>`;
     api.body.querySelectorAll('.clh').forEach(h=>h.addEventListener('click',()=>{if($('clOk').disabled)return;const i=+h.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);sfx.tap();
       api.body.querySelector(`.clp[data-i="${i}"]`).style.stroke=sel.has(i)?'var(--tomato)':'var(--ink)';api.body.querySelector(`.clp[data-i="${i}"]`).style.strokeWidth=sel.has(i)?6:3}));
-    $('clOk').onclick=()=>{const want=S.pcs.map((p,i)=>p.b?i:-1).filter(i=>i>=0),ok=want.length===sel.size&&want.every(i=>sel.has(i));if(!ok&&api.first('edges')){let m=$('clR');if(!m){$('clS1').insertAdjacentHTML('beforeend','<div id="clR"></div>');m=$('clR')}api.retry(m,`Not quite. ${sel.size<want.length?'You have missed some edges.':'Some of those edges are inside the shape, not around the outside.'} Change your edges and press Done again.`);return}$('clR')&&$('clR').remove();$('clOk').disabled=true;ok?sfx.pop():sfx.soft();
+    $('clOk').onclick=()=>{const want=S.pcs.map((p,i)=>p.b?i:-1).filter(i=>i>=0),ok=want.length===sel.size&&want.every(i=>sel.has(i));if(!ok&&api.first('edges')){let m=$('clR');if(!m){$('clS1').insertAdjacentHTML('beforeend','<div id="clR"></div>');m=$('clR')}api.retry(m,`Not quite. ${sel.size<want.length?'You have missed some edges.':'Some of those edges are inside the shape, not around the outside.'} Change your edges and press Done again.`);return}
+      if(!ok){eMiss=true;sfx.no();let m=$('clR');if(!m){$('clS1').insertAdjacentHTML('beforeend','<div id="clR"></div>');m=$('clR')}S.pcs.forEach((p,i)=>{if(p.b)api.body.querySelector(`.clp[data-i="${i}"]`).style.filter='drop-shadow(0 0 4px #ffd257)'});m.innerHTML=`<p class="retrymsg">Still not right. The perimeter is made of ${S.pcs.filter(p=>p.b).map(p=>p.n).join(', ')} (glowing). Tap exactly those edges, then press Done to carry on.</p>`;return}
+      $('clR')&&$('clR').remove();$('clOk').disabled=true;sfx.pop();const s1=!eMiss;K.cl=s1?'ok':'pen';
       S.pcs.forEach((p,i)=>{const el=api.body.querySelector(`.clp[data-i="${i}"]`);el.style.stroke=p.b?'var(--good)':'var(--ink)';el.style.strokeWidth=p.b?6:3});
-      $('clS1').insertAdjacentHTML('beforeend',`<p style="margin:6px 0 0;font-weight:800">${ok?'Correct edges! Now work out the perimeter.':'Not quite. The green edges make the perimeter.'} The perimeter is made of ${S.pcs.filter(p=>p.b).map(p=>p.n).join(', ')}.</p>`);step2(ok)}}
+      $('clS1').insertAdjacentHTML('beforeend',`<p style="margin:6px 0 0;font-weight:800">Correct edges! Now work out the perimeter. The perimeter is made of ${S.pcs.filter(p=>p.b).map(p=>p.n).join(', ')}.</p>`);step2(s1)};
+    if(K.cl){S.pcs.forEach((p,i)=>{if(p.b){sel.add(i)}});$('clOk').onclick()}}
   else{$('clS1').innerHTML=`<b>Step 1: Which formula gives the area?</b>`;const right=form[0];
-    choiceRow(api,'clF',form,right,ok=>{ok?sfx.pop():sfx.soft();api.body.appendChild($('clS2'));step2(ok)},'formula');
-    $('clF').querySelectorAll('button').forEach(b=>b.style.fontSize='1.05rem')}}});
+    stepPick(api,{id:'clF',label:'',options:form,right,pen:'_cl',then:()=>{api.body.appendChild($('clS2'));step2(K.clF!=='pen')},
+      hint:()=>'Not quite. Think about which shapes make up the figure, then try again.',reveal:()=>`The right formula is glowing. Tap it to carry on.`,okMsg:'<p class="askok">Yes! Now use the formula.</p>'});
+    $('clFP').querySelectorAll('button').forEach(b=>b.style.fontSize='1.05rem')}}});
 
 /* P6-6. Crate Cracker — Volume: finding an edge, height or face area; square and cube roots */
 function isoSolid(L,B,H,labs){const sc=170/(L+B+H*.8),c=.866,P=(x,y,z)=>[(x-y)*sc*c,(x+y)*sc*.5-z*sc],pt=p=>P(...p).map(v=>v.toFixed(1)).join(',');
@@ -2492,14 +2512,17 @@ addGame('p6-average',{level:'P6',strand:'stat',glyph:'x̄',title:'Average Levell
 function askBox(api,o){
   const id=o.id;api.body.insertAdjacentHTML('beforeend',`<div class="askwrap">${o.label?`<p class="asklab">${o.label}</p>`:''}<div class="row askrow">${o.html}<button class="btn primary" id="${id}Go">Check</button></div><div id="${id}M"></div></div>`);
   const ins=[...api.body.querySelectorAll(`[data-ask="${id}"]`)],go=$(id+'Go');
+  /* a step already solved before this round's second try stays solved */
+  const KB=ctx&&ctx.keep,kk='ab:'+id;if(KB&&KB[kk]){const sv=KB[kk];ins.forEach(i=>{i.value=sv.raw[i.dataset.k]||'';i.disabled=true;i.classList.add('ok')});go.disabled=true;Promise.resolve().then(()=>{if(!api.answered)o.onRight(sv.v,sv.used)});return {focus(){}}}
+  const keepIt=(v,u)=>{if(KB)KB[kk]={v,used:u,raw:Object.fromEntries(ins.map(i=>[i.dataset.k,i.value]))}};
   const vals=()=>{const v={};ins.forEach(i=>{const s=i.value.trim().replace(/[$,\s]/g,'');v[i.dataset.k]=s===''?NaN:+s;v['_'+i.dataset.k]=i.value.trim()});return v};
   const chk=()=>{if(api.answered||go.disabled)return;const v=vals();
     if(o.zero){if(o.zero.every(k=>v['_'+k]==='')){const f=ins.find(i=>o.zero.includes(i.dataset.k));if(f)f.focus();$(id+'M').innerHTML='<p class="askneed">Type your answer first. You can leave a box empty if it is 0.</p>';return}o.zero.forEach(k=>{if(v['_'+k]===''){v[k]=0;v['_'+k]='0'}})}
     const need=o.need||ins.map(i=>i.dataset.k);if(need.some(k=>v['_'+k]==='')){const f=ins.find(i=>need.includes(i.dataset.k)&&v['_'+i.dataset.k]==='');if(f)f.focus();$(id+'M').innerHTML=`<p class="askneed">Fill in ${need.length>1?'every box':'the box'} first.</p>`;return}
     if(o.numeric!==false&&need.some(k=>isNaN(v[k]))){$(id+'M').innerHTML='<p class="askneed">Type numbers only.</p>';return}
     const res=o.judge(v);
-    if(res===true){ins.forEach(i=>{i.disabled=true;i.classList.add('ok')});go.disabled=true;$(id+'M').innerHTML='';const used=ctx&&ctx.st&&ctx.st[id];return o.onRight(v,used)}
-    if(res&&res.simp){if(api.first(id+'s')){api.retry($(id+'M'),res.simp);return}ins.forEach(i=>i.disabled=true);go.disabled=true;return o.onRight(v,true)}
+    if(res===true){ins.forEach(i=>{i.disabled=true;i.classList.add('ok')});go.disabled=true;$(id+'M').innerHTML='';const used=ctx&&ctx.st&&ctx.st[id];keepIt(v,used);return o.onRight(v,used)}
+    if(res&&res.simp){if(api.first(id+'s')){api.retry($(id+'M'),res.simp);return}ins.forEach(i=>i.disabled=true);go.disabled=true;keepIt(v,true);return o.onRight(v,true)}
     if(api.first(id)){ins.forEach(i=>i.classList.add('no'));api.retry($(id+'M'),typeof res==='string'?res:(o.hint||'Not quite. Check your working and try again.'));const f=ins[0];if(f)f.select();return}
     ins.forEach(i=>i.disabled=true);go.disabled=true;o.onWrong(typeof res==='string'?res:'',v)};
   go.onclick=chk;ins.forEach(i=>{i.onkeydown=e=>{if(e.key==='Enter')chk()};i.oninput=()=>{ins.forEach(x=>x.classList.remove('no'))}});
@@ -2512,7 +2535,12 @@ function askOne(api,o){const t=o.traps||[];
   return askBox(api,{id:o.id,label:o.label,html:(o.pre||'')+inBox(o.id,'x',o.aria||'Answer',o.w||6)+(o.unit?`<span class="askunit">${o.unit}</span>`:''),hint:o.hint,
     judge:v=>{if(near(v.x,o.right))return true;const m=t.find(([x])=>typeof x==='function'?x(v.x):near(v.x,x));return m?(typeof m[1]==='function'?m[1](v.x):m[1]):false},
     onRight:(v,u)=>o.then?o.then(v.x,u):api.done(true,o.ok,o.work||[],ptsUsed(u)),
-    onWrong:(msg)=>api.done(false,(msg?msg+' ':'')+(o.bad||''),o.work||[])})}
+    onWrong:(msg)=>o.then?revealStep(api,o,msg):api.done(false,(msg?msg+' ':'')+(o.bad||''),o.work||[])})}
+/* a middle step answered wrongly twice: show the answer and have the pupil type it in before the next step (the round then scores less) */
+function revealStep(api,o,msg){const id=o.id,ins=[...api.body.querySelectorAll(`[data-ask="${id}"]`)],go=$(id+'Go');ctx.keep.pen=1;
+  const money=o.pre&&o.pre.includes('$'),r=o.showRight||(money&&!Number.isInteger(o.right)?Number(o.right).toFixed(2):o.right);
+  $(id+'M').innerHTML=`<p class="retrymsg">${msg?msg+' ':''}The answer is <b>${money?'$':''}${r}${o.unit?' '+o.unit:''}</b>. Type it in to carry on.</p>`;
+  ins.forEach(i=>{i.disabled=false;i.classList.remove('no');i.value=''});go.disabled=false;if(ins[0])ins[0].focus()}
 
 /* ================= P4. Decimal Diner — + − × ÷ with decimals ================= */
 const c2s=(c,dp=2)=>{const neg=c<0;c=Math.abs(Math.round(c));let s=(c/Math.pow(10,dp)).toFixed(dp);if(dp>0)s=s.replace(/0+$/,'').replace(/\.$/,'');return (neg?'−':'')+s};
@@ -2776,7 +2804,7 @@ function sgBuild(legs,pre=[],post=[]){const nodes=[],segs=[];
   post.forEach(p=>{segs.push({mode:p.mode,min:p.min,col:MODECOL[p.mode],hide:p.hide});nodes.push(p.node)});
   return{nodes,segs,legs}}
 const outward=(x,y,dist)=>{const dx=x-500,dy=y-330,l=Math.hypot(dx,dy)||1;return[x+dx/l*dist,y+dy/l*dist]};
-const chipTxt=s=>s.hide?`${s.mode} ?`:s.mode==='mrt'?`${s.min} min`:`${s.mode} ${s.min} min`;
+const chipTxt=s=>s.hide?`${s.mode} ?`:s.mode==='mrt'?`${s.min} min`:s.mode==='bus'?`bus ride ${s.min} min`:`${s.mode} ${s.min} min`;
 function sgStrip(N,S,title){const n=N.length,nar=innerWidth<600,W=Math.max(nar?420:660,96+(n-1)*(nar?66:88)),x0=48,dx=(W-96)/(n-1),y=64,H=136;
   let s=`<rect width="${W}" height="${H}" fill="#fff"/>`;
   S.forEach((g,q)=>{const x1=x0+dx*q,x2=x1+dx;s+=g.mode==='mrt'||g.mode==='bus'?`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${g.col}" stroke-width="8"/>`:`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${g.col}" stroke-width="4" stroke-dasharray="2 7" stroke-linecap="round"/>`});
@@ -2827,11 +2855,23 @@ const sgSum=S=>S.reduce((x,s)=>x+s.min,0);
 const sgWork=S=>S.map(s=>s.mode==='mrt'?`${s.min}`:`${s.min} (${s.mode})`).join(' + ');
 /* a bus timetable: departure times as chips that wrap neatly on phones */
 function busBoard(times,title,note){return `<div class="tboard"><div class="tbh">🚌 ${title}</div><div style="padding:6px 2px 2px;font-weight:700">${note||'Buses leave at:'}</div><div style="display:flex;flex-wrap:wrap;gap:8px;padding:6px 2px 4px">${times.map(t=>`<span style="font:800 1.15rem ui-monospace,Menlo,monospace;color:#ffd257;background:#232c3f;border:2px solid #3a4560;border-radius:10px;padding:4px 10px;white-space:nowrap">${t}</span>`).join('')}</div></div>`}
-/* Step 1 of a compare question: tap the faster route; then Step 2 runs */
-function routePick(api,faster,id,then){api.body.insertAdjacentHTML('beforeend',`<div class="askwrap"><p class="asklab"><b>Step 1:</b> which route is faster?</p><div class="choices" id="${id}P"></div><div id="${id}Pm"></div></div>`);
-  ['Route A','Route B'].forEach(nm=>{const bt=document.createElement('button');bt.className='btn';bt.style.fontSize='1.1rem';bt.textContent=nm;
-    bt.onclick=()=>{const box=$(id+'P');if(api.answered||box.dataset.done)return;box.dataset.done=1;const ok=nm===faster;[...box.children].forEach(x=>{x.disabled=true;if(x.textContent===faster)x.classList.add('ok')});if(!ok){bt.classList.add('no');ctx.st[id]=1}sfx[ok?'ok':'no']();
-      $(id+'Pm').innerHTML=`<p class="${ok?'askok':'askneed'}">${ok?'Yes!':'Not quite.'} <b>${faster}</b> is faster.</p><p class="asklab"><b>Step 2:</b> by how many minutes is ${faster} faster?</p>`;then()};$(id+'P').appendChild(bt)})}
+/* Step 1 of a two-step question. It must be right before Step 2 appears: a wrong tap is greyed out with a hint;
+   after two wrong taps (or when one choice is left) the right answer glows and must be tapped. A wrong Step 1 lowers the points (pen).
+   If Step 2 sends the round to its second try, Step 1 stays solved (ctx.keep survives the rebuild). */
+function stepPick(api,o){const K=ctx.keep=ctx.keep||{},id=o.id;
+  api.body.insertAdjacentHTML('beforeend',`<div class="askwrap"><p class="asklab">${o.label}</p><div class="choices" id="${id}P"></div><div id="${id}Pm"></div></div>`);
+  const box=$(id+'P'),msg=$(id+'Pm'),R=String(o.right);let miss=0;
+  const finish=()=>{[...box.children].forEach(x=>{x.disabled=true;x.style.boxShadow='';if(x.dataset.v===R)x.classList.add('ok')});msg.innerHTML=o.okMsg;o.then()};
+  (o.keepOrder?o.options:shuffle(o.options.slice())).forEach(v=>{const bt=document.createElement('button');bt.className='btn';bt.style.fontSize='1.1rem';bt.dataset.v=String(v);bt.textContent=o.show?o.show(v):v;
+    bt.onclick=()=>{if(api.answered||bt.disabled)return;
+      if(String(v)===R){sfx.ok();K[id]=miss?'pen':'ok';if(miss)ctx.st[o.pen]=1;finish();return}
+      sfx.no();miss++;bt.classList.add('no');bt.disabled=true;const left=[...box.children].filter(x=>!x.disabled).length;
+      if(miss>=2||left<=1){[...box.children].forEach(x=>{if(x.dataset.v===R){x.disabled=false;x.style.boxShadow='0 0 0 4px #ffd257'}else x.disabled=true});msg.innerHTML=`<p class="askneed">${o.reveal(v)}</p>`}
+      else msg.innerHTML=`<p class="askneed">${o.hint(v)}</p>`};box.appendChild(bt)});
+  if(K[id]){if(K[id]==='pen')ctx.st[o.pen]=1;finish()}}
+function routePick(api,faster,id,then){stepPick(api,{id,keepOrder:true,label:'<b>Step 1:</b> which route is faster?',options:['Route A','Route B'],right:faster,pen:id,then,
+  hint:()=>'',reveal:()=>`Not quite. Add up <b>all</b> the minutes in each route (walking, waiting and changing lines too), then compare. <b>${faster}</b> is faster. Tap it to carry on.`,
+  okMsg:`<p class="askok">Yes! <b>${faster}</b> is faster.</p><p class="asklab"><b>Step 2:</b> by how many minutes is ${faster} faster?</p>`})}
 /* bus departures as a time line: a dot per bus, a hop between buses, the child standing at the arrival time; the next bus is a "?" */
 function busLine(first,fq,arr,next,kid,no){const n=Math.round((next-first)/fq),nar=innerWidth<600,W=nar?440:660,H=170,x0=nar?34:40,x1=W-(nar?30:40),y=96,sx=t=>x0+(t-first)/(next-first)*(x1-x0);let s=`<rect width="${W}" height="${H}" fill="#eef6ff"/><line x1="${x0-20}" y1="${y}" x2="${x1+20}" y2="${y}" stroke="#2c3446" stroke-width="4"/>`;
   for(let i=0;i<n;i++){const a=sx(first+i*fq),b=sx(first+(i+1)*fq),m=(a+b)/2,h=Math.min(26,(b-a)*.45);s+=`<path d="M${a} ${y-6} Q${m} ${y-6-h*2} ${b} ${y-6}" fill="none" stroke="#5f50ec" stroke-width="2.5"/>`;if(i<3||n<=5)s+=`<text x="${m}" y="${y-12-h}" text-anchor="middle" font-size="14" font-weight="800" fill="#5f50ec">+${fq}</text>`}
@@ -2877,17 +2917,17 @@ function sgRound(api,type){
     const home={n:'Home',x:hx,y:hy,kind:'home'},stop={n:'Bus stop',x:hx+(f0.x-hx)*.2,y:hy+(f0.y-hy)*.2,kind:'stop'},stop2={...stop,dup:1};
     const a=R(6,17)*60+R(0,11)*5,w1=R(3,6),fq=pick([10,12,15]),wait=R(2,fq-2),ride=R(8,15),w2=R(3,8),next=a+w1+wait;
     const R0=sgBuild(legs,[{node:home,mode:'walk',min:w1},{node:stop,mode:'wait',min:wait,hide:1},{node:stop2,mode:'bus',min:ride}],[{mode:'walk',min:w2,node:placeNode(place[1])}]),S=R0.segs,d=sgSum(S);
-    const sched=[next-fq,next,next+fq,next+2*fq];
+    const sj=R(1,2),sched=[0,1,2,3].map(i=>next+(i-sj)*fq);
     api.q(`<p class="qt">${kid} leaves home at <b>${ttm(a)}</b>, walks <b>${w1} min</b> to the bus stop and catches the <b>next bus</b> to ${f0.n} station. Then ${pr} takes the MRT and walks to <b>${place[0]}</b>. When does ${pr} get there?</p>`);
     api.body.innerHTML=busBoard(sched.map(ttm),'Bus stop near home')+sgMap(R0,a);
     const before=next-fq;
-    api.body.insertAdjacentHTML('beforeend',`<div class="askwrap" id="sgB1"><p class="asklab"><b>Step 1:</b> ${kid} leaves home at ${ttm(a)} and walks ${w1} min to the bus stop. Which bus does ${pr} catch?</p><div class="choices" id="sgB1c"></div><div id="sgB1m"></div></div>`);
-    sched.forEach(t=>{const bt=document.createElement('button');bt.className='btn';bt.style.fontSize='1.1rem';bt.textContent=ttm(t);
-      bt.onclick=()=>{if(api.answered||$('sgB1c').dataset.done)return;$('sgB1c').dataset.done=1;const ok=t===next;[...$('sgB1c').children].forEach(x=>{x.disabled=true;if(x.textContent===ttm(next))x.classList.add('ok')});if(!ok){bt.classList.add('no');ctx.st.sgT=1}sfx[ok?'ok':'no']();
-        $('sgB1m').innerHTML=`<p class="${ok?'askok':'askneed'}">${ok?'Yes!':'Not that one.'} ${kid} reaches the stop at ${ttm(a)} + ${w1} min = <b>${ttm(a+w1)}</b>. ${t<next&&!ok?`The ${ttm(t)} bus has already left. `:''}The next bus is at <b>${ttm(next)}</b>, so ${pr} waits ${wait} min.</p><p class="asklab"><b>Step 2:</b> now add the bus ride, the MRT and the last walk. When does ${pr} get to ${place[0]}?</p>`;
+    stepPick(api,{id:'sgB1',pen:'sgT',keepOrder:true,label:`<b>Step 1:</b> ${kid} leaves home at ${ttm(a)} and walks ${w1} min to the bus stop. Which bus does ${pr} catch?`,options:sched,right:next,show:ttm,
+      hint:t=>t<next?`${kid} reaches the stop at ${ttm(a)} + ${w1} min = <b>${ttm(a+w1)}</b>. The ${ttm(t)} bus has already left by then. Try again!`:`That bus works, but ${pr} could catch an <b>earlier</b> one. ${Pr} reaches the stop at ${ttm(a)} + ${w1} min. Try again!`,
+      reveal:()=>`${kid} reaches the stop at ${ttm(a)} + ${w1} min = <b>${ttm(a+w1)}</b>. The first bus after that is the <b>${ttm(next)}</b> bus. Tap it to carry on.`,
+      okMsg:`<p class="askok">Yes! ${kid} reaches the stop at ${ttm(a+w1)} and catches the <b>${ttm(next)}</b> bus (a ${wait} min wait).</p><p class="asklab"><b>Step 2:</b> now add the bus ride, the MRT and the last walk. When does ${pr} get to ${place[0]}?</p>`,
+      then:()=>{
     askTime(api,'sgT',a+d,[[a+d-wait,`You forgot to wait for the bus. ${Pr} reaches the stop at ${ttm(a+w1)}, but the next bus leaves at ${ttm(next)}: that is ${wait} min of waiting.`],[a+d-fq,`The ${ttm(before)} bus left before ${pr} reached the stop at ${ttm(a+w1)}. ${Pr} has to take the next one, at ${ttm(next)}.`],[a+d-w2,`You forgot the last ${w2} min walk to ${place[0]}.`]],
-        `${kid} arrives at ${ttm(a+d)}.`,[`Reach the bus stop: ${ttm(a)} + ${w1} min = ${ttm(a+w1)}. The next bus is at ${ttm(next)}, so wait ${wait} min.`,`Whole journey: ${sgWork(S)} = ${tdur(d)}`,hops(a,a+d),'Press ▶ Replay journey to watch it again with the clock.']);
-      };$('sgB1c').appendChild(bt)});
+        `${kid} arrives at ${ttm(a+d)}.`,[`Reach the bus stop: ${ttm(a)} + ${w1} min = ${ttm(a+w1)}. The next bus is at ${ttm(next)}, so wait ${wait} min.`,`Whole journey: ${sgWork(S)} = ${tdur(d)}`,hops(a,a+d),'Press ▶ Replay journey to watch it again with the clock.']);}});
     jmStart(api);return}
   if(type==='compare'){let RA,RB,dA,dB;
     for(let t=0;t<60;t++){const legs=sgRoute(1,place[1]),f0=MRT[legs[0].k].P[legs[0].idx[0]];
@@ -2902,7 +2942,7 @@ function sgRound(api,type){
     routePick(api,faster,'sgC',()=>askDur(api,'sgC',diff,null,`${faster} is faster by ${tdur(diff)}.`,[`Route A: ${sgWork(RA.segs)} = ${tdur(dA)}`,`Route B: ${sgWork(RB.segs)} = ${tdur(dB)}`,`${faster} is faster: ${tdur(Math.max(dA,dB))} − ${tdur(Math.min(dA,dB))} = ${tdur(diff)}`],
       [[dA,`${tdur(dA)} is how long Route A takes. Now work out Route B and find the <b>difference</b>.`],[dB,`${tdur(dB)} is how long Route B takes. Now work out Route A and find the <b>difference</b>.`],[Math.abs(onlyA-onlyB),'You only compared the train and bus times. Walking and waiting count too!']].filter(([x])=>x!==diff)));
     return}
-  if(type==='freq'){const no=pick(['14','36','75','190','506','851']),fq=pick([8,10,12,15,20]),first=R(5,6)*60+pick([0,5,10,15,30]),k=R(4,8),next=first+k*fq,arr=next-R(1,fq-1);
+  if(type==='freq'){const no=pick(['14','36','75','190','506','851']),fq=pick([8,10,12,15,20]),first=R(5,6)*60+pick([0,5,10,15,30]),k=R(4,8),next=first+k*fq,arr=next-R(Math.max(2,Math.ceil(fq/4)),Math.floor(fq*3/4));
     api.q(`<p class="qt">The first bus <b>${no}</b> leaves the bus interchange at <b>${ttm(first)}</b>. After that, a bus leaves <b>every ${fq} minutes</b>. Each bus leaves exactly on time and does not wait for anyone.</p><p class="qt">${kid} reaches the interchange at <b>${ttm(arr)}</b>. What time does the next bus that ${pr} can catch leave?</p>`);
     api.body.innerHTML=busLine(first,fq,arr,next,kid,no);
     const list=[];for(let t=first;t<=next;t+=fq)list.push(ttm(t));
@@ -2938,8 +2978,11 @@ function sgBonus(api){
   const B={nodes:[st('Choa Chu Kang','NS'),st('Sembawang','NS'),{n:'Sembawang Int',kind:'stop'},{n:'Sembawang Int',kind:'stop',dup:1},{n:'Punggol Coast Int',kind:'stop'},{n:'SIT',kind:'place'}],
     segs:[{mode:'mrt',min:ns2,col:MRT.NS.col},{mode:'walk',min:w1,col:MODECOL.walk},{mode:'wait',min:wait,col:MODECOL.wait},{mode:'bus',min:bus,col:MODECOL.bus},{mode:'walk',min:wB,col:MODECOL.walk}]};
   const dA=sgSum(A.segs),dB=sgSum(B.segs),diff=Math.abs(dA-dB),faster=dA<dB?'Route A':'Route B',rideA=ns+cc+ne,rideB=ns2+bus;
-  api.q(`<p class="qt">🎁 <b>Secret bonus!</b> Jas lives near <b>Choa Chu Kang</b> MRT. She studies at <b>SIT</b> (Singapore Institute of Technology), right next to <b>Punggol Coast</b> MRT. She can go by <b>Route A</b>: MRT all the way, changing lines twice. Or <b>Route B</b>: MRT to Sembawang, then <b>bus 117</b> to Punggol Coast Bus Interchange. Which route is faster, and by how many minutes?</p><p class="qs">The times are estimates. Real times change with crowds and traffic.</p>`);
-  api.body.innerHTML=`<div class="jmwrap" style="max-width:920px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26">${sgStrip(A.nodes,A.segs,'Route A · North–South → Circle → North East Line')}${sgStrip(B.nodes,B.segs,'Route B · North–South Line → bus 117')}</div>`;
+  api.q(`<p class="qt">🎁 <b>Secret bonus!</b> Jas lives near <b>Choa Chu Kang</b> MRT and studies at <b>SIT</b> (Singapore Institute of Technology), next to Punggol Coast MRT. Look at her two ways to get to school. Which route is faster, and by how many minutes?</p><p class="qs">The times are estimates. Real times change with crowds and traffic.</p>`);
+  const dot=c=>`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${c};margin-right:8px;vertical-align:middle"></span>`;
+  const stepsA=[[dot(MRT.NS.col)+'MRT: Choa Chu Kang → Bishan (North–South Line)',ns],[dot(MODECOL.change)+'Change to the Circle Line at Bishan',c1],[dot(MRT.CC.col)+'MRT: Bishan → Serangoon (Circle Line)',cc],[dot(MODECOL.change)+'Change to the North East Line at Serangoon',c2],[dot(MRT.NE.col)+'MRT: Serangoon → Punggol Coast (North East Line)',ne],[dot(MODECOL.walk)+'Walk to SIT',wA]];
+  const stepsB=[[dot(MRT.NS.col)+'MRT: Choa Chu Kang → Sembawang (North–South Line)',ns2],[dot(MODECOL.walk)+'Walk to Sembawang Bus Interchange',w1],[dot(MODECOL.wait)+'Wait for bus 117',wait],[dot(MODECOL.bus)+'Ride bus 117 to Punggol Coast Bus Interchange',bus],[dot(MODECOL.walk)+'Walk to SIT',wB]];
+  api.body.innerHTML=`<div class="row" style="align-items:flex-start;gap:12px">${board(stepsA.map(([t,m])=>[t,m+' min']),'Route A · MRT all the way','🚇')}${board(stepsB.map(([t,m])=>[t,m+' min']),'Route B · MRT + bus 117','🚌')}</div>`;
   routePick(api,faster,'sgX',()=>askDur(api,'sgX',diff,null,`${faster} is faster by ${tdur(diff)}.`,[`Route A: ${sgWork(A.segs)} = ${tdur(dA)}`,`Route B: ${sgWork(B.segs)} = ${tdur(dB)}`,`${faster} is faster: ${tdur(Math.max(dA,dB))} − ${tdur(Math.min(dA,dB))} = ${tdur(diff)}`,'A bus can feel easier (no changing lines), but here it is much slower!'],
     [[dA,`${tdur(dA)} is how long Route A takes. Now work out Route B and find the <b>difference</b>.`],[dB,`${tdur(dB)} is how long Route B takes. Now work out Route A and find the <b>difference</b>.`],[Math.abs(rideA-rideB),'You only compared the time on the trains and bus. Walking, changing lines and waiting count too!']].filter(([x])=>x!==diff)))}
 addGame('sg-journeys',{level:'P4',strand:'geo',glyph:'⏱️',title:'Beat the Clock: SG Journeys',topic:'Time: start, finish and duration on MRT journeys',
@@ -2949,19 +2992,41 @@ addGame('sg-journeys-2',{level:'P5',strand:'geo',glyph:'⏱️',title:'Beat the 
  how:'Plan trips across Singapore by walking, bus and MRT. Work backwards, read bus timetables, compare routes and deal with surprise delays.',rounds:8,
  round(api,r){sgRound(api,['trip','freq','frac','back','bus','compare','delay','plan'][r])},
  bonus(api){sgBonus(api)}});
-/* ================= P6. Beat the Clock: World Journeys — speed, distance and time with transport around the world ================= */
-const WJ=[
- {c:'Hong Kong',at:'along Hong Kong Island',m:'tram',name:'Ding Ding tram',ex:'an old double-decker tram',u:'kmh',v:[9,10,12],d:[2,8]},
- {c:'Japan',at:'from Tokyo',m:'bullet',name:'Shinkansen',ex:'a bullet train',u:'kmh',v:[200,240,250,270,300],d:[150,600]},
- {c:'South Korea',at:'from Seoul',m:'bullet',name:'KTX',ex:'a high-speed train',u:'kmh',v:[180,200,240],d:[100,420]},
- {c:'Italy',at:'along the Grand Canal in Venice',m:'boat',name:'vaporetto',ex:'a water bus: Venice has canals instead of roads',u:'kmh',v:[8,9,10,12],d:[1,4]},
- {c:'the United Kingdom',at:'across London',m:'train',name:'London Underground',ex:'"the Tube", a train that runs in tunnels under the city',u:'kmh',v:[30,32,36],d:[4,24]},
- {c:'Thailand',at:'through Bangkok',m:'tuk',name:'tuk-tuk',ex:'a small taxi with three wheels',u:'kmh',v:[15,18,20,24],d:[2,12]},
- {c:'Indonesia',at:'through Jakarta',m:'bus',name:'TransJakarta bus',ex:'a city bus with its own road lane',u:'kmh',v:[18,20,24],d:[3,15]},
- {c:'Australia',at:'across Sydney Harbour',m:'boat',name:'Sydney ferry',ex:'a passenger boat',u:'kmh',v:[20,22,24,30],d:[4,14]},
- {c:'Malaysia',at:'from KL Sentral',m:'train',name:'ETS train',ex:'an electric train between cities',u:'kmh',v:[100,120,140],d:[60,350]},
- {c:'the Netherlands',at:'across Amsterdam',m:'bike',name:'bicycle',ex:'most people in Amsterdam cycle',u:'mpm',v:[200,240,250,300],d:[800,6000]},
- {c:'Switzerland',at:'up a mountain in the Alps',m:'cable',name:'cable car',ex:'a cabin that hangs from a cable',u:'mpm',v:[300,360,400],d:[900,4000]}];
+/* ================= P6. Beat the Clock: World Journeys — speed, distance and time on illustrated maps of real places ================= */
+/* Landmark icons: simple, generic drawings (no logos). Each is drawn centred on its x, with its base at y. */
+const WIC={
+ sky:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-22" y="-34" width="12" height="34" fill="#8fa3bf"/><rect x="-8" y="-50" width="14" height="50" fill="#6f86a8"/><rect x="8" y="-26" width="12" height="26" fill="#9db1cc"/><path d="M-8 -50 L-1 -60 L6 -50Z" fill="#6f86a8"/></g>`,
+ peak:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-40 0 L-8 -42 L6 -28 L18 -38 L44 0Z" fill="#5d8a5a"/><path d="M-8 -42 L-1 -33 L6 -28" fill="none" stroke="#3f6b3c" stroke-width="2"/></g>`,
+ fuji:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-46 0 L-12 -48 L12 -48 L46 0Z" fill="#7d8fb3"/><path d="M-12 -48 L12 -48 L19 -38 L9 -34 L0 -40 L-9 -34 L-19 -38Z" fill="#fff"/></g>`,
+ pagoda:(x,y)=>`<g transform="translate(${x},${y})" fill="#c2410c"><rect x="-6" y="-44" width="12" height="44" fill="#7a2a0c"/><path d="M-18 -8 L18 -8 L12 -14 L-12 -14Z"/><path d="M-15 -20 L15 -20 L10 -26 L-10 -26Z"/><path d="M-12 -32 L12 -32 L8 -38 L-8 -38Z"/><path d="M-1 -38 L1 -38 L0 -50Z" fill="#16233a"/></g>`,
+ castle:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-20" y="-14" width="40" height="14" fill="#9aa7b8"/><rect x="-13" y="-30" width="26" height="16" fill="#f4f1ea"/><path d="M-20 -14 L20 -14 L15 -20 L-15 -20Z" fill="#2f5a4a"/><path d="M-17 -30 L17 -30 L10 -38 L-10 -38Z" fill="#2f5a4a"/></g>`,
+ arch:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-30 0 Q0 -34 30 0" fill="none" stroke="#f4f1ea" stroke-width="7"/><path d="M-30 0 Q0 -34 30 0" fill="none" stroke="#9a7b5a" stroke-width="2"/><rect x="-10" y="-26" width="20" height="8" fill="#f4f1ea" stroke="#9a7b5a"/></g>`,
+ bridge:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-46 0 Q0 -40 46 0" fill="none" stroke="#5e6b7d" stroke-width="5"/><line x1="-50" y1="-4" x2="50" y2="-4" stroke="#5e6b7d" stroke-width="4"/>${[-30,-15,0,15,30].map(v=>`<line x1="${v}" y1="-4" x2="${v}" y2="${-4-Math.round(28*(1-(v/46)**2))}" stroke="#5e6b7d" stroke-width="1.5"/>`).join('')}</g>`,
+ bell:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-6" y="-46" width="12" height="46" fill="#b5694a"/><rect x="-7" y="-52" width="14" height="6" fill="#f4f1ea"/><path d="M-7 -52 L0 -64 L7 -52Z" fill="#3f8a6a"/></g>`,
+ gondola:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-24 -4 Q0 6 24 -4 L26 -9 Q0 0 -26 -9Z" fill="#16233a"/><line x1="16" y1="-6" x2="22" y2="-26" stroke="#16233a" stroke-width="2"/></g>`,
+ clock:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-7" y="-50" width="14" height="50" fill="#c9a96b"/><circle cx="0" cy="-40" r="5" fill="#fff" stroke="#16233a" stroke-width="1.2"/><path d="M-7 -50 L0 -64 L7 -50Z" fill="#6b5a3a"/></g>`,
+ wheel:(x,y)=>`<g transform="translate(${x},${y})"><circle cx="0" cy="-24" r="22" fill="none" stroke="#5e6b7d" stroke-width="3"/>${[0,30,60,90,120,150].map(a=>`<line x1="${(22*Math.cos(a*Math.PI/180)).toFixed(1)}" y1="${(-24+22*Math.sin(a*Math.PI/180)).toFixed(1)}" x2="${(-22*Math.cos(a*Math.PI/180)).toFixed(1)}" y2="${(-24-22*Math.sin(a*Math.PI/180)).toFixed(1)}" stroke="#5e6b7d" stroke-width="1"/>`).join('')}<path d="M-8 0 L0 -24 L8 0" fill="none" stroke="#5e6b7d" stroke-width="2"/></g>`,
+ tbridge:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-26" y="-34" width="11" height="34" fill="#9aa7b8"/><rect x="15" y="-34" width="11" height="34" fill="#9aa7b8"/><path d="M-26 -34 L-20 -42 L-15 -34Z M15 -34 L21 -42 L26 -34Z" fill="#5e6b7d"/><line x1="-36" y1="-8" x2="36" y2="-8" stroke="#2c6fbf" stroke-width="4"/><line x1="-15" y1="-26" x2="15" y2="-26" stroke="#2c6fbf" stroke-width="3"/></g>`,
+ stupa:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-18 0 Q-18 -22 0 -26 Q18 -22 18 0Z" fill="#e8d7a8"/><path d="M-3 -26 L0 -52 L3 -26Z" fill="#c9a96b"/><rect x="-22" y="-4" width="44" height="4" fill="#c9a96b"/></g>`,
+ palace:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-22" y="-14" width="44" height="14" fill="#f4f1ea"/><path d="M-26 -14 L26 -14 L16 -24 L-16 -24Z" fill="#c2410c"/><path d="M-16 -24 L16 -24 L8 -32 L-8 -32Z" fill="#2f7a4a"/><path d="M-2 -32 L0 -46 L2 -32Z" fill="#d4a017"/></g>`,
+ obelisk:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-16" y="-6" width="32" height="6" fill="#d9d4c7"/><path d="M-5 -6 L-3 -50 L3 -50 L5 -6Z" fill="#f4f1ea" stroke="#9aa7b8"/><path d="M-5 -50 Q0 -64 5 -50Z" fill="#e0b000"/></g>`,
+ sails:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-30" y="-4" width="60" height="4" fill="#d9d4c7"/><path d="M-26 -4 Q-24 -30 -6 -34 L-6 -4Z" fill="#fff" stroke="#9aa7b8"/><path d="M-6 -4 Q-4 -34 14 -38 L14 -4Z" fill="#fff" stroke="#9aa7b8"/><path d="M14 -4 Q16 -24 28 -26 L28 -4Z" fill="#fff" stroke="#9aa7b8"/></g>`,
+ twin:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-14 0 L-14 -46 L-9 -58 L-4 -46 L-4 0Z" fill="#b8c2cf"/><path d="M4 0 L4 -46 L9 -58 L14 -46 L14 0Z" fill="#b8c2cf"/><line x1="-4" y1="-30" x2="4" y2="-30" stroke="#5e6b7d" stroke-width="2"/></g>`,
+ windmill:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-8 0 L-5 -28 L5 -28 L8 0Z" fill="#7a4a2a"/><g transform="translate(0,-28)" stroke="#f4f1ea" stroke-width="4"><line x1="-18" y1="-18" x2="18" y2="18"/><line x1="-18" y1="18" x2="18" y2="-18"/></g></g>`,
+ houses:(x,y)=>`<g transform="translate(${x},${y})">${[['#b5694a',-24],['#e0b000',-12],['#2c6fbf',0],['#5d8a5a',12]].map(([c,dx])=>`<path d="M${dx} 0 L${dx} -24 L${dx+5} -32 L${dx+10} -24 L${dx+10} 0Z" fill="${c}"/>`).join('')}</g>`,
+ museum:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-22" y="-20" width="44" height="20" fill="#b5694a"/><path d="M-24 -20 L24 -20 L0 -32Z" fill="#7a4a2a"/>${[-14,-5,4,13].map(v=>`<rect x="${v}" y="-16" width="3" height="14" fill="#f4f1ea"/>`).join('')}</g>`,
+ stadium:(x,y)=>`<g transform="translate(${x},${y})"><ellipse cx="0" cy="-10" rx="28" ry="12" fill="#9aa7b8"/><ellipse cx="0" cy="-10" rx="18" ry="6" fill="#5d8a5a"/></g>`,
+ fountain:(x,y)=>`<g transform="translate(${x},${y})"><ellipse cx="0" cy="-4" rx="20" ry="6" fill="#8fc6e8" stroke="#5e6b7d"/><path d="M0 -6 Q-6 -24 0 -30 Q6 -24 0 -6" fill="#8fc6e8"/></g>`,
+ oldtown:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-22" y="-20" width="44" height="20" fill="#f4f1ea" stroke="#9aa7b8"/><path d="M-24 -20 L24 -20 L18 -28 L-18 -28Z" fill="#b5694a"/>${[-14,-2,10].map(v=>`<rect x="${v}" y="-15" width="5" height="8" fill="#5e6b7d"/>`).join('')}</g>`,
+ tower:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-6 0 L-2 -44 L2 -44 L6 0Z" fill="#9aa7b8"/><rect x="-8" y="-50" width="16" height="7" rx="3" fill="#5e6b7d"/><line x1="0" y1="-50" x2="0" y2="-64" stroke="#5e6b7d" stroke-width="2"/></g>`,
+ hills:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-36 0 Q-30 -34 -18 -30 Q-12 -40 -4 -26 Q6 -44 14 -28 Q26 -36 34 0Z" fill="#6f9a5a"/></g>`,
+ beach:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-30 0 Q0 -8 30 0Z" fill="#f2dfa7"/><line x1="0" y1="-2" x2="0" y2="-24" stroke="#16233a" stroke-width="2"/><path d="M-14 -22 Q0 -34 14 -22Z" fill="#ef5240"/></g>`,
+ plane:(x,y)=>`<g transform="translate(${x},${y-14})"><path d="M-20 0 L20 0 M-4 0 L-12 -12 M-4 0 L-12 12 M14 0 L18 -7" stroke="#16233a" stroke-width="4" stroke-linecap="round"/></g>`,
+ chalet:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-14" y="-14" width="28" height="14" fill="#9a6b3a"/><path d="M-18 -14 L0 -28 L18 -14Z" fill="#7a2a0c"/><rect x="-4" y="-9" width="8" height="9" fill="#f4f1ea"/></g>`,
+ pine:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-10 0 L0 -26 L10 0Z" fill="#2f6b3c"/><path d="M-12 -10 L0 -34 L12 -10Z" fill="#3f7a4a"/></g>`,
+ tree:(x,y)=>`<g transform="translate(${x},${y})"><rect x="-2" y="-12" width="4" height="12" fill="#7a4a2a"/><circle cx="0" cy="-18" r="10" fill="#5d8a5a"/><circle cx="10" cy="-12" r="8" fill="#6f9a5a"/><circle cx="-10" cy="-12" r="8" fill="#6f9a5a"/></g>`,
+ boat:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-20 -6 L20 -6 L14 2 L-14 2Z" fill="#2f7a4a"/><rect x="-11" y="-14" width="20" height="8" fill="#fff"/></g>`,
+ snow:(x,y)=>`<g transform="translate(${x},${y})"><path d="M-30 0 L0 -40 L30 0Z" fill="#9aa7b8"/><path d="M-11 -25 L0 -40 L11 -25 L4 -28 L0 -23 L-5 -28Z" fill="#fff"/></g>`};
 const WJS={
  tram:`<line x1="0" y1="-24" x2="7" y2="-34" stroke="#16233a" stroke-width="2"/><rect x="-16" y="-24" width="32" height="30" rx="4" fill="#0f7a4f" stroke="#16233a" stroke-width="1.5"/><rect x="-12" y="-20" width="24" height="7" rx="1.5" fill="#fff"/><rect x="-12" y="-8" width="24" height="7" rx="1.5" fill="#fff"/><circle cx="-8" cy="7" r="3" fill="#16233a"/><circle cx="8" cy="7" r="3" fill="#16233a"/>`,
  bullet:`<path d="M-24 6 L-24 -8 Q-24 -12 -19 -12 L6 -12 Q20 -12 28 3 L28 6 Z" fill="#fff" stroke="#16233a" stroke-width="1.5"/><rect x="-24" y="-1" width="49" height="3" fill="#1e5bd8"/><rect x="-19" y="-9" width="6" height="4" rx="1" fill="#2b3a55"/><rect x="-10" y="-9" width="6" height="4" rx="1" fill="#2b3a55"/><rect x="-1" y="-9" width="6" height="4" rx="1" fill="#2b3a55"/>`,
@@ -2972,79 +3037,144 @@ const WJS={
  bike:`<circle cx="-11" cy="2" r="6.5" fill="none" stroke="#16233a" stroke-width="2"/><circle cx="11" cy="2" r="6.5" fill="none" stroke="#16233a" stroke-width="2"/><path d="M-11 2 L-3 -8 L9 -8 L11 2 M-3 -8 L0 2 L-11 2" stroke="#ef5240" stroke-width="2.4" fill="none" stroke-linejoin="round"/><circle cx="1" cy="-24" r="3.6" fill="#16233a"/><path d="M1 -20 L-2 -9 M0 -17 L8 -10" stroke="#16233a" stroke-width="2.4" stroke-linecap="round"/>`,
  cable:`<line x1="0" y1="-30" x2="0" y2="-16" stroke="#16233a" stroke-width="2"/><rect x="-13" y="-16" width="26" height="20" rx="4" fill="#ef5240" stroke="#16233a" stroke-width="1.5"/><rect x="-9" y="-12" width="18" height="7" rx="1.5" fill="#fff"/>`,
  walk:`<circle cy="-8" r="13" fill="#fff" stroke="#16233a" stroke-width="2"/><circle cx="0" cy="-14.5" r="2.7" fill="#16233a"/><path d="M0 -11 L0 -4 M0 -4 L-3.5 1 M0 -4 L3.5 1 M-4.5 -7.5 L4.5 -9" stroke="#16233a" stroke-width="2" stroke-linecap="round" fill="none"/>`};
-/* one strip: legs [{m,lab}] (m:'stop' = standing still), names [n0..nk] at the dots */
-function wjRow(legs,names,label){const W=660,H=140,x0=50,x1=610,y=60,n=legs.length,dx=(x1-x0)/n,dur=2.2;let s=`<rect width="${W}" height="${H}" fill="#eef6ff"/>`,spr='',t0=0;
-  const lastMove=legs.map(g=>g.m).lastIndexOf(legs.filter(g=>g.m!=='stop').map(g=>g.m).pop());
-  legs.forEach((g,i)=>{const a=x0+dx*i,b=a+dx,mid=(a+b)/2;
-    if(g.m==='stop')s+=`<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" stroke="#c2410c" stroke-width="5" stroke-dasharray="3 9" stroke-linecap="round"/>`;
-    else{if(g.m==='cable')s+=`<line x1="${a}" y1="${y-30}" x2="${b}" y2="${y-30}" stroke="#16233a" stroke-width="1.5"/>`;s+=`<line x1="${a}" y1="${y}" x2="${b}" y2="${y}" stroke="${g.m==='boat'?'#2378b5':'#2c3446'}" stroke-width="${g.m==='cable'?2:6}" ${g.m==='cable'?'stroke-dasharray="2 6"':''}/>`}
-    const w=String(g.lab).replace(/<[^>]+>/g,'').length*10.5+24;
-    s+=`<rect x="${mid-w/2}" y="${y+12}" width="${w}" height="30" rx="15" fill="${g.m==='stop'?'#c2410c':'#16233a'}"/><text x="${mid}" y="${y+33}" text-anchor="middle" font-size="18" font-weight="800" fill="#fff">${g.lab}</text>`;
-    if(g.m!=='stop'){const st=calm?`translate(${mid},${y})`:`translate(${a},${y})`;
-      spr+=`<g transform="${st}"><g opacity="${calm||i===0?1:0}">${WJS[g.m]||WJS.walk}${calm?'':`${i?`<set attributeName="opacity" to="1" begin="${t0}s" fill="freeze"/>`:''}<animateTransform attributeName="transform" type="translate" from="0 0" to="${dx} 0" dur="${dur}s" begin="${t0}s" fill="freeze"/>${i!==lastMove?`<set attributeName="opacity" to="0" begin="${t0+dur}s" fill="freeze"/>`:''}`}</g></g>`;t0+=dur}else t0+=1});
-  names.forEach((nm,i)=>{if(!nm)return;const x=x0+dx*i,anc=i===0?'start':i===n?'end':'middle';
-    s+=`<circle cx="${x}" cy="${y}" r="7" fill="#ffd257" stroke="#16233a" stroke-width="2.5"/><text x="${i===0?x-10:i===n?x+10:x}" y="${y+68}" text-anchor="${anc}" font-size="18" font-weight="800" fill="#16233a">${nm}</text>`});
-  return `${label?`<div class="tbh" style="padding:7px 12px">${label}</div>`:''}<svg class="wjsvg tmap-nozoom" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" aria-hidden="true">${s}${spr}</svg>`}
-function wjCard(head,rows){return `<div class="jmwrap" style="max-width:920px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26"><div class="tbh" style="padding:7px 12px">📍 ${head}</div>${rows.join('')}</div>
-  ${calm?'':'<div class="row" style="margin-top:8px"><button class="btn" id="wjPlay">▶ Replay</button></div>'}`}
-function wjWire(){const b=$('wjPlay');document.querySelectorAll('.wjsvg').forEach(s=>{try{s.setCurrentTime(0)}catch(e){}});if(b)b.onclick=()=>{sfx.tap();document.querySelectorAll('.wjsvg').forEach(s=>{try{s.setCurrentTime(0)}catch(e){}})}}
+const W_WATER='#a9d8f0',W_LAND='#e7efdf';
+/* maps: bg (shapes), stops [name, distance from the first stop, x, y, label side], marks [icon, x, y, label] */
+const WMAPS={
+ hk:{u:'km',bg:`<rect width="660" height="320" fill="${W_WATER}"/><path d="M0 0 L660 0 L660 58 C520 72 300 64 0 54Z" fill="${W_LAND}"/><path d="M0 138 C120 122 250 132 330 136 S520 124 660 140 L660 320 L0 320Z" fill="${W_LAND}"/><text x="330" y="30" text-anchor="middle" class="wml">Kowloon</text><text x="500" y="104" text-anchor="middle" class="wmw">Victoria Harbour</text>`,
+   stops:[['Kennedy Town',0,40,170,'b'],['Central',4,200,162,'b'],['Admiralty',5,255,166,'a'],['Wan Chai',6,312,162,'b'],['Causeway Bay',8,388,163,'a'],['North Point',10,478,157,'b'],['Shau Kei Wan',13,612,170,'a']],
+   marks:[['peak',130,282,'Victoria Peak'],['sky',236,262,'Central skyscrapers'],['boat',300,86,'Star Ferry'],['sky',560,40,'']]},
+ jp:{u:'km',bg:`<rect width="660" height="320" fill="${W_WATER}"/><path d="M0 0 L660 0 L660 150 C600 170 560 176 520 200 C470 232 420 244 360 244 C300 238 240 218 180 212 C120 206 60 216 0 222Z" fill="${W_LAND}"/><text x="400" y="296" text-anchor="middle" class="wmw">Pacific Ocean</text>`,
+   stops:[['Tokyo',0,610,120,'a'],['Shin-Yokohama',30,566,152,'b'],['Shizuoka',180,440,204,'b'],['Hamamatsu',255,362,214,'b'],['Nagoya',365,276,186,'b'],['Kyoto',515,176,146,'b'],['Shin-Osaka',555,96,170,'b']],
+   marks:[['fuji',492,124,'Mount Fuji'],['sky',622,78,''],['pagoda',214,96,'Kyoto temples'],['castle',64,128,'Osaka Castle']]},
+ kr:{u:'km',bg:`<rect width="660" height="320" fill="${W_WATER}"/><path d="M0 0 L560 0 C600 80 620 160 600 226 C580 280 520 300 462 320 L0 320Z" fill="${W_LAND}"/><text x="630" y="300" text-anchor="end" class="wmw">Sea</text>`,
+   stops:[['Seoul',0,170,62,'a'],['Daejeon',160,240,152,'b'],['Dongdaegu',290,392,202,'a'],['Busan',420,500,282,'b']],
+   marks:[['tower',104,74,'N Seoul Tower'],['hills',318,118,'mountains'],['beach',590,262,'Haeundae Beach']]},
+ it:{u:'km',bg:`<rect width="660" height="320" fill="${W_WATER}"/><path d="M60 40 C200 10 480 20 600 60 C640 140 620 240 560 280 C420 312 200 302 80 270 C30 200 30 100 60 40Z" fill="${W_LAND}"/><polyline points="110,90 230,130 330,120 400,190 330,232 520,252 640,262" fill="none" stroke="${W_WATER}" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/><text x="560" y="300" class="wmw">Venice Lagoon</text>`,
+   stops:[['Ferrovia (station)',0,110,90,'a'],['Rialto',2,330,120,'a'],['Accademia',3,330,232,'b'],['San Marco',4,520,252,'b']],
+   marks:[['arch',272,150,'Rialto Bridge'],['bell',566,214,'St Mark’s bell tower'],['gondola',432,206,'gondola'],['houses',190,70,'']]},
+ uk:{u:'km',bg:`<rect width="660" height="320" fill="${W_LAND}"/><path d="M0 230 C120 210 200 268 300 248 S460 178 560 208 S640 248 660 238" fill="none" stroke="${W_WATER}" stroke-width="26"/><text x="160" y="278" class="wmw">River Thames</text>`,
+   stops:[['Heathrow',0,40,120,'b'],['Hammersmith',15,232,140,'b'],['South Kensington',19,330,170,'b'],['Piccadilly Circus',22,424,132,'a'],['King’s Cross',25,502,70,'a']],
+   marks:[['plane',70,64,'Heathrow Airport'],['clock',446,224,'Big Ben'],['wheel',500,236,'London Eye'],['tbridge',604,226,'Tower Bridge']]},
+ th:{u:'km',bg:`<rect width="660" height="320" fill="${W_LAND}"/><path d="M170 0 C140 80 200 140 160 200 S150 280 190 320" fill="none" stroke="${W_WATER}" stroke-width="30"/><text x="96" y="304" class="wmw">Chao Phraya River</text>`,
+   stops:[['Khao San Road',0,242,60,'a'],['Grand Palace',2,226,134,'b'],['Chinatown',4,284,210,'b'],['Siam',8,452,150,'a'],['Sukhumvit',11,592,172,'b']],
+   marks:[['palace',300,118,''],['stupa',92,150,'Wat Arun temple'],['sky',474,104,'Siam shopping malls'],['sky',600,128,'']]},
+ id:{u:'km',bg:`<rect width="660" height="320" fill="${W_LAND}"/><rect width="660" height="16" fill="${W_WATER}"/><text x="600" y="12" text-anchor="middle" class="wmw" style="font-size:11px">Java Sea</text>`,
+   stops:[['Blok M',0,330,292,'a'],['Senayan',3,298,236,'a'],['Bundaran HI',7,318,152,'a'],['Monas',9,330,100,'a'],['Kota',13,340,34,'a']],
+   marks:[['obelisk',408,104,'Monas monument'],['stadium',204,244,'Gelora Bung Karno stadium'],['fountain',396,162,'Bundaran HI roundabout'],['oldtown',446,48,'Kota Tua (old town)']]},
+ au:{u:'km',bg:`<rect width="660" height="320" fill="${W_WATER}"/><path d="M0 0 L660 0 L660 88 C560 110 520 70 420 96 S250 70 150 100 S40 82 0 96Z" fill="${W_LAND}"/><path d="M0 204 C150 184 250 232 360 212 S560 232 660 212 L660 320 L0 320Z" fill="${W_LAND}"/><text x="430" y="170" text-anchor="middle" class="wmw">Sydney Harbour</text>`,
+   stops:[['Circular Quay',0,180,204,'b'],['Taronga Zoo',2,282,104,'a'],['Manly',11,612,96,'a']],
+   marks:[['sails',246,250,'Sydney Opera House'],['bridge',110,178,'Harbour Bridge'],['beach',520,52,'Manly Beach']]},
+ my:{u:'km',bg:`<rect width="660" height="320" fill="${W_WATER}"/><path d="M120 0 L660 0 L660 320 L230 320 C190 260 170 200 150 140 C140 90 130 40 120 0Z" fill="${W_LAND}"/><text x="60" y="200" class="wmw" transform="rotate(-70 60 200)">Strait of Malacca</text>`,
+   stops:[['KL Sentral',0,300,282,'b'],['Tanjung Malim',80,272,212,'a'],['Ipoh',205,232,142,'a'],['Taiping',290,192,86,'a'],['Butterworth',365,162,30,'a']],
+   marks:[['twin',420,262,'Petronas Twin Towers'],['hills',350,150,'Ipoh limestone hills'],['bridge',84,46,'Penang Bridge']]},
+ nl:{u:'m',bg:`<rect width="660" height="320" fill="${W_LAND}"/><rect width="660" height="28" fill="${W_WATER}"/>${[90,140,190].map(r=>`<path d="M${330-r} 28 A${r} ${r} 0 0 0 ${330+r} 28" fill="none" stroke="${W_WATER}" stroke-width="9"/>`).join('')}<text x="560" y="20" class="wmw">River IJ</text>`,
+   stops:[['Centraal Station',0,330,44,'a'],['Dam Square',1200,320,122,'a'],['Rijksmuseum',3000,300,246,'a'],['Vondelpark',3600,196,282,'b']],
+   marks:[['houses',430,150,'canal houses'],['windmill',566,250,'windmill'],['museum',360,282,''],['tree',150,250,'']]},
+ ch:{u:'m',bg:`<rect width="660" height="320" fill="#d6ecfa"/><path d="M0 320 L0 252 L120 222 L262 152 L380 92 L470 40 L560 82 L660 142 L660 320Z" fill="#b8c2cf"/><path d="M420 64 L470 40 L516 62 L490 70 L470 60 L446 72Z" fill="#fff"/><path d="M0 320 L0 268 L160 250 L300 280 L660 270 L660 320Z" fill="#9cc48a"/>`,
+   stops:[['Valley station',0,90,252,'b'],['Middle station',1800,300,140,'a'],['Summit station',3000,470,44,'a']],
+   marks:[['chalet',40,284,'village'],['pine',150,262,''],['pine',190,272,''],['snow',600,150,'']]}};
+const WJ=[
+ {c:'Hong Kong',map:'hk',m:'tram',name:'Ding Ding tram',ex:'an old double-decker tram',u:'kmh',v:[9,10,12]},
+ {c:'Japan',map:'jp',m:'bullet',name:'Shinkansen',ex:'a bullet train',u:'kmh',v:[200,240,250,270,300]},
+ {c:'South Korea',map:'kr',m:'bullet',name:'KTX',ex:'a high-speed train',u:'kmh',v:[180,200,240]},
+ {c:'Italy',map:'it',m:'boat',name:'vaporetto',ex:'a water bus: Venice has canals instead of roads',u:'kmh',v:[8,9,10,12]},
+ {c:'the United Kingdom',map:'uk',m:'train',name:'London Underground',ex:'"the Tube", a train that runs in tunnels under London',u:'kmh',v:[30,32,36]},
+ {c:'Thailand',map:'th',m:'tuk',name:'tuk-tuk',ex:'a small taxi with three wheels',u:'kmh',v:[12,15,18,20,24]},
+ {c:'Indonesia',map:'id',m:'bus',name:'TransJakarta bus',ex:'a city bus with its own road lane',u:'kmh',v:[18,20,24]},
+ {c:'Australia',map:'au',m:'boat',name:'Sydney ferry',ex:'a passenger boat',u:'kmh',v:[20,22,24,30]},
+ {c:'Malaysia',map:'my',m:'train',name:'ETS train',ex:'an electric train between cities',u:'kmh',v:[100,120,140]},
+ {c:'the Netherlands',map:'nl',m:'bike',name:'bicycle',ex:'most people in Amsterdam cycle',u:'mpm',v:[200,240,250,300]},
+ {c:'Switzerland',map:'ch',m:'cable',name:'cable car',ex:'a cabin that hangs from a cable',u:'mpm',v:[300,360,400]}];
+/* draw a map. o: {from,to} stop indexes to ride (sprite animates), lab: text in the route pill, jam: show a jam,
+   extra:{x,y,label,mode} a second leg drawn dashed after the ride, walk:{x1,y1,x2,y2,label} a dashed walk, pins:[[x,y,label]] */
+function wjMap(T,o){const M=WMAPS[T.map],S=M.stops,fsc=innerWidth<600?1.3:1,fs=v=>(v*fsc).toFixed(1);let s=M.bg;
+  const css=`<style>.wml{font:800 ${fs(15)}px var(--body,sans-serif);fill:#4a5568}.wmw{font:italic 700 ${fs(13)}px var(--body,sans-serif);fill:#2a6f97}</style>`;
+  const pts=S.map(p=>[p[2],p[3]]),line=(P,col,w,da)=>`<polyline points="${P.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" ${da?`stroke-dasharray="${da}"`:''}/>`;
+  s+=M.marks.map(([ic,x,y,l])=>WIC[ic](x,y)+(l?`<text x="${x}" y="${y+16*fsc}" text-anchor="middle" style="font:700 ${fs(12.5)}px var(--body,sans-serif);fill:#3b4656;paint-order:stroke;stroke:#fff;stroke-width:3px">${l}</text>`:'')).join('');
+  s+=T.m==='cable'?line(pts,'#16233a',2,''):line(pts,'#7d8796',5,'');
+  let seg=null;if(o.from!=null){const a=Math.min(o.from,o.to),b=Math.max(o.from,o.to);seg=pts.slice(a,b+1);if(o.from>o.to)seg.reverse();s+=line(seg,o.col||'#ef5240',T.m==='cable'?4:9,'')}
+  if(o.extra&&seg){const e=o.extra,l0=seg[seg.length-1];s+=line([l0,[e.x,e.y]],'#5f50ec',6,'10 6')+`<circle cx="${e.x}" cy="${e.y}" r="8" fill="#5f50ec" stroke="#16233a" stroke-width="2"/><text x="${e.x}" y="${e.y-14*fsc}" text-anchor="middle" style="font:800 ${fs(14)}px var(--body,sans-serif);fill:#16233a;paint-order:stroke;stroke:#fff;stroke-width:4px">${e.label}</text>`}
+  if(o.walk){const w=o.walk;s+=line([[w.x1,w.y1],[w.x2,w.y2]],'#56667b',4,'2 7')}
+  (o.pins||[]).forEach(([x,y,l])=>{s+=`<rect x="${x-9}" y="${y-9}" width="18" height="18" rx="5" fill="#0b968b" stroke="#16233a" stroke-width="2"/><text x="${x}" y="${y-14*fsc}" text-anchor="middle" style="font:800 ${fs(14)}px var(--body,sans-serif);fill:#16233a;paint-order:stroke;stroke:#fff;stroke-width:4px">${l}</text>`});
+  S.forEach(([n,,x,y,side],i)=>{const on=seg&&(i===o.from||i===o.to);s+=`<circle cx="${x}" cy="${y}" r="${on?9:6}" fill="${on?'#ffd257':'#fff'}" stroke="#16233a" stroke-width="2.5"/>`;
+    s+=`<text x="${x}" y="${side==='a'?y-13*fsc:y+24*fsc}" text-anchor="${x<70?'start':x>590?'end':'middle'}" style="font:800 ${fs(on?15:13.5)}px var(--body,sans-serif);fill:#16233a;paint-order:stroke;stroke:#fff;stroke-width:4px">${n}</text>`});
+  if(seg&&o.lab){/* put the distance pill next to the ridden part, in a spot clear of station names, landmarks and dots */
+    const w=String(o.lab).length*9.5*fsc+24,h=28*fsc,obs=[];
+    S.forEach(([n,,x,y,side])=>{const tw=n.length*8.2*fsc,ty=side==='a'?y-13*fsc:y+24*fsc,ax=x<70?x:x>590?x-tw:x-tw/2;obs.push([ax,ty-15*fsc,ax+tw,ty+4],[x-10,y-10,x+10,y+10])});
+    M.marks.forEach(([,x,y,l])=>{obs.push([x-30,y-50,x+30,y+2]);if(l){const tw=l.length*7.4*fsc;obs.push([x-tw/2,y+2,x+tw/2,y+20*fsc])}});
+    const cands=[];for(let k=0;k<seg.length-1;k++){const p=seg[k],q=seg[k+1],L=Math.hypot(q[0]-p[0],q[1]-p[1])||1,nx=-(q[1]-p[1])/L,ny=(q[0]-p[0])/L;
+      [.5,.3,.7].forEach(f=>[34,-34,52,-52,72,-72].forEach(dd=>cands.push([p[0]+(q[0]-p[0])*f+nx*dd*fsc,p[1]+(q[1]-p[1])*f+ny*dd*fsc,L])))}
+    cands.sort((a,b)=>b[2]-a[2]);const fits=([cx,cy])=>cx-w/2>4&&cx+w/2<656&&cy-h/2>4&&cy+h/2<316&&!obs.some(b=>cx-w/2<b[2]&&cx+w/2>b[0]&&cy-h/2<b[3]&&cy+h/2>b[1]);
+    const [mx,my]=cands.find(fits)||cands[0];
+    s+=`<g><rect x="${(mx-w/2).toFixed(1)}" y="${(my-h/2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(h/2).toFixed(1)}" fill="#ef5240" stroke="#fff" stroke-width="2"/><text x="${mx.toFixed(1)}" y="${(my+6*fsc).toFixed(1)}" text-anchor="middle" style="font:800 ${fs(16)}px var(--body,sans-serif);fill:#fff">${o.lab}</text></g>`}
+  if(o.jam&&seg){const m=seg[Math.floor(seg.length/2)];s+=`<g transform="translate(${m[0]},${m[1]+26})"><rect x="-38" y="-12" width="76" height="24" rx="12" fill="#c2410c"/><text y="5" text-anchor="middle" style="font:800 ${fs(13)}px var(--body,sans-serif);fill:#fff">🚗🚗 jam</text></g>`}
+  if(seg&&!o.noSprite){const d='M'+seg.map(p=>p.join(' ')).join(' L');
+    if(!calm)s+=`<g>${WJS[T.m]||WJS.walk}<animateMotion dur="3.2s" fill="freeze" path="${d}"/><set attributeName="opacity" to="0" begin="3.6s" fill="freeze"/></g>`}
+  return `<div class="jmwrap" style="max-width:920px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26"><div class="tbh" style="padding:7px 12px">📍 ${o.head||T.c}</div><svg class="wjsvg tmap-nozoom" viewBox="0 0 660 320" style="width:100%;height:auto;display:block" role="img" aria-label="Map of ${T.c} with ${S.map(p=>p[0]).join(', ')}">${css}${s}</svg>${o.note?`<div style="padding:6px 12px;color:#c8d0dc;font-size:.9rem">${o.note}</div>`:''}</div>
+  ${calm||o.noSprite?'':'<div class="row" style="margin-top:8px"><button class="btn" id="wjPlay">▶ Replay</button></div>'}`}
+function wjWire(){const go=()=>document.querySelectorAll('.wjsvg').forEach(s=>{try{s.setCurrentTime(0)}catch(e){}});go();const b=$('wjPlay');if(b)b.onclick=()=>{sfx.tap();go()}}
 const gcdN=(a,b)=>b?gcdN(b,a%b):a;
 const hstr=t=>{if(t%60===0)return `${t/60} h`;const w=Math.floor(t/60),r=t%60,g=gcdN(r,60);return `${w?w+' ':''}${fr(r/g,60/g)} h`};
-function wjGen(T,o={}){for(let k=0;k<300;k++){const s=pick(T.v),ts=[];
-  if(T.u==='kmh'){for(let t=5;t<=360;t+=5)if((s*t)%60===0){const d=s*t/60;if(d>=T.d[0]&&d<=T.d[1]&&(!o.half||t%30===0)&&(!o.notHour||t%60))ts.push(t)}}
-  else for(let t=3;t<=40;t++){const d=s*t;if(d>=T.d[0]&&d<=T.d[1])ts.push(t)}
-  if(ts.length){const t=pick(ts);return{s,t,d:T.u==='kmh'?s*t/60:s*t}}}return wjGen(WJ[0],o)}
 const decMis=t=>{const h=t/60;if(t%60===0||Math.round(h*100)!==h*100)return null;return Math.floor(h)*60+Math.round(h%1*100)};
-addGame('world-journeys',{level:'P6',strand:'geo',glyph:'🌏',title:'Beat the Clock: World Journeys',topic:'Speed, distance and time with transport around the world',
- how:'Ride trams, bullet trains, water buses and cable cars around the world. Work out speed, distance, time and average speed.',rounds:8,
+/* pick two stops and a speed so the time is a whole number of minutes (a multiple of `step`) */
+function wjTrip(T,o={}){const S=WMAPS[T.map].stops;for(let k=0;k<400;k++){let i=R(0,S.length-1),j=R(0,S.length-1);if(i===j)continue;const d=Math.abs(S[j][1]-S[i][1]),s=pick(T.v);
+  if(T.u==='kmh'){if((d*60)%s)continue;const t=d*60/s;if(t%(o.step||5)||t<(o.min||10)||t>(o.max||300))continue;return{i,j,d,s,t}}
+  else{if(d%s)continue;const t=d/s;if(t<3||t>30)continue;return{i,j,d,s,t}}}return null}
+addGame('world-journeys',{level:'P6',strand:'geo',glyph:'🌏',title:'Beat the Clock: World Journeys',topic:'Speed, distance and time on maps of real places',
+ how:'Ride trams, bullet trains, water buses and cable cars on maps of real places. Read distances off the map and work out speed, distance, time and average speed.',rounds:8,
  round(api,r){
   const type=['speed','dist','time','arrive','jam','avg','race','catch'][r];
   const[kid,pr]=pick(SGKIDS),Pr=pr[0].toUpperCase()+pr.slice(1);
-  if(['speed','dist','time','arrive'].includes(type)){const T=pick(WJ),{s,t,d}=wjGen(T,{half:type==='speed'}),km=T.u==='kmh',su=km?'km/h':'m/min',du=km?'km':'m',go=['cable','bike'].includes(T.m)?'goes':'travels';
-    const intro=`In <b>${T.c}</b>, the <b>${T.name}</b> (${T.ex})`;
-    const card=wjCard(`${T.c} · ${T.name}`,[wjRow([{m:T.m,lab:type==='dist'?`${s}\u00a0${su} for ${tdur(t)}`:type==='speed'?`${d}\u00a0${du} in ${tdur(t)}`:`${d}\u00a0${du} at ${s}\u00a0${su}`}],['Start','End'])]);
-    if(type==='speed'){api.q(`<p class="qt">${intro} ${go} <b>${d}\u00a0${du}</b> ${T.at} in <b>${tdur(t)}</b>. What is its speed?</p>`);api.body.innerHTML=card;wjWire();
-      const work=['Speed = distance ÷ time',...(km?[`${tdur(t)} = ${hstr(t)}`,`${d} km ÷ ${hstr(t)} = <b>${s}\u00a0km/h</b>`]:[`${d} m ÷ ${t} min = <b>${s}\u00a0m/min</b>`])];
+  if(['speed','dist','time','arrive'].includes(type)){let T,g;do{T=pick(WJ);g=wjTrip(T,{step:type==='speed'&&T.u==='kmh'?15:5})}while(!g);
+    const{i,j,d,s,t}=g,S=WMAPS[T.map].stops,A=S[i][0],B=S[j][0],km=T.u==='kmh',su=km?'km/h':'m/min',du=km?'km':'m',go=['cable','bike'].includes(T.m)?'goes':'travels';
+    const intro=`In <b>${T.c}</b>, ${kid} rides the <b>${T.name}</b> (${T.ex}) from <b>${A}</b> to <b>${B}</b>.`;
+    const map=wjMap(T,{from:i,to:j,lab:type==='dist'?`? ${du}`:`${d} ${du}`,head:`${T.c} · ${T.name}`,note:'Distances along the route are rounded.'});
+    if(type==='speed'){api.q(`<p class="qt">${intro} Read the distance on the map. The trip takes <b>${tdur(t)}</b>. What is the speed?</p>`);api.body.innerHTML=map;wjWire();
+      const work=['Speed = distance ÷ time',`Distance from the map: ${d} ${du}`,...(km?[`${tdur(t)} = ${hstr(t)}`,`${d} km ÷ ${hstr(t)} = <b>${s} km/h</b>`]:[`${d} m ÷ ${t} min = <b>${s} m/min</b>`])];
       const traps=[...(km&&t!==60?[[d/t,`You divided by ${t} minutes. km/h means km in 1 <b>hour</b>, so change ${tdur(t)} into hours first: ${hstr(t)}.`]]:[]),[d*t,'Speed = distance <b>÷</b> time, not ×.'],[t/d,'Divide the distance by the time, not the time by the distance.']].filter(([x])=>!near(x,s));
-      askOne(api,{id:'wjS',unit:su,w:5,right:s,traps,ok:`Its speed is ${s}\u00a0${su}.`,bad:`The speed is ${s}\u00a0${su}.`,work});return}
-    if(type==='dist'){api.q(`<p class="qt">${intro} ${go} ${T.at} at <b>${s}\u00a0${su}</b> for <b>${tdur(t)}</b>. How far does it go?</p>`);api.body.innerHTML=card;wjWire();
-      const work=['Distance = speed × time',...(km?[`${tdur(t)} = ${hstr(t)}`,`${s} × ${hstr(t)} = <b>${d}\u00a0km</b>`]:[`${s} × ${t} = <b>${d}\u00a0m</b>`])];
+      askOne(api,{id:'wjS',unit:su,w:5,right:s,traps,ok:`The speed is ${s} ${su}.`,bad:`The speed is ${s} ${su}.`,work});return}
+    if(type==='dist'){api.q(`<p class="qt">${intro} It ${go} at <b>${s} ${su}</b> and the trip takes <b>${tdur(t)}</b>. How far apart are ${A} and ${B} along the route?</p>`);api.body.innerHTML=map;wjWire();
+      const work=['Distance = speed × time',...(km?[`${tdur(t)} = ${hstr(t)}`,`${s} × ${hstr(t)} = <b>${d} km</b>`]:[`${s} × ${t} = <b>${d} m</b>`])];
       const traps=[...(km&&t!==60?[[s*t,`${s} × ${t} uses minutes. ${s} km/h means ${s} km in 1 <b>hour</b>, so change ${tdur(t)} into hours first: ${hstr(t)}.`]]:[]),[s/t,'Distance = speed <b>×</b> time.']].filter(([x])=>!near(x,d));
-      askOne(api,{id:'wjD',unit:du,w:5,right:d,traps,ok:`It goes ${d}\u00a0${du}.`,bad:`The distance is ${d}\u00a0${du}.`,work});return}
-    if(type==='time'){api.q(`<p class="qt">${intro} ${go} <b>${d}\u00a0${du}</b> ${T.at} at <b>${s}\u00a0${su}</b>. How long does the trip take?</p>`);api.body.innerHTML=card;wjWire();
-      const wm=decMis(t),work=['Time = distance ÷ speed',km?`${d} ÷ ${s} = ${hstr(t)} = <b>${tdur(t)}</b>`:`${d} ÷ ${s} = <b>${t}\u00a0min</b>`];
+      askOne(api,{id:'wjD',unit:du,w:5,right:d,traps,ok:`They are ${d} ${du} apart.`,bad:`The distance is ${d} ${du}.`,work});return}
+    if(type==='time'){api.q(`<p class="qt">${intro} Read the distance on the map. It ${go} at <b>${s} ${su}</b>. How long does the trip take?</p>`);api.body.innerHTML=map;wjWire();
+      const wm=decMis(t),work=['Time = distance ÷ speed',`Distance from the map: ${d} ${du}`,km?`${d} ÷ ${s} = ${hstr(t)} = <b>${tdur(t)}</b>`:`${d} ÷ ${s} = <b>${t} min</b>`];
       askDur(api,'wjT',t,null,`The trip takes ${tdur(t)}.`,work,[...(km&&wm!==null&&wm!==t?[[wm,`${t/60} h is not ${tdur(wm)}! An hour has 60 minutes: ${t/60} h = ${tdur(t)}.`]]:[])]);return}
     const a=R(7,16)*60+R(0,11)*5,wm=decMis(t);
-    api.q(`<p class="qt">${intro} leaves at <b>${ttm(a)}</b>. It ${go} <b>${d}\u00a0${du}</b> ${T.at} at <b>${s}\u00a0${su}</b>. What time does it arrive?</p>`);api.body.innerHTML=card;wjWire();
-    askTime(api,'wjA',a+t,[...(km&&wm!==null&&wm!==t?[[a+wm,`${t/60} h is not ${tdur(wm)}. An hour has 60 minutes, so ${t/60} h = ${tdur(t)}.`]]:[]),[a-t,'The arrival is <b>after</b> it leaves. Count on, not back.']],`It arrives at ${ttm(a+t)}.`,
+    api.q(`<p class="qt">${intro} It leaves ${A} at <b>${ttm(a)}</b> and ${go} at <b>${s} ${su}</b>. Read the distance on the map. What time does it reach ${B}?</p>`);api.body.innerHTML=map;wjWire();
+    askTime(api,'wjA',a+t,[...(km&&wm!==null&&wm!==t?[[a+wm,`${t/60} h is not ${tdur(wm)}. An hour has 60 minutes, so ${t/60} h = ${tdur(t)}.`]]:[]),[a-t,'The arrival is <b>after</b> it leaves. Count on, not back.']],`It reaches ${B} at ${ttm(a+t)}.`,
       ['Time = distance ÷ speed',km?`${d} ÷ ${s} = ${hstr(t)} = ${tdur(t)}`:`${d} ÷ ${s} = ${t} min = ${tdur(t)}`,hops(a,a+t)]);return}
-  if(type==='jam'){const T=pick(WJ.filter(x=>['tram','tuk','bus'].includes(x.m)));let A,Tm,J,d;
-    do{A=pick([6,8,9,10,12,15,16,18,20]);Tm=pick([30,60,90,120]);J=pick([10,15,20,30]);d=A*Tm/60}while(!Number.isInteger(d)||Tm-J<20||d<2);
-    const mv=d*60/(Tm-J);
-    api.q(`<p class="qt">In <b>${T.c}</b>, ${kid} takes a <b>${T.name}</b> (${T.ex}) ${T.at}. The trip is <b>${d}\u00a0km</b>. On the way, it is stuck in a traffic jam for <b>${J}\u00a0min</b>. The whole trip takes <b>${tdur(Tm)}</b>, including the jam. What is the <b>average speed</b> for the whole trip?</p>`);
-    api.body.innerHTML=wjCard(`${T.c} · ${T.name}`,[wjRow([{m:T.m,lab:'moving'},{m:'stop',lab:`jam ${J} min`},{m:T.m,lab:'moving'}],['Start','','','End'],`Whole trip: ${d} km in ${tdur(Tm)}`)]);wjWire();
-    askOne(api,{id:'wjJ',unit:'km/h',w:5,right:A,traps:[[mv,`${Number.isInteger(mv)?mv+' km/h':'That'} is the speed while it was moving. Average speed for the <b>whole trip</b> uses the whole time, including the ${J} min jam.`],[d/Tm,`You divided by ${Tm} minutes. Change ${tdur(Tm)} into hours first: ${hstr(Tm)}.`]].filter(([x])=>!near(x,A)),
-      ok:`Average speed = ${A} km/h.`,bad:`The average speed is ${A} km/h.`,work:['Average speed = total distance ÷ total time (stops count too!)',`Total time = ${tdur(Tm)} = ${hstr(Tm)}`,`${d} km ÷ ${hstr(Tm)} = <b>${A}\u00a0km/h</b>`]});return}
-  if(type==='avg'){const T=pick(WJ.filter(x=>x.u==='kmh'&&x.v[0]>=100));let s1,t1,s2,t2,D,TT,av;
-    do{s1=pick(T.v);t1=R(1,3);s2=pick([40,50,60,80]);t2=R(1,2);D=s1*t1+s2*t2;TT=t1+t2;av=D/TT}while(!Number.isInteger(av)||av===(s1+s2)/2);
-    api.q(`<p class="qt">${kid}’s family is on holiday in <b>${T.c}</b>. They ride the <b>${T.name}</b> (${T.ex}) for <b>${t1}\u00a0h</b> at <b>${s1}\u00a0km/h</b>. Then they take a bus for <b>${t2}\u00a0h</b> at <b>${s2}\u00a0km/h</b>. What is their <b>average speed</b> for the whole journey?</p>`);
-    api.body.innerHTML=wjCard(`${T.c} · ${T.name}, then a bus`,[wjRow([{m:T.m,lab:`${t1} h at ${s1} km/h`},{m:'bus',lab:`${t2} h at ${s2} km/h`}],['Start','','End'])]);wjWire();
-    askOne(api,{id:'wjV',unit:'km/h',w:5,right:av,traps:[[(s1+s2)/2,`You found the average of the two speeds. But they spent different amounts of time at each speed. Use <b>total distance ÷ total time</b>.`],[D,`${D} km is the total distance. Now divide by the total time.`]].filter(([x])=>!near(x,av)),
-      ok:`Average speed = ${av} km/h.`,bad:`The average speed is ${av} km/h.`,work:[`${T.name}: ${s1} × ${t1} = ${s1*t1} km`,`Bus: ${s2} × ${t2} = ${s2*t2} km`,`Total: ${D} km in ${TT} h`,`Average speed = ${D} ÷ ${TT} = <b>${av}\u00a0km/h</b>`]});return}
-  if(type==='race'){const opts=[{place:'Amsterdam, in the Netherlands, where lots of people cycle',m:'bike',v:[200,240,250,300],how:'cycles',ex:p=>`needs <b>${p}\u00a0min</b> to unlock and park the bike`,lab:'unlock/park'},
-      {place:'Hong Kong',m:'tram',v:[150,180,200],how:'takes the Ding Ding tram (an old double-decker tram)',ex:p=>`waits <b>${p}\u00a0min</b> for the tram`,lab:'wait'}];
-    let o,sw,sb,P,D,tw,tb;do{o=pick(opts);sw=pick([60,75,80]);sb=pick(o.v);P=R(3,8);const L=sw*sb/gcdN(sw,sb),c=[];for(let x=L;x<=4000;x+=L)if(x>=1000)c.push(x);D=c.length?pick(c):0;tw=D/sw;tb=D/sb+P}while(!D||tw===tb||Math.abs(tw-tb)>25);
-    const[k2]=pick(SGKIDS.filter(k=>k[0]!==kid)),diff=Math.abs(tw-tb),first=tw<tb?kid:k2;
-    api.q(`<p class="qt">In <b>${o.place}</b>, ${kid} and ${k2} both go to a museum <b>${D}\u00a0m</b> away. ${kid} walks at <b>${sw}\u00a0m/min</b>. ${k2} ${o.how} at <b>${sb}\u00a0m/min</b>, but first ${o.ex(P)}. Who gets there first, and <b>how many minutes earlier</b>?</p>`);
-    api.body.innerHTML=wjCard(o.place.split(',')[0]+' · race to the museum',[wjRow([{m:'walk',lab:`${D} m at ${sw} m/min`}],['Start','Museum'],`${kid} walks`),wjRow([{m:'stop',lab:`${o.lab} ${P} min`},{m:o.m,lab:`${D} m at ${sb} m/min`}],['Start','','Museum'],`${k2} ${o.m==='bike'?'cycles':'takes the tram'}`)]);wjWire();
+  if(type==='jam'){const C=[];WJ.filter(x=>['tram','tuk','bus'].includes(x.m)).forEach(T=>{const S=WMAPS[T.map].stops;S.forEach((p,i)=>S.forEach((q,j)=>{if(i===j)return;const d=Math.abs(q[1]-p[1]);T.v.forEach(s=>{if((d*60)%s)return;const t=d*60/s;if(t<8||t>90)return;
+      [5,10,15,20,25,30].forEach(J=>{if((d*60)%(t+J)===0)C.push({T,g:{i,j,d,s,t},J,Tm:t+J,A:d*60/(t+J)})})})}))});
+    const{T,g,J,Tm,A}=pick(C),S=WMAPS[T.map].stops,{i,j,d,s,t}=g;
+    api.q(`<p class="qt">In <b>${T.c}</b>, ${kid} takes a <b>${T.name}</b> (${T.ex}) from <b>${S[i][0]}</b> to <b>${S[j][0]}</b>. Read the distance on the map. On the way it is stuck in a traffic jam for <b>${J} min</b>. The whole trip takes <b>${tdur(Tm)}</b>, including the jam. What is the <b>average speed</b> for the whole trip?</p>`);
+    api.body.innerHTML=wjMap(T,{from:i,to:j,lab:`${d} km`,jam:true,head:`${T.c} · ${T.name}`,note:'Distances along the route are rounded.'});wjWire();
+    askOne(api,{id:'wjJ',unit:'km/h',w:5,right:A,traps:[[s,`${s} km/h is the speed while it was moving. Average speed for the <b>whole trip</b> uses the whole time, including the ${J} min jam.`],[d/Tm,`You divided by ${Tm} minutes. Change ${tdur(Tm)} into hours first: ${hstr(Tm)}.`]].filter(([x])=>!near(x,A)),
+      ok:`Average speed = ${A} km/h.`,bad:`The average speed is ${A} km/h.`,work:['Average speed = total distance ÷ total time (stops count too!)',`Distance from the map: ${d} km`,`Total time = ${tdur(Tm)} = ${hstr(Tm)}`,`${d} km ÷ ${hstr(Tm)} = <b>${A} km/h</b>`]});return}
+  if(type==='avg'){const X={jp:['Kyoto temples',214,120,5],kr:['Haeundae Beach',590,250,3],my:['Penang Bridge',90,70,4]};let T,i,j,d1,s1,t1,s2,t2,D,TT,av;
+    const C=[];WJ.filter(x=>X[x.map]).forEach(T=>{const S=WMAPS[T.map].stops;S.forEach((p,i)=>S.forEach((q,j)=>{if(i===j||j!==X[T.map][3])return;const d1=Math.abs(q[1]-p[1]);T.v.forEach(s1=>{if((d1*60)%s1)return;const t1=d1*60/s1;if(t1%5)return;
+      [30,40,50,60].forEach(s2=>[30,60,90,120].forEach(t2=>{if((s2*t2)%60)return;const D=d1+s2*t2/60,TT=t1+t2;if((D*60)%TT)return;const av=D*60/TT;if(av===(s1+s2)/2)return;C.push({T,i,j,d1,s1,t1,s2,t2,D,TT,av})}))})}))});
+    ({T,i,j,d1,s1,t1,s2,t2,D,TT,av}=pick(C));
+    const S=WMAPS[T.map].stops,x=X[T.map],d2=s2*t2/60;
+    api.q(`<p class="qt">${kid}’s family is on holiday in <b>${T.c}</b>. They ride the <b>${T.name}</b> (${T.ex}) from <b>${S[i][0]}</b> to <b>${S[j][0]}</b> in <b>${tdur(t1)}</b>. Read that distance on the map. Then a bus takes them to <b>${x[0]}</b>: <b>${tdur(t2)}</b> at <b>${s2} km/h</b>. What is their <b>average speed</b> for the whole journey?</p>`);
+    api.body.innerHTML=wjMap(T,{from:i,to:j,lab:`${d1} km`,extra:{x:x[1],y:x[2],label:'bus'},head:`${T.c} · ${T.name}, then a bus`,note:'Distances along the route are rounded.'});wjWire();
+    askOne(api,{id:'wjV',unit:'km/h',w:5,right:av,traps:[[(s1+s2)/2,'You found the average of the two speeds. But they spent different amounts of time at each speed. Use <b>total distance ÷ total time</b>.'],[D,`${D} km is the total distance. Now divide by the total time.`]].filter(([y])=>!near(y,av)),
+      ok:`Average speed = ${av} km/h.`,bad:`The average speed is ${av} km/h.`,work:[`${T.name}: ${d1} km (from the map) in ${tdur(t1)}`,`Bus: ${s2} km/h × ${hstr(t2)} = ${d2} km`,`Total: ${d1} + ${d2} = ${D} km in ${tdur(TT)} = ${hstr(TT)}`,`Average speed = ${D} ÷ ${hstr(TT)} = <b>${av} km/h</b>`]});return}
+  if(type==='race'){const opts=[{T:WJ.find(x=>x.map==='nl'),mul:1,v:[200,240,250,300],how:'cycles',ex:p=>`needs <b>${p} min</b> to unlock and park the bike`},{T:WJ.find(x=>x.map==='hk'),mul:1000,v:[150,200],how:'takes the Ding Ding tram',ex:p=>`waits <b>${p} min</b> for the tram`}];
+    const C=[];opts.forEach(o=>{const S=WMAPS[o.T.map].stops;S.forEach((p,i)=>S.forEach((q,j)=>{if(i===j)return;const D=Math.abs(q[1]-p[1])*o.mul;if(D<900||D>4000)return;[60,75,80].forEach(sw=>o.v.forEach(sb=>{if(D%sw||D%sb)return;for(let P=3;P<=8;P++){const tw=D/sw,tb=D/sb+P;if(tw!==tb&&Math.abs(tw-tb)<=30)C.push({o,i,j,D,sw,sb,P,tw,tb})}}))}))});
+    const{o,i,j,D,sw,sb,P,tw,tb}=pick(C);
+    const S=WMAPS[o.T.map].stops,[k2]=pick(SGKIDS.filter(k=>k[0]!==kid)),diff=Math.abs(tw-tb),first=tw<tb?kid:k2,dl=o.mul===1000?`${D/1000} km`:`${D} m`;
+    api.q(`<p class="qt">In <b>${o.T.c}</b>, ${kid} and ${k2} race from <b>${S[i][0]}</b> to <b>${S[j][0]}</b>. Read the distance on the map${o.mul===1000?' (1 km = 1000 m)':''}. ${kid} walks at <b>${sw} m/min</b>. ${k2} ${o.how} at <b>${sb} m/min</b>, but first ${o.ex(P)}. Who gets there first, and <b>how many minutes earlier</b>?</p>`);
+    api.body.innerHTML=wjMap(o.T,{from:i,to:j,lab:dl,head:`${o.T.c} · race`,note:'Distances along the route are rounded.'});wjWire();
     askOne(api,{id:'wjR',unit:'min',w:4,right:diff,traps:[[Math.abs(tw-D/sb),`Don't forget the ${P} min that ${k2} spends before moving!`],[tw,`${tw} min is how long ${kid} takes. Work out ${k2}'s time too, then find the difference.`],[tb,`${tb} min is how long ${k2} takes. Work out ${kid}'s time too, then find the difference.`]].filter(([x])=>!near(x,diff)),
-      ok:`${first} gets there first, ${diff} min earlier.`,bad:`${first} gets there ${diff} min earlier.`,work:[`${kid}: ${D} ÷ ${sw} = ${tw} min`,`${k2}: ${P} + ${D} ÷ ${sb} = ${P} + ${D/sb} = ${tb} min`,`${first} is first, by ${Math.max(tw,tb)} − ${Math.min(tw,tb)} = <b>${diff}\u00a0min</b>`]});return}
-  /* catch */
-  const c=pick(['Japan','South Korea','Switzerland','Italy','the United Kingdom']),s=pick([60,70,75,80]),t=R(6,20),D=s*t,B=R(3,8),T=R(7,18)*60+pick([5,10,20,25,35,40,50,55]),ans=T-t-B;
-  api.q(`<p class="qt">${kid} is on holiday in <b>${c}</b>. ${Pr} must catch a train that leaves at <b>${ttm(T)}</b>. The station is <b>${D}\u00a0m</b> from the hotel, and ${pr} walks at <b>${s}\u00a0m/min</b>. At the station, ${pr} needs <b>${B}\u00a0min</b> to buy a ticket. What is the <b>latest</b> time ${pr} can leave the hotel?</p>`);
-  api.body.innerHTML=wjCard(`${c} · catch the train`,[wjRow([{m:'walk',lab:`${D} m at ${s} m/min`},{m:'stop',lab:`ticket ${B} min`}],['Hotel','Station','Train']).replace(/(<text[^>]*>)Train/,'$1Train '+ttm(T))]);wjWire();
-  askTime(api,'wjC',ans,[[T+t+B,`That is after the train leaves! Count <b>back</b> from ${ttm(T)}.`],[T-t,`You forgot the ${B} min to buy a ticket.`],[T-B,`You forgot the walk: ${D} ÷ ${s} = ${t} min.`]],`${Pr} must leave by ${ttm(ans)}.`,
-    [`Walking time = ${D} ÷ ${s} = ${t} min`,`Walk + ticket = ${t} + ${B} = ${t+B} min`,`${ttm(T)} − ${t+B} min = <b>${ttm(ans)}</b>`]);
+      ok:`${first} gets there first, ${diff} min earlier.`,bad:`${first} gets there ${diff} min earlier.`,work:[`Distance: ${dl}${o.mul===1000?` = ${D} m`:''}`,`${kid}: ${D} ÷ ${sw} = ${tw} min`,`${k2}: ${P} + ${D} ÷ ${sb} = ${P} + ${D/sb} = ${tb} min`,`${first} is first, by ${Math.max(tw,tb)} − ${Math.min(tw,tb)} = <b>${diff} min</b>`]});return}
+  /* catch: walk from the hotel to a station on the map */
+  const T=pick(WJ.filter(x=>['jp','kr','uk','it','ch','my'].includes(x.map))),S=WMAPS[T.map].stops,si=R(0,S.length-1),st=S[si],s=pick([60,70,75,80]),t=R(6,20),D=s*t,B=R(3,8),Tt=R(7,18)*60+pick([5,10,20,25,35,40,50,55]),ans=Tt-t-B;
+  const hx=Math.max(40,Math.min(620,st[2]+(st[2]>330?-90:90))),hy=Math.max(40,Math.min(290,st[3]+(st[3]>160?-50:50)));
+  api.q(`<p class="qt">${kid} is on holiday in <b>${T.c}</b>. ${Pr} must catch a train that leaves <b>${st[0]}</b> at <b>${ttm(Tt)}</b>. The station is <b>${D} m</b> from the hotel, and ${pr} walks at <b>${s} m/min</b>. At the station, ${pr} needs <b>${B} min</b> to buy a ticket. What is the <b>latest</b> time ${pr} can leave the hotel?</p>`);
+  api.body.innerHTML=wjMap(T,{walk:{x1:hx,y1:hy,x2:st[2],y2:st[3]},pins:[[hx,hy,'Hotel']],head:`${T.c} · catch the train at ${st[0]}`,noSprite:true});
+  askTime(api,'wjC',ans,[[Tt+t+B,`That is after the train leaves! Count <b>back</b> from ${ttm(Tt)}.`],[Tt-t,`You forgot the ${B} min to buy a ticket.`],[Tt-B,`You forgot the walk: ${D} ÷ ${s} = ${t} min.`]],`${Pr} must leave by ${ttm(ans)}.`,
+    [`Walking time = ${D} ÷ ${s} = ${t} min`,`Walk + ticket = ${t} + ${B} = ${t+B} min`,`${ttm(Tt)} − ${t+B} min = <b>${ttm(ans)}</b>`]);
  },
  /* secret bonus (score 80% or more): time zones */
  bonus(api){const TZ=[['Tokyo','Japan',1,[390,420]],['Seoul','South Korea',1,[380,410]],['Bangkok','Thailand',-1,[140,160]],['Dubai','the United Arab Emirates',-4,[440,470]],['London','the United Kingdom',-8,[830,860]],['Sydney','Australia',3,[460,490]]];
@@ -3163,13 +3293,14 @@ addGame('p5-pizza',{level:'P5',strand:'num',glyph:'🍕',title:'Pizza Party Orde
   const pickPair=(needCarry,needBorrow)=>{for(let t=0;t<200;t++){[b,d]=pick(PAIRS);a=R(1,b-1);c=R(1,d-1);const s=a*d+c*b,L=b*d;
     if(gcd(a,b)>1||gcd(c,d)>1)continue;if(needCarry===true&&s<=L)continue;if(needCarry===false&&s>=L)continue;if(needBorrow&&a*d>=c*b)continue;if(needBorrow===false&&a*d<=c*b)continue;return}};
   const L=()=>lcm(b,d);
-  const cdStep=(then)=>{const l=L(),opts=uniq([l,b+d,b*d,Math.max(b,d)].filter((x,i)=>i===0||x!==l)).slice(0,4);
+  const cdStep=(then)=>{const l=L(),opts=shuffle(uniq([l,b+d,b*d,Math.max(b,d)].filter((x,i)=>i===0||x!==l)).slice(0,4));
     const msg={[b+d]:`We never add the denominators. The new denominator must be a number that both ${b} and ${d} go into exactly.`,[b*d]:`${b} × ${d} = ${b*d} works, but ${l} is smaller and keeps the numbers easy. Use the smallest number both ${b} and ${d} go into.`,[Math.max(b,d)]:`${Math.max(b,d)} is not a multiple of ${Math.min(b,d)}, so the ${Math.min(b,d)}ths cannot be cut into ${Math.max(b,d)}ths evenly.`};
     api.body.insertAdjacentHTML('beforeend',`<p class="asklab">Step 1: cut the pizzas into equal slices. What is the <b>smallest</b> common denominator for ${fr(a,b)} and ${fr(c,d)}?</p><div class="choices" id="pzC"></div><div id="pzCM"></div>`);
     opts.forEach(x=>{const btn=document.createElement('button');btn.className='btn';btn.textContent=x;btn.onclick=()=>{if(api.answered||btn.disabled)return;
-      if(x===l){[...$('pzC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');$('pzCM').innerHTML=`<p class="asknote">${fr(a,b)} = ${fr(a*l/b,l)} and ${fr(c,d)} = ${fr(c*l/d,l)}</p>`;return then()}
+      if(x===l){ctx.keep.pzC=1;btn.style.boxShadow='';[...$('pzC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');$('pzCM').innerHTML=`<p class="asknote">${fr(a,b)} = ${fr(a*l/b,l)} and ${fr(c,d)} = ${fr(c*l/d,l)}</p>`;return then()}
       if(api.first('pzC')){btn.disabled=true;btn.classList.add('no');api.retry($('pzCM'),msg[x]||'Not that one.');return}
-      [...$('pzC').children].forEach(y=>{y.disabled=true;if(+y.textContent===l)y.classList.add('ok')});btn.classList.add('no');api.done(false,(msg[x]||'')+` The smallest common denominator is ${l}.`,[])};$('pzC').appendChild(btn)})};
+      ctx.keep.pen=1;btn.classList.add('no');sfx.no();[...$('pzC').children].forEach(y=>{if(+y.textContent===l){y.disabled=false;y.style.boxShadow='0 0 0 4px #ffd257'}else y.disabled=true});$('pzCM').innerHTML=`<p class="retrymsg">${msg[x]||''} The smallest common denominator is <b>${l}</b>. Tap it to carry on.</p>`};$('pzC').appendChild(btn)});
+    if(ctx.keep.pzC)[...$('pzC').children].find(y=>+y.textContent===l).click()};
   const workAdd=(A,B,res,sub)=>{const l=L();return [`${rshow(A)} ${sub?'−':'+'} ${rshow(B)}`,`Change to ${l}ths: ${fr(a*l/b,l)} ${sub?'−':'+'} ${fr(c*l/d,l)}${w1||w2?` (wholes: ${w1} ${sub?'−':'+'} ${w2})`:''}`,`= ${rshow(res)}`]};
   if(type==='add'){pickPair(Math.random()<.5);const A=[a,b],B=[c,d],S=radd(A,B);
     api.q(`<p class="qt">${F[0]} ate ${fr(a,b)} of a pizza and ${F[1]} ate ${fr(c,d)} of a pizza. How much pizza did they eat altogether?</p>`);
@@ -3253,10 +3384,11 @@ addGame('p5-pshop',{level:'P5',strand:'num',glyph:'%',title:'Percent Shop',topic
     api.q(`<p class="qt">Two shops sell the same ${item.toLowerCase()} for <b>$${P}</b>. Shop A gives <b>${p}% off</b>. Shop B gives <b>$${off} off</b>. Which shop is cheaper?</p>`);
     api.body.innerHTML=`<div class="row">${tag('Shop A · '+ic,'$'+P,`${p}% off`)}${tag('Shop B · '+ic,'$'+P,`$${off} off`)}</div><div class="choices" id="psC"></div><div id="psCM"></div>`;
     ['A','B'].forEach(x=>{const btn=document.createElement('button');btn.className='btn';btn.textContent='Shop '+x;btn.onclick=()=>{if(api.answered||btn.disabled)return;
-      if(x===cheap){[...$('psC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');return askOne(api,{id:'psC2',label:'How much cheaper is it?',pre:'<span class="askunit">$</span>',right:diff,traps:[[Math.abs(p-off),`Compare dollars with dollars: ${p}% of $${P} is ${pmoney(D)}, not $${p}.`]],
+      if(x===cheap){ctx.keep.psC=1;[...$('psC').children].forEach(y=>y.disabled=true);btn.classList.add('ok');return askOne(api,{id:'psC2',label:'How much cheaper is it?',pre:'<span class="askunit">$</span>',right:diff,traps:[[Math.abs(p-off),`Compare dollars with dollars: ${p}% of $${P} is ${pmoney(D)}, not $${p}.`]],
         ok:`Shop ${cheap} is ${pmoney(diff)} cheaper.`,work:[`Shop A: ${p}% of $${P} = ${pmoney(D)} off → ${pmoney(pay)}`,`Shop B: $${off} off → $${payB}`,`Difference: ${pmoney(diff)}`]})}
       const m=p>off&&cheap!==(p>off?'A':'B')?`${p} is bigger than ${off}, but ${p}% is not $${p}. Work out ${p}% of $${P} first.`:`Work out ${p}% of $${P} in dollars, then compare.`;
-      if(api.first('psC')){btn.disabled=true;btn.classList.add('no');api.retry($('psCM'),m);return}api.done(false,m,[`Shop A: ${p}% of $${P} = ${pmoney(D)} off`,`Shop B: $${off} off`])};$('psC').appendChild(btn)});return}
+      if(api.first('psC')){btn.disabled=true;btn.classList.add('no');api.retry($('psCM'),m);return}api.done(false,m,[`Shop A: ${p}% of $${P} = ${pmoney(D)} off`,`Shop B: $${off} off`])};$('psC').appendChild(btn)});
+    if(ctx.keep.psC)[...$('psC').children].find(y=>y.textContent==='Shop '+cheap).click();return}
   if(type==='gst'){const P=pick([20,50,80,120,150,200,300,60]),G=P*9/100;
     api.q(`<p class="qt">The ${item.toLowerCase()} costs <b>$${P}</b> before GST. GST is <b>9%</b>. How much do you pay altogether?</p>`);
     api.body.innerHTML=`<div class="row">${tag(ic+' '+item,'$'+P,'+ 9% GST')}</div>`;

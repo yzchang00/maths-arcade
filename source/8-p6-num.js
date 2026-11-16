@@ -52,12 +52,12 @@ addGame('p6-pchange',{level:'P6',strand:'num',glyph:'%↑',title:'Before & After
   api.q(`<p class="qt">${q}</p>`);
   api.body.innerHTML=`<div id="pb"></div><div class="row"><label for="pS" style="font-weight:800">${two?'Step 1: Set the After bar':'Step 1: Shade the part you know'}</label><input type="range" id="pS" min="0" max="150" step="5" value="${two?100:50}" style="flex:1;min-width:180px;accent-color:var(--tomato)"><span class="pill" id="pV"></span><button class="btn" id="pSet">Set</button></div><div id="pS2"></div>`;
   const draw=()=>{const v=+$('pS').value;$('pV').textContent=v+'%';$('pb').innerHTML=two?pctBars(100,v,lab1,lab2,true):pctBars(v,0,type==='whole'?(u?'$':'')+String(q.match(/\d+/)[0]):'',null,false)+`<p class="qs" style="margin:0">The whole bar is 100%.</p>`};
-  $('pS').oninput=draw;draw();let s1=null;
-  $('pSet').onclick=()=>{if(s1!==null)return;const v=+$('pS').value;if(v!==P&&api.first('bar')){api.retry($('pS2'),`Not quite. ${two?`Think: what percentage of the before amount is the after amount?`:`Read the percentage in the question again.`} Move the slider and press Set again.`);return}s1=v===P;$('pS').disabled=true;$('pSet').disabled=true;s1?sfx.pop():sfx.soft();
-    if(!s1){$('pS').value=P;draw()}
-    $('pS2').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${s1?'Bar model set correctly!':`The bar should be at ${P}%. I have moved it for you.`}</p><div class="row"><b>Step 2:</b>${u==='$'?'<b>$</b>':''}<input class="num" id="pIn" inputmode="decimal" aria-label="Answer">${u&&u!=='$'?`<span>${u}</span>`:''}<button class="btn primary" id="pChk">Check</button></div>`;
+  $('pS').oninput=draw;draw();let s1=null,bMiss=ctx.keep.bar==='pen';
+  $('pSet').onclick=()=>{if(s1!==null)return;const v=+$('pS').value;if(v!==P&&api.first('bar')){api.retry($('pS2'),`Not quite. ${two?`Think: what percentage of the before amount is the after amount?`:`Read the percentage in the question again.`} Move the slider and press Set again.`);return}if(v!==P){bMiss=true;sfx.no();$('pS2').innerHTML=`<p class="retrymsg">Not quite. The bar should be at <b>${P}%</b>. Move the slider to ${P}% and press Set to carry on.</p>`;return}s1=!bMiss;ctx.keep.bar=s1?'ok':'pen';$('pS').disabled=true;$('pSet').disabled=true;sfx.pop();
+    $('pS2').innerHTML=`<p style="margin:0 0 8px;font-weight:800">${s1?'Bar model set correctly!':'Now the bar model is right.'}</p><div class="row"><b>Step 2:</b>${u==='$'?'<b>$</b>':''}<input class="num" id="pIn" inputmode="decimal" aria-label="Answer">${u&&u!=='$'?`<span>${u}</span>`:''}<button class="btn primary" id="pChk">Check</button></div>`;
     $('pChk').onclick=()=>{const v2=parseFloat($('pIn').value.replace(/[$,%\s]/g,''));if(isNaN(v2))return;$('pIn').disabled=true;const o=Math.abs(v2-ans)<.001;
-      api.done(s1&&o,`The answer is ${u==='$'?'$':''}${ans}${u==='%'?'%':''}.`,work,(s1?4:0)+(o?6:0))}}}});
+      api.done(o,`The answer is ${u==='$'?'$':''}${ans}${u==='%'?'%':''}.`,work,(s1?4:0)+(o?6:0))}};
+  if(ctx.keep.bar){$('pS').value=P;draw();$('pSet').click()}}});
 
 /* P6-3. Ratio Kitchen — Ratio */
 function cupsRow(s,w){return `<div class="cups">${Array.from({length:s},()=>'<span class="cup syr" aria-hidden="true"></span>').join('')}${Array.from({length:w},()=>'<span class="cup wat" aria-hidden="true"></span>').join('')}</div>`}

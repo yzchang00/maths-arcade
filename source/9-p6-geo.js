@@ -26,16 +26,21 @@ addGame('p6-circle',{level:'P6',strand:'geo',glyph:'π',title:'Circle Lab',topic
   api.q(`<p class="qt">Find the ${isP?'perimeter':'area'} of the figure.</p><p class="qs">Take π = ${piTxt}. Give your answer to 2 decimal places if needed.</p>`);
   api.body.innerHTML=`<svg viewBox="0 0 360 260" class="msvg" style="max-width:400px" id="clS" role="img" aria-label="Figure">${S.pcs.map((p,i)=>`<path d="${p.d}" fill="none" stroke="var(--ink)" stroke-width="3" ${p.b?'':'stroke-dasharray="7 6"'} data-i="${i}" class="clp"/><path d="${p.d}" fill="none" stroke="transparent" stroke-width="22" data-i="${i}" class="clh" style="cursor:pointer"/>`).join('')}${S.labs}</svg><div id="clS1"></div><div id="clS2"></div>`;
   const step2=s1=>{$('clS2').innerHTML=`<div class="row"><b>${isP?'Perimeter':'Area'} =</b><input class="num" id="clIn" inputmode="decimal" aria-label="Answer"><span>${unit}</span><button class="btn primary" id="clChk">Check</button></div>`;
-    $('clChk').onclick=()=>{const g=parseFloat($('clIn').value);if(isNaN(g))return;$('clIn').disabled=true;const o=Math.abs(g-ans)<.015;api.done(s1&&o,`The ${isP?'perimeter':'area'} is ${ans} ${unit}.`,work,(s1?4:0)+(o?6:0))}};
+    $('clChk').onclick=()=>{const g=parseFloat($('clIn').value);if(isNaN(g))return;$('clIn').disabled=true;const o=Math.abs(g-ans)<.015;api.done(o,`The ${isP?'perimeter':'area'} is ${ans} ${unit}.`,work,(s1?4:0)+(o?6:0))}};
+  const K=ctx.keep;let eMiss=K.cl==='pen';
   if(isP){const sel=new Set();$('clS1').innerHTML=`<div class="row"><b>Step 1: Tap every edge of the perimeter.</b><button class="btn" id="clOk">Done</button></div>`;
     api.body.querySelectorAll('.clh').forEach(h=>h.addEventListener('click',()=>{if($('clOk').disabled)return;const i=+h.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);sfx.tap();
       api.body.querySelector(`.clp[data-i="${i}"]`).style.stroke=sel.has(i)?'var(--tomato)':'var(--ink)';api.body.querySelector(`.clp[data-i="${i}"]`).style.strokeWidth=sel.has(i)?6:3}));
-    $('clOk').onclick=()=>{const want=S.pcs.map((p,i)=>p.b?i:-1).filter(i=>i>=0),ok=want.length===sel.size&&want.every(i=>sel.has(i));if(!ok&&api.first('edges')){let m=$('clR');if(!m){$('clS1').insertAdjacentHTML('beforeend','<div id="clR"></div>');m=$('clR')}api.retry(m,`Not quite. ${sel.size<want.length?'You have missed some edges.':'Some of those edges are inside the shape, not around the outside.'} Change your edges and press Done again.`);return}$('clR')&&$('clR').remove();$('clOk').disabled=true;ok?sfx.pop():sfx.soft();
+    $('clOk').onclick=()=>{const want=S.pcs.map((p,i)=>p.b?i:-1).filter(i=>i>=0),ok=want.length===sel.size&&want.every(i=>sel.has(i));if(!ok&&api.first('edges')){let m=$('clR');if(!m){$('clS1').insertAdjacentHTML('beforeend','<div id="clR"></div>');m=$('clR')}api.retry(m,`Not quite. ${sel.size<want.length?'You have missed some edges.':'Some of those edges are inside the shape, not around the outside.'} Change your edges and press Done again.`);return}
+      if(!ok){eMiss=true;sfx.no();let m=$('clR');if(!m){$('clS1').insertAdjacentHTML('beforeend','<div id="clR"></div>');m=$('clR')}S.pcs.forEach((p,i)=>{if(p.b)api.body.querySelector(`.clp[data-i="${i}"]`).style.filter='drop-shadow(0 0 4px #ffd257)'});m.innerHTML=`<p class="retrymsg">Still not right. The perimeter is made of ${S.pcs.filter(p=>p.b).map(p=>p.n).join(', ')} (glowing). Tap exactly those edges, then press Done to carry on.</p>`;return}
+      $('clR')&&$('clR').remove();$('clOk').disabled=true;sfx.pop();const s1=!eMiss;K.cl=s1?'ok':'pen';
       S.pcs.forEach((p,i)=>{const el=api.body.querySelector(`.clp[data-i="${i}"]`);el.style.stroke=p.b?'var(--good)':'var(--ink)';el.style.strokeWidth=p.b?6:3});
-      $('clS1').insertAdjacentHTML('beforeend',`<p style="margin:6px 0 0;font-weight:800">${ok?'Correct edges! Now work out the perimeter.':'Not quite. The green edges make the perimeter.'} The perimeter is made of ${S.pcs.filter(p=>p.b).map(p=>p.n).join(', ')}.</p>`);step2(ok)}}
+      $('clS1').insertAdjacentHTML('beforeend',`<p style="margin:6px 0 0;font-weight:800">Correct edges! Now work out the perimeter. The perimeter is made of ${S.pcs.filter(p=>p.b).map(p=>p.n).join(', ')}.</p>`);step2(s1)};
+    if(K.cl){S.pcs.forEach((p,i)=>{if(p.b){sel.add(i)}});$('clOk').onclick()}}
   else{$('clS1').innerHTML=`<b>Step 1: Which formula gives the area?</b>`;const right=form[0];
-    choiceRow(api,'clF',form,right,ok=>{ok?sfx.pop():sfx.soft();api.body.appendChild($('clS2'));step2(ok)},'formula');
-    $('clF').querySelectorAll('button').forEach(b=>b.style.fontSize='1.05rem')}}});
+    stepPick(api,{id:'clF',label:'',options:form,right,pen:'_cl',then:()=>{api.body.appendChild($('clS2'));step2(K.clF!=='pen')},
+      hint:()=>'Not quite. Think about which shapes make up the figure, then try again.',reveal:()=>`The right formula is glowing. Tap it to carry on.`,okMsg:'<p class="askok">Yes! Now use the formula.</p>'});
+    $('clFP').querySelectorAll('button').forEach(b=>b.style.fontSize='1.05rem')}}});
 
 /* P6-6. Crate Cracker — Volume: finding an edge, height or face area; square and cube roots */
 function isoSolid(L,B,H,labs){const sc=170/(L+B+H*.8),c=.866,P=(x,y,z)=>[(x-y)*sc*c,(x+y)*sc*.5-z*sc],pt=p=>P(...p).map(v=>v.toFixed(1)).join(',');
