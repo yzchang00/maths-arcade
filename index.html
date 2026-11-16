@@ -68,6 +68,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .ghead p{margin:0;color:var(--muted);max-width:62ch}
 .stage{background:var(--surface);border:2px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--c);padding:18px;display:grid;gap:16px;min-width:0}
 .qt{font-size:1.25rem;font-weight:800;margin:0;text-wrap:pretty}
+.qt b{white-space:nowrap}
 .qs{margin:2px 0 0;color:var(--muted);font-weight:700}
 #gq:empty{display:none}
 .fb{border-radius:14px;padding:14px;display:grid;gap:10px;border:2px solid var(--good);background:color-mix(in srgb,var(--good) 10%,var(--surface))}
@@ -769,7 +770,7 @@ $('mute').onclick=()=>{setMute(!muted);if(!muted){ac();sfx.tap()}};setMute(muted
 /* theme: auto (follows the device), light or dark */
 let THEME='auto';try{THEME=localStorage.getItem('arcTheme')||'auto'}catch(e){}
 function setTheme(t){THEME=t;try{localStorage.setItem('arcTheme',t)}catch(e){}if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
-  $('theme').innerHTML=(t==='light'?'☀️<span class="tl"> Light':t==='dark'?'🌙<span class="tl"> Dark':'🌓<span class="tl"> Auto')+' mode</span>';$('theme').setAttribute('aria-label',(t==='light'?'Light':t==='dark'?'Dark':'Auto')+' mode');$('theme').title='Switch between auto, light and dark mode'}
+  const tn=t==='light'?'Light':t==='dark'?'Dark':'Auto';$('theme').innerHTML=(t==='light'?'☀️':t==='dark'?'🌙':'🌓')+'<span class="tl"> Theme: '+tn+'</span>';$('theme').setAttribute('aria-label','Theme: '+tn+'. Tap to change');$('theme').title='Theme: '+tn+(t==='auto'?' (follows your device)':'')+'. Tap to switch: Auto → Light → Dark'}
 $('theme').onclick=()=>{setTheme(THEME==='auto'?'light':THEME==='light'?'dark':'auto');sfx.tap()};setTheme(THEME);
 /* confetti */
 const cv=$('fx'),cx=cv.getContext('2d');let parts=[],raf=null;
@@ -1280,14 +1281,14 @@ addGame('p4-flip',{level:'P4',strand:'num',glyph:'¾',title:'Fraction Flip',topi
   api.q(`<p class="qt">Board ${r+1} of 3: find all 6 matching pairs.</p>`);
   api.body.innerHTML=`<div class="mstat" id="mMv"><span>Moves: <b>0</b></span><span>Pairs found: <b>0</b> of 6</span><span>Points if you finish now: <b>10</b></span></div><div class="mgrid" id="mG"></div>`;
   const stat=()=>{$('mMv').innerHTML=`<span>Moves: <b>${moves}</b></span><span>Pairs found: <b>${got}</b> of 6</span><span>Points if you finish now: <b>${ptsFor(Math.max(moves,6))}</b></span>`};
-  let open=[],lock=false,moves=0,got=0;
+  let open=[],miss=null,moves=0,got=0;const hide=()=>{if(!miss)return;miss.forEach(o=>{o.b.classList.remove('up');o.b.textContent='?'});miss=null};
   cards.forEach((c,ci)=>{const b=document.createElement('button');b.className='mcard';b.textContent='?';b.setAttribute('aria-label','Hidden card');
-    b.onclick=()=>{if(lock||b.classList.contains('up')||b.classList.contains('got'))return;sfx.tap();b.classList.add('up');b.innerHTML=c.html;open.push({b,c});
+    b.onclick=()=>{if(miss){const was=miss.some(o=>o.b===b);hide();if(was)return}if(b.classList.contains('up')||b.classList.contains('got'))return;sfx.tap();b.classList.add('up');b.innerHTML=c.html;open.push({b,c});
       if(open.length===2){moves++;const [x,y]=open;open=[];
         if(x.c.i===y.c.i){x.b.classList.add('got');y.b.classList.add('got');sfx.pop();got++;stat();
           if(got===6){const pts=ptsFor(moves);api.log(`Board ${r+1}: ${moves} moves → ${pts} points`);api.done(true,`Board cleared in ${moves} moves → ${pts} points${moves>6?` (6 moves = 10 points; you used ${moves-6} extra move${moves-6>1?'s':''}, which costs ${Math.min(9,Math.floor((moves-6)/2))} point${Math.floor((moves-6)/2)===1?'':'s'})`:' (a perfect board!)'}.`,
             pairs.map(p=>`${fr(p.n,p.d)} = <span class="whole">${Math.floor(p.n/p.d)}</span>${fr(p.n%p.d,p.d)} &nbsp;because ${p.n} ÷ ${p.d} = ${Math.floor(p.n/p.d)} remainder ${p.n%p.d}`),pts)}}
-        else{lock=true;sfx.soft();stat();api.later(()=>{[x,y].forEach(o=>{o.b.classList.remove('up');o.b.textContent='?'});lock=false},950)}}};
+        else{sfx.soft();stat();const m=[x,y];miss=m;api.later(()=>{if(miss===m)hide()},4000)}}};
     $('mG').appendChild(b)})}});
 
 /* 5. Sweet Share — Fraction of a set 2.1 */
@@ -2490,6 +2491,7 @@ function askBox(api,o){
   const ins=[...api.body.querySelectorAll(`[data-ask="${id}"]`)],go=$(id+'Go');
   const vals=()=>{const v={};ins.forEach(i=>{const s=i.value.trim().replace(/[$,\s]/g,'');v[i.dataset.k]=s===''?NaN:+s;v['_'+i.dataset.k]=i.value.trim()});return v};
   const chk=()=>{if(api.answered||go.disabled)return;const v=vals();
+    if(o.zero){if(o.zero.every(k=>v['_'+k]==='')){const f=ins.find(i=>o.zero.includes(i.dataset.k));if(f)f.focus();$(id+'M').innerHTML='<p class="askneed">Type your answer first. You can leave a box empty if it is 0.</p>';return}o.zero.forEach(k=>{if(v['_'+k]===''){v[k]=0;v['_'+k]='0'}})}
     const need=o.need||ins.map(i=>i.dataset.k);if(need.some(k=>v['_'+k]==='')){const f=ins.find(i=>need.includes(i.dataset.k)&&v['_'+i.dataset.k]==='');if(f)f.focus();$(id+'M').innerHTML=`<p class="askneed">Fill in ${need.length>1?'every box':'the box'} first.</p>`;return}
     if(o.numeric!==false&&need.some(k=>isNaN(v[k]))){$(id+'M').innerHTML='<p class="askneed">Type numbers only.</p>';return}
     const res=o.judge(v);
@@ -2606,7 +2608,7 @@ function hops(a,b){const out=[];let t=a;const nextH=Math.ceil((t+1)/60)*60;if(t%
 const durIn=id=>inBox(id,'h','hours',3.2,'numeric')+'<span class="askunit">h</span>'+inBox(id,'m','minutes',3.6,'numeric')+'<span class="askunit">min</span>';
 const timeIn=id=>`<input class="num" style="width:5.4em;letter-spacing:.12em" data-ask="${id}" data-k="t" inputmode="numeric" maxlength="5" placeholder="hh mm" aria-label="Time in 24-hour clock" autocomplete="off">`;
 const readT=s=>{const d=String(s).replace(/\D/g,'');if(d.length<3||d.length>4)return NaN;const h=+d.slice(0,-2),m=+d.slice(-2);if(h>24||m>59)return NaN;return h*60+m};
-function askDur(api,id,right,dec,ok,work,extra=[]){return askBox(api,{id,label:'',html:durIn(id),need:['h','m'],
+function askDur(api,id,right,dec,ok,work,extra=[]){return askBox(api,{id,label:'',html:durIn(id),need:['h','m'],zero:['h','m'],
   judge:v=>{const g=v.h*60+v.m;
     if(dec!==null&&Math.floor(dec/100)*60+dec%100!==right&&(v.h*100+v.m===dec||g===Math.floor(dec/100)*60+dec%100))return `It looks like you subtracted the times like ordinary numbers (${dec}). One hour is 60 minutes, not 100! Count on to the next hour instead.`;
     const t=extra.find(([x])=>x===g);if(t)return t[1];
@@ -2616,8 +2618,69 @@ function askDur(api,id,right,dec,ok,work,extra=[]){return askBox(api,{id,label:'
 function askTime(api,id,right,traps,ok,work){
   api.body.insertAdjacentHTML('beforeend','<p class="qs">Type 4 digits, e.g. 0745 or 19 05.</p>');
   return askBox(api,{id,html:timeIn(id),numeric:false,
-  judge:v=>{const g=readT(v._t);if(isNaN(g))return 'Write the time with 4 digits: two for the hour (00 to 23) and two for the minutes, e.g. 07 05.';if(g%1440===right%1440)return true;const t=traps.find(([x])=>typeof x==='function'?x(g,v._t):x%1440===g);return t?t[1]:false},
+  judge:v=>{const g=readT(v._t);const t0=traps.find(([x])=>typeof x==='function'&&x(g,v._t));if(isNaN(g)&&t0)return t0[1];if(isNaN(g))return 'Write the time with 4 digits: two for the hour (00 to 23) and two for the minutes, e.g. 07 05.';if(g%1440===right%1440)return true;const t=traps.find(([x])=>typeof x==='function'?x(g,v._t):x%1440===g);return t?t[1]:false},
   onRight:(v,u)=>api.done(true,ok,work,ptsUsed(u)),onWrong:m=>api.done(false,(m?m+' ':'')+`The answer is ${ttm(right)}.`,work)})}
+/* Shared journey player: the vehicle travels the route while each part's time pops up. Before answering there is no clock, so nothing is given away;
+   after answering, Replay shows the clock (or running total). */
+let jmTok=0,JMD=null;
+const MRT={
+ NS:{name:'North–South Line',col:'#d42e12',st:[['Jurong East',190,320],['Bukit Batok',190,280],['Bukit Gombak',190,240],['Choa Chu Kang',190,200],['Yew Tee',190,160],['Kranji',200,112],['Marsiling',235,72],['Woodlands',285,44],['Admiralty',340,44],['Sembawang',395,44],['Canberra',450,44],['Yishun',492,72],['Khatib',492,97],['Yio Chu Kang',492,121],['Ang Mo Kio',492,146],['Bishan',492,170],['Braddell',492,194],['Toa Payoh',492,218],['Novena',492,243],['Newton',492,268],['Orchard',492,305],['Somerset',492,345],['Dhoby Ghaut',492,385],['City Hall',527,420],['Raffles Place',527,462],['Marina Bay',590,536],['Marina South Pier',590,598]]},
+ EW:{name:'East–West Line',col:'#009645',st:[['Pasir Ris',935,200],['Tampines',910,240],['Simei',890,270],['Tanah Merah',870,301],['Bedok',835,301],['Kembangan',800,301],['Eunos',765,301],['Paya Lebar',728,301],['Aljunied',685,320],['Kallang',645,340],['Lavender',607,365],['Bugis',570,390],['City Hall',527,420],['Raffles Place',527,462],['Tanjong Pagar',478,462],['Outram Park',425,420],['Tiong Bahru',400,415],['Redhill',370,410],['Queenstown',335,400],['Commonwealth',300,390],['Buona Vista',261,377],['Dover',240,362],['Clementi',215,342],['Jurong East',190,320],['Chinese Garden',170,320],['Lakeside',150,320],['Boon Lay',130,320],['Pioneer',110,320],['Joo Koon',90,320],['Gul Circle',70,320],['Tuas Crescent',50,320],['Tuas West Road',30,320],['Tuas Link',10,320]]},
+ CG:{name:'East–West Line',col:'#009645',noQ:1,st:[['Tanah Merah',870,301],['Expo',910,340],['Changi Airport',955,340]]},
+ NE:{name:'North East Line',col:'#9900aa',st:[['HarbourFront',410,536],['Outram Park',425,420],['Chinatown',460,410],['Clarke Quay',476,398],['Dhoby Ghaut',492,385],['Little India',520,350],['Farrer Park',540,318],['Boon Keng',560,288],['Potong Pasir',578,258],['Woodleigh',596,225],['Serangoon',613,192],['Kovan',638,152],['Hougang',663,122],['Buangkok',688,92],['Sengkang',713,64],['Punggol',738,40],['Punggol Coast',766,16]]},
+ CC:{name:'Circle Line',col:'#fa9e0d',loop:1,st:[['Dhoby Ghaut',492,385],['Bras Basah',565,410],['Esplanade',640,430],['Promenade',712,449],['Nicoll Highway',727,421],['Stadium',737,392],['Mountbatten',740,361],['Dakota',737,331],['Paya Lebar',728,301],['MacPherson',710,268],['Tai Seng',684,238],['Bartley',651,212],['Serangoon',613,192],['Lorong Chuan',554,175],['Bishan',492,170],['Marymount',438,176],['Caldecott',387,192],['Botanic Gardens',322,233],['Farrer Road',285,276],['Holland Village',264,325],['Buona Vista',261,377],['one-north',267,406],['Kent Ridge',279,434],['Haw Par Villa',296,461],['Pasir Panjang',319,485],['Labrador Park',346,506],['Telok Blangah',376,523],['HarbourFront',410,536],['Keppel',454,547],['Cantonment',500,550],['Prince Edward Road',546,547],['Marina Bay',590,536],['Bayfront',654,506]]},
+ DT:{name:'Downtown Line',col:'#005ec4',st:[['Bukit Panjang',220,140],['Cashew',232,160],['Hillview',244,180],['Hume',256,198],['Beauty World',268,214],['King Albert Park',282,222],['Sixth Avenue',296,228],['Tan Kah Kee',309,231],['Botanic Gardens',322,233],['Stevens',420,268],['Newton',492,268],['Little India',520,350],['Rochor',545,370],['Bugis',570,390],['Promenade',712,449],['Bayfront',654,506],['Downtown',610,495],['Telok Ayer',565,482],['Chinatown',460,410],['Fort Canning',455,372],['Bencoolen',510,362],['Jalan Besar',560,340],['Bendemeer',600,325],['Geylang Bahru',640,305],['Mattar',675,287],['MacPherson',710,268],['Ubi',745,252],['Kaki Bukit',780,237],['Bedok North',815,222],['Bedok Reservoir',850,207],['Tampines West',880,225],['Tampines',910,240],['Tampines East',935,270],['Upper Changi',935,305],['Expo',910,340]]},
+ TE:{name:'Thomson–East Coast Line',col:'#9d5b25',st:[['Woodlands North',285,12],['Woodlands',285,44],['Woodlands South',285,72],['Springleaf',300,94],['Lentor',318,114],['Mayflower',336,134],['Bright Hill',354,154],['Upper Thomson',370,173],['Caldecott',387,192],['Stevens',420,268],['Napier',430,290],['Orchard Boulevard',455,305],['Orchard',492,305],['Great World',470,345],['Havelock',448,383],['Outram Park',425,420],['Maxwell',455,452],['Shenton Way',520,492],['Marina Bay',590,536],['Gardens by the Bay',650,578],['Tanjong Rhu',700,578],['Katong Park',745,578],['Tanjong Katong',790,578],['Marine Parade',835,578],['Marine Terrace',880,578],['Siglap',920,578],['Bayshore',960,578]]}};
+for(const k in MRT){const L=MRT[k],P=L.st.map(t=>Array.isArray(t)?{n:t[0],x:t[1],y:t[2]}:{n:t});let last=0;
+  for(let i=1;i<P.length;i++)if(P[i].x!=null){for(let j=last+1;j<i;j++){const f=(j-last)/(i-last);P[j].x=P[last].x+(P[i].x-P[last].x)*f;P[j].y=P[last].y+(P[i].y-P[last].y)*f}last=i}L.P=P}
+const ISLAND=(()=>{const p=[[-10,330],[5,265],[60,215],[125,150],[165,80],[235,18],[330,-8],[450,10],[560,-8],[690,-5],[800,18],[880,85],[955,150],[1005,230],[995,330],[1008,440],[995,560],[945,612],[800,612],[700,612],[620,628],[540,628],[460,604],[375,572],[300,522],[230,452],[150,392],[60,372]];
+  const n=p.length;let d=`M${p[0]}`;for(let i=0;i<n;i++){const p0=p[(i-1+n)%n],p1=p[i],p2=p[(i+1)%n],p3=p[(i+2)%n];d+=` C${p1[0]+(p2[0]-p0[0])/6},${p1[1]+(p2[1]-p0[1])/6} ${p2[0]-(p3[0]-p1[0])/6},${p2[1]-(p3[1]-p1[1])/6} ${p2}`}return d+'Z'})();
+function jmRun(api,clock,instant){const D=JMD,V=$('jmV'),C=$('jmC');if(!D||!V)return;const tok=++jmTok;
+  const inP=[...document.querySelectorAll('.jmwrap .jmp')],total=D.segs.reduce((x,y)=>x+y,0);
+  const spr=q=>{const m=D.modes[q]==='change'?'walk':D.modes[q];V.querySelectorAll('[data-m]').forEach(g=>g.style.display=g.dataset.m===m?'':'none');const t=V.querySelector('.tc');if(t)t.setAttribute('stroke',D.cols[q]);D.ang=D.angs[q]};
+  const put=p=>{V.setAttribute('transform',`translate(${p[0].toFixed(1)} ${p[1].toFixed(1)}) scale(${D.k}) rotate(${(D.ang||0).toFixed(1)})`);C.setAttribute('transform',`translate(${p[0].toFixed(1)} ${p[1].toFixed(1)}) scale(${D.k})`)};
+  const lab=t=>{C.setAttribute('opacity',clock?1:0);C.querySelector('text').textContent=D.a!=null?ttm(D.a+t):tdur(t)||'0 min'};
+  const end=()=>{inP.forEach(p=>{p.style.opacity=1;p.style.transform=''});if(api.answered)document.querySelectorAll('.jmwrap .jmp[data-real] text').forEach(t=>t.textContent=t.parentNode.dataset.real);
+    const q=D.samp.length-1,s=D.samp[q];spr(q);put(s[s.length-1]);lab(total);
+    const w=api.body.querySelector('.askwrap');if(w)w.style.visibility='';const sk=$('jmSkip');if(sk)sk.style.display='none'};
+  spr(0);put(D.samp[0][0]);lab(0);if(!clock)inP.forEach(p=>{p.style.opacity=0;p.style.transform='scale(.6)'});
+  if(instant||calm)return end();
+  const sk=$('jmSkip');if(sk)sk.style.display='';
+  let k=0,t0=null,base=0;const ms=m=>Math.min(1500,380+m*24);
+  const step=ts=>{if(tok!==jmTok||!document.body.contains(V))return;
+    if(t0===null){t0=ts;spr(k);const p=inP[k];if(p){p.style.opacity=1;p.style.transform='scale(1.15)';setTimeout(()=>{if(tok===jmTok)p.style.transform=''},260)}}
+    const m=D.segs[k],f=Math.min(1,(ts-t0)/ms(m)),s=D.samp[k];put(s[Math.round(f*(s.length-1))]);lab(base+Math.round(m*f));
+    if(f<1)return requestAnimationFrame(step);
+    base+=m;k++;if(k>=D.segs.length)return end();
+    t0=null;setTimeout(()=>{if(tok===jmTok)requestAnimationFrame(step)},260)};
+  requestAnimationFrame(step)}
+function jmStart(api){const w=api.body.querySelector('.askwrap');if(w&&!calm)w.style.visibility='hidden';
+  $('jmPlay').onclick=()=>{sfx.tap();jmRun(api,api.answered,false)};$('jmSkip').onclick=()=>{sfx.tap();jmTok++;jmRun(api,api.answered,true)};
+  setTimeout(()=>jmRun(api,false,false),350)}
+/* Time jump tool: pupils hop from the start time to the end time (next o'clock, +1 h, +10/5/1 min). It never adds the hops up for them. */
+function timeJump(api,a,b){const span=b-a;let hops=[];
+  api.body.insertAdjacentHTML('beforeend',`<div class="tjw"><button class="btn" id="tjOpen" aria-expanded="false">🦘 Use the time jump</button><div id="tjP" hidden style="margin-top:10px;border:2px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:10px;background:var(--surface)">
+    <p style="margin:0;font-weight:700">Start at <b>${ttm(a)}</b> and jump until you land on <b>${ttm(b)}</b>. Then add up your jumps.</p>
+    <svg id="tjS" viewBox="0 0 660 120" style="width:100%;height:auto;display:block" role="img" aria-label="Time jump number line"></svg>
+    <div class="row" style="gap:6px">${[['next',"To the next o'clock"],[60,'+1 h'],[10,'+10 min'],[5,'+5 min'],[1,'+1 min']].map(([v,t])=>`<button class="btn" data-j="${v}">${t}</button>`).join('')}<button class="btn" data-j="undo">↩ Undo</button></div>
+    <p id="tjM" style="margin:0;font-weight:800" aria-live="polite"></p></div></div>`);
+  const S=$('tjS'),M=$('tjM');
+  const now=()=>a+hops.reduce((x,y)=>x+y,0);
+  const X=t=>20+Math.min(1.08,(t-a)/span)*580;
+  const draw=()=>{const t=now();let s=`<line x1="20" y1="86" x2="${Math.max(620,X(t)+10)}" y2="86" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>`;
+    s+=`<line x1="20" y1="76" x2="20" y2="96" stroke="var(--ink)" stroke-width="3"/><text x="20" y="114" text-anchor="middle" font-size="14" font-weight="800" fill="var(--ink)">${ttm(a)}</text>`;
+    s+=`<line x1="600" y1="74" x2="600" y2="98" stroke="var(--tomato)" stroke-width="3"/><text x="600" y="114" text-anchor="middle" font-size="14" font-weight="800" fill="var(--tomato)">${ttm(b)}</text>`;
+    let p=a;const pos=hops.map(h=>{const r=[p,p+h];p+=h;return r});
+    pos.forEach(([u,v])=>{const x1=X(u),x2=X(v),mid=(x1+x2)/2,ht=Math.min(46,10+(x2-x1)*.35);s+=`<path d="M${x1} 84 Q${mid} ${84-ht*2} ${x2} 84" fill="none" stroke="var(--teal)" stroke-width="3"/><polygon points="${x2},84 ${x2-6},77 ${x2+1},75" fill="var(--teal)"/>`});
+    const grp=[];hops.forEach((h,k)=>{const g=grp[grp.length-1],w=X(pos[k][1])-X(pos[k][0]);if(g&&g.h===h&&w<48&&g.narrow)g.n++,g.e=k;else grp.push({h,n:1,s:k,e:k,narrow:w<48})});
+    let row=0;grp.forEach(g=>{const x1=X(pos[g.s][0]),x2=X(pos[g.e][1]),mid=(x1+x2)/2,w=x2-x1,ht=Math.min(46,10+(X(pos[g.s][1])-x1)*.35);
+      const y=w<60?(row++%2?20:36):Math.max(13,84-ht-6);s+=`<text x="${mid}" y="${y}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--teal)">${g.n>1?g.n+' × '+tdur(g.h):'+'+tdur(g.h)}</text>`});
+    let last=20;pos.forEach(([u,v])=>{const x=X(v);if(v!==b&&x-last>=46&&600-x>=46){s+=`<text x="${x}" y="104" text-anchor="middle" font-size="11" font-weight="700" fill="var(--muted)">${ttm(v)}</text>`;last=x}});
+    s+=`<circle cx="${X(t)}" cy="86" r="7" fill="${t===b?'var(--good)':t>b?'var(--bad)':'var(--violet)'}"/>`;S.innerHTML=s;
+    M.innerHTML=!hops.length?'Pick a jump.':t===b?`🎉 You landed on ${ttm(b)}! Now add up your jumps: ${hops.map(h=>tdur(h)).join(' + ')}`:t>b?`Too far: you are at ${ttm(t)}, past ${ttm(b)}. Undo and take a smaller jump.`:`You are at <b>${ttm(t)}</b>.`};
+  $('tjOpen').onclick=()=>{const P=$('tjP'),o=P.hidden;P.hidden=!o;$('tjOpen').setAttribute('aria-expanded',o);sfx.tap();draw()};
+  $('tjP').querySelectorAll('[data-j]').forEach(btn=>btn.onclick=()=>{const v=btn.dataset.j,t=now();sfx.tap();
+    if(v==='undo')hops.pop();else if(t<b){const h=v==='next'?(t%60?60-t%60:60):+v;hops.push(h)}draw()})}
 const PLACES=['Jurong East','Bishan','Tampines','Woodlands','Changi','Punggol','Bukit Panjang','Pasir Ris','Marina Bay','Serangoon','Kranji','Bedok'];
 addGame('p4-train',{level:'P4',strand:'geo',glyph:'🚆',title:'Train Timetable',topic:'24-hour clock and time durations',
  how:'Read the departure board, change between 12-hour and 24-hour clock, and work out how long journeys take.',rounds:8,
@@ -2645,7 +2708,7 @@ addGame('p4-train',{level:'P4',strand:'geo',glyph:'🚆',title:'Train Timetable'
       api.body.innerHTML=board(st.map((s,k)=>[s,ttm(ts[k])]),'Timetable: one train');}
     else{api.q(`<p class="qt">The train leaves <b>${fromN}</b> at <b>${ttm(a)}</b> and reaches <b>${toN}</b> at <b>${ttm(b)}</b>. How long is the journey?</p>`);
       api.body.innerHTML=board([[`Leaves ${fromN}`,ttm(a)],[`Arrives ${toN}`,ttm(b)]],'Journey')}
-    const d=b-a,dec=asDec(b)-asDec(a);
+    const d=b-a,dec=asDec(b)-asDec(a);timeJump(api,a,b);
     askDur(api,'tD',d,dec,`${ttm(a)} to ${ttm(b)} is ${tdur(d)}.`,['Count on in hops: to the next hour, then whole hours, then the minutes left.',hops(a,b),`Total: ${tdur(d)}`]);return}
   if(type==='arrive'||type==='depart'){
     const a=R(6,19)*60+R(5,11)*5,d=R(1,2)*60+R(5,11)*5,b=a+d;
@@ -2663,10 +2726,146 @@ addGame('p4-train',{level:'P4',strand:'geo',glyph:'🚆',title:'Train Timetable'
   if(type==='night'){const a=R(20,23)*60+R(1,11)*5,b=1440+R(4,7)*60+R(0,11)*5,d=b-a;
     api.q(`<p class="qt">The overnight train leaves <b>${P[0]}</b> at <b>${ttm(a)}</b> and arrives at <b>${P[1]}</b> at <b>${ttm(b)}</b> the next morning. How long is the journey?</p>`);
     api.body.innerHTML=board([[`Leaves ${P[0]}`,ttm(a)],[`Arrives ${P[1]} (next day)`,ttm(b)]],'Night train');
-    const back=a-(b-1440);
+    const back=a-(b-1440);timeJump(api,a,b);
     askDur(api,'tN',d,null,`${ttm(a)} to ${ttm(b)} the next day is ${tdur(d)}.`,['Split the journey at midnight:',`${ttm(a)} → 24 00 = ${tdur(1440-a)}`,`00 00 → ${ttm(b)} = ${tdur(b-1440)}`,`Total: ${tdur(d)}`],[[back,`You worked out ${ttm(a)} − ${ttm(b)}, going backwards. The train arrives the <b>next day</b>, so count on to midnight (24 00) first, then on to ${ttm(b)}.`]]);return}
  }});
 
+/* ================= All levels. Beat the Clock: SG Journeys — time durations on real MRT journeys (+ walking and buses on Hard) ================= */
+const QK=['NS','EW','NE','CC','DT','TE'],MODECOL={walk:'#56667b',change:'#56667b',wait:'#c2410c',bus:'#5f50ec'};
+const STN={};QK.forEach(k=>MRT[k].P.forEach((p,i)=>(STN[p.n]=STN[p.n]||[]).push({k,i})));
+const SGPLACES=[['Science Centre','Jurong East'],['National Library','Bugis'],['Gardens by the Bay','Bayfront'],['East Coast Park','Marine Parade'],['Singapore Botanic Gardens','Botanic Gardens'],['National Stadium','Stadium'],['Sentosa Boardwalk','HarbourFront'],['Chinatown Heritage Centre','Chinatown'],['Bishan Park','Bishan'],['Esplanade Theatres','Esplanade'],['ION Orchard','Orchard'],['Woodlands Waterfront','Woodlands North'],['Bedok Reservoir Park','Bedok Reservoir'],['Punggol Waterway','Punggol']];
+const SGKIDS=[['Aisha','she'],['Wei Jie','he'],['Ravi','he'],['Mei Ling','she'],['Daniel','he'],['Siti','she'],['Arjun','he'],['Hui Min','she']];
+const mgap=()=>pick([2,2,3,3,3,4]);
+const legIdx=(i,j)=>{const o=[],s=i<j?1:-1;for(let q=i;q!==j+s;q+=s)o.push(q);return o};
+/* a route of MRT legs [{k,idx}] with 0–2 line changes, optionally ending at a given station */
+function sgRoute(changes,endName){
+  for(let t=0;t<800;t++){let legs=[];
+    if(endName){const o=pick(STN[endName]),L=MRT[o.k],e=o.i;
+      if(changes===0){const g=R(3,6),st=e-pick([1,-1])*g;if(st<0||st>=L.P.length)continue;legs=[{k:o.k,idx:legIdx(st,e)}]}
+      else{const x=e-pick([1,-1])*R(2,5);if(x<0||x>=L.P.length)continue;const oth=(STN[L.P[x].n]||[]).filter(z=>z.k!==o.k);if(!oth.length)continue;
+        const b=pick(oth),Lb=MRT[b.k],st=b.i+pick([1,-1])*R(2,4);if(st<0||st>=Lb.P.length)continue;legs=[{k:b.k,idx:legIdx(st,b.i)},{k:o.k,idx:legIdx(x,e)}]}}
+    else{const k0=pick(QK),L0=MRT[k0];
+      if(changes===0){const g=R(3,6),i=R(0,L0.P.length-1-g);const idx=legIdx(i,i+g);if(Math.random()<.5)idx.reverse();legs=[{k:k0,idx}]}
+      else{let cur={k:k0,i:R(0,L0.P.length-1)},ok=true;
+        for(let c=0;c<=changes;c++){const L=MRT[cur.k];
+          if(c<changes){const cand=[];for(const s of[1,-1])for(let g=2;g<=5;g++){const j=cur.i+s*g;if(j<0||j>=L.P.length)break;const oth=(STN[L.P[j].n]||[]).filter(z=>z.k!==cur.k&&!legs.some(l=>l.k===z.k));if(oth.length)cand.push([j,oth])}
+            if(!cand.length){ok=false;break}const[j,oth]=pick(cand);legs.push({k:cur.k,idx:legIdx(cur.i,j)});const nx=pick(oth);cur={k:nx.k,i:nx.i}}
+          else{const j=cur.i+pick([1,-1])*R(2,4);if(j<0||j>=L.P.length){ok=false;break}legs.push({k:cur.k,idx:legIdx(cur.i,j)})}}
+        if(!ok)continue}}
+    const names=legs.flatMap((l,li)=>l.idx.slice(li?1:0).map(q=>MRT[l.k].P[q].n));if(new Set(names).size!==names.length)continue;
+    if(legs.some((l,li)=>li&&l.k===legs[li-1].k))continue;
+    if(names.length>(changes?8:7))continue;
+    return legs}
+  return endName&&changes>0?sgRoute(0,endName):null}
+/* turn legs into nodes + segments. pre: [{node,mode,min}] before the first station; post: [{mode,min,node}] after the last */
+function sgBuild(legs,pre=[],post=[]){const nodes=[],segs=[];
+  pre.forEach(p=>{nodes.push(p.node);segs.push({mode:p.mode,min:p.min,col:MODECOL[p.mode],hide:p.hide})});
+  legs.forEach((l,li)=>{const L=MRT[l.k];l.idx.forEach((q,qi)=>{const P=L.P[q],nd={n:P.n,x:P.x,y:P.y,kind:'stn',col:L.col};
+    if(qi===0){if(li>0){segs.push({mode:'change',min:R(3,5),col:MODECOL.change});nd.dup=1}nodes.push(nd)}
+    else{segs.push({mode:'mrt',min:mgap(),col:L.col});nodes.push(nd)}})});
+  post.forEach(p=>{segs.push({mode:p.mode,min:p.min,col:MODECOL[p.mode],hide:p.hide});nodes.push(p.node)});
+  return{nodes,segs,legs}}
+const outward=(x,y,dist)=>{const dx=x-500,dy=y-330,l=Math.hypot(dx,dy)||1;return[x+dx/l*dist,y+dy/l*dist]};
+const chipTxt=s=>s.hide?`${s.mode} ?`:s.mode==='mrt'?`${s.min} min`:`${s.mode} ${s.min} min`;
+function sgStrip(N,S,title){const n=N.length,W=Math.max(660,96+(n-1)*88),x0=48,dx=(W-96)/(n-1),y=64,H=136;
+  let s=`<rect width="${W}" height="${H}" fill="#fff"/>`;
+  S.forEach((g,q)=>{const x1=x0+dx*q,x2=x1+dx;s+=g.mode==='mrt'||g.mode==='bus'?`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${g.col}" stroke-width="8"/>`:`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${g.col}" stroke-width="4" stroke-dasharray="2 7" stroke-linecap="round"/>`});
+  let row=0;S.forEach((g,q)=>{const t=chipTxt(g),w=t.length*8+18,mx=x0+dx*(q+.5),cy=w>dx-6?(row++%2?y-50:y-24):y-24;
+    s+=`<g class="jmp" data-in="1" ${g.hide?`data-real="${g.mode} ${g.min} min"`:''} style="transition:opacity .25s,transform .25s;transform-origin:${mx}px ${cy}px"><rect x="${mx-w/2}" y="${cy-12}" width="${w}" height="24" rx="12" fill="${g.col}"/><text x="${mx}" y="${cy+5}" text-anchor="middle" font-size="14" font-weight="800" fill="#fff">${t}</text></g>`});
+  N.forEach((nd,q)=>{const x=x0+dx*q,end=q===0||q===n-1;if(nd.dup)return;
+    s+=nd.kind==='stn'?`<circle cx="${x}" cy="${y}" r="${end?10:7}" fill="${end?'#ffd257':'#fff'}" stroke="${end?'#16233a':nd.col}" stroke-width="3"/>`:`<rect x="${x-9}" y="${y-9}" width="18" height="18" rx="5" fill="${nd.kind==='place'?'#ef5240':nd.kind==='home'?'#0b968b':'#5f50ec'}" stroke="#16233a" stroke-width="2"/>`;
+    const lx=q===0?x-12:q===n-1?x+12:x,anc=q===0?'start':q===n-1?'end':'middle';
+    s+=`<text x="${lx}" y="${y+(q%2?52:32)}" text-anchor="${anc}" font-size="${end?14:13}" font-weight="${end?800:700}" fill="#16233a">${nd.n}</text>`});
+  return `${title?`<div class="tbh" style="padding:7px 12px">${title}</div>`:''}<svg class="tmap-nozoom" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;border-top:3px solid #2c3446" aria-hidden="true">${s}</svg>`}
+const SPRITES=`<g data-m="mrt"><rect class="tc" x="-19" y="-8" width="38" height="16" rx="7" fill="#fff" stroke="#009645" stroke-width="3"/><rect x="-14" y="-4" width="7" height="5" rx="1.5" fill="#2b3a55"/><rect x="-3.5" y="-4" width="7" height="5" rx="1.5" fill="#2b3a55"/><rect x="7" y="-4" width="7" height="5" rx="1.5" fill="#2b3a55"/></g>
+  <g data-m="bus"><rect x="-18" y="-9" width="36" height="16" rx="4" fill="#5f50ec" stroke="#16233a" stroke-width="1.5"/><rect x="-14" y="-6" width="23" height="6" rx="1.5" fill="#fff"/><rect x="11" y="-6" width="4" height="9" rx="1" fill="#fff"/><circle cx="-10" cy="8" r="3" fill="#16233a"/><circle cx="10" cy="8" r="3" fill="#16233a"/></g>
+  <g data-m="walk"><circle r="13" fill="#fff" stroke="#16233a" stroke-width="2"/><circle cx="0" cy="-6.5" r="2.7" fill="#16233a"/><path d="M0 -3 L0 4 M0 4 L-3.5 9 M0 4 L3.5 9 M-4.5 0.5 L4.5 -1" stroke="#16233a" stroke-width="2" stroke-linecap="round" fill="none"/></g>
+  <g data-m="wait"><circle r="13" fill="#fff" stroke="#c2410c" stroke-width="2.5"/><path d="M0 0 L0 -7.5 M0 0 L5.5 2.5" stroke="#c2410c" stroke-width="2.4" stroke-linecap="round"/></g>`;
+function sgMap(R0,a){const N=R0.nodes,S=R0.segs,n=N.length;
+  const xs=N.map(p=>p.x),ys=N.map(p=>p.y);let w=Math.max(Math.max(...xs)-Math.min(...xs)+170,280),h=Math.max(Math.max(...ys)-Math.min(...ys)+140,w/2.2);w=Math.max(w,h*2.2);
+  const cx=(Math.max(...xs)+Math.min(...xs))/2,cy=(Math.max(...ys)+Math.min(...ys))/2,vx=cx-w/2,vy=cy-h/2,k=w/660,f=v=>(v*k).toFixed(2);
+  let g=`<rect x="-400" y="-400" width="1800" height="1400" fill="#b9dff0"/><path d="${ISLAND}" fill="#e7efdf" stroke="#cfdcc4" stroke-width="${f(2)}"/>`;
+  const line=(P,col,wd,op)=>`<polyline points="${P.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="${f(wd)}" stroke-linejoin="round" stroke-linecap="round" opacity="${op}"/>`;
+  const used=new Set(R0.legs.map(l=>l.k));
+  for(const kk in MRT){const Q=MRT[kk],op=used.has(kk)?.6:.32,wd=used.has(kk)?6:5;g+=line(Q.P,Q.col,wd,op);if(Q.loop)g+=line([Q.P[Q.P.length-1],Q.P[3]],Q.col,wd,op)}
+  const seen=new Set();for(const kk in MRT)MRT[kk].P.forEach(p=>{if(seen.has(p.n))return;seen.add(p.n);g+=`<circle cx="${p.x}" cy="${p.y}" r="${f(3.5)}" fill="#fff" stroke="#7d8796" stroke-width="${f(1.2)}"/>`});
+  const samp=[],angs=[];
+  S.forEach((sg,q)=>{const p=N[q],r=N[q+1];let pts;
+    if(sg.mode==='bus'){const mx=(p.x+r.x)/2,my=(p.y+r.y)/2,dx=r.x-p.x,dy=r.y-p.y,c=[mx-dy*.25,my+dx*.25];pts=Array.from({length:31},(_,t)=>{const u=t/30;return[(1-u)*(1-u)*p.x+2*(1-u)*u*c[0]+u*u*r.x,(1-u)*(1-u)*p.y+2*(1-u)*u*c[1]+u*u*r.y]});
+      g+=`<path d="M${p.x} ${p.y} Q${c[0]} ${c[1]} ${r.x} ${r.y}" fill="none" stroke="#5f50ec" stroke-width="${f(6)}" stroke-dasharray="${f(10)} ${f(6)}" stroke-linecap="round"/>`}
+    else{pts=Array.from({length:31},(_,t)=>[p.x+(r.x-p.x)*t/30,p.y+(r.y-p.y)*t/30]);
+      if(sg.mode==='mrt')g+=line([p,r],sg.col,9,1);else if(sg.mode==='walk')g+=`<line x1="${p.x}" y1="${p.y}" x2="${r.x}" y2="${r.y}" stroke="#56667b" stroke-width="${f(4)}" stroke-dasharray="${f(1)} ${f(8)}" stroke-linecap="round"/>`}
+    samp.push(pts);let an=Math.atan2(r.y-p.y,r.x-p.x)*180/Math.PI;if(an>90)an-=180;if(an<=-90)an+=180;angs.push(sg.mode==='mrt'||sg.mode==='bus'?an:0)});
+  const halo=`paint-order:stroke;stroke:#fff;stroke-width:${f(4)}px;stroke-linejoin:round`;const lab=new Set();
+  N.forEach((nd,q)=>{const end=q===0||q===n-1,chg=nd.dup;
+    if(nd.kind==='stn'){if(!nd.dup)g+=`<circle cx="${nd.x}" cy="${nd.y}" r="${f(end?9:chg?8:6)}" fill="${end?'#ffd257':'#fff'}" stroke="${end?'#16233a':nd.col}" stroke-width="${f(end?3:2.5)}"/>`}
+    else g+=`<rect x="${(nd.x-k*9).toFixed(1)}" y="${(nd.y-k*9).toFixed(1)}" width="${f(18)}" height="${f(18)}" rx="${f(5)}" fill="${nd.kind==='place'?'#ef5240':nd.kind==='home'?'#0b968b':'#5f50ec'}" stroke="#16233a" stroke-width="${f(2)}"/>`;
+    const show=nd.kind!=='stop'&&(end||chg||nd.kind!=='stn'||(q===1&&N[0].kind!=='stn')||(q===n-2&&N[n-1].kind!=='stn'));
+    if(show&&!lab.has(nd.n)){lab.add(nd.n);g+=`<text x="${(nd.x+k*13).toFixed(1)}" y="${(nd.y-k*11).toFixed(1)}" font-size="${f(end?15:13)}" font-weight="800" fill="#16233a" style="${halo}">${nd.n}${chg?' (change)':''}</text>`}});
+  g+=`<g id="jmC" opacity="0"><rect x="-38" y="-74" width="76" height="24" rx="12" fill="#141a26"/><text y="-57" text-anchor="middle" font-size="14" font-weight="800" fill="#ffd257" font-family="ui-monospace,Menlo,monospace"></text></g><g id="jmV">${SPRITES}</g>`;
+  JMD={k,segs:S.map(s=>s.min),modes:S.map(s=>s.mode),cols:S.map(s=>s.col),angs,samp,a:a==null?null:a};
+  const lines=[...used].map(kk=>`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border-radius:4px;background:${MRT[kk].col};display:inline-block"></span>${MRT[kk].name}</span>`).join(' · ');
+  return `<div class="jmwrap" style="max-width:660px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26"><div class="tbh" style="padding:7px 12px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center">${lines}</div><svg id="jmSvg" class="tmap-nozoom" viewBox="${vx.toFixed(1)} ${vy.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" style="width:100%;height:auto;display:block" role="img" aria-label="Journey map. ${S.map((s,q)=>`${N[q].n} to ${N[q+1].n}: ${s.mode} ${s.hide?'unknown':s.min+' minutes'}`).join('. ')}.">${g}</svg>${sgStrip(N,S)}</div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="jmPlay">▶ Replay journey</button><button class="btn" id="jmSkip">Skip ⏭</button></div>`}
+const sgSum=S=>S.reduce((x,s)=>x+s.min,0);
+const sgWork=S=>S.map(s=>s.mode==='mrt'?`${s.min}`:`${s.min} (${s.mode})`).join(' + ');
+addGame('sg-journeys',{level:'All levels',strand:'geo',glyph:'⏱️',title:'Beat the Clock: SG Journeys',topic:'Time durations on real journeys',
+ how:'Watch MRT, bus and walking journeys on a map of Singapore, then work out how long they take, when you arrive, or when to leave.',rounds:8,
+ round(api,r){
+  const type=['line','linearr','change','changearr','trip','bus','back','compare'][r];
+  const[kid,pr]=pick(SGKIDS),Pr=pr[0].toUpperCase()+pr.slice(1);
+  const durQ=(R0,q,extra)=>{const S=R0.segs,d=sgSum(S),last=S[S.length-1];api.q(q);api.body.innerHTML=sgMap(R0,null);
+    const traps=[[d-last.min,`You stopped one stop early, at ${R0.nodes[R0.nodes.length-2].n}. Add every part of the journey, right to the end.`],[S.length,'You counted the stops. Add up the <b>minutes</b> for each part instead.'],...(extra||[])];
+    askDur(api,'sgD',d,null,`${R0.nodes[0].n} to ${R0.nodes[R0.nodes.length-1].n}: ${tdur(d)}.`,['Add the minutes for every part of the journey:',`${sgWork(S)} = ${d} min${d>=60?` = ${tdur(d)}`:''}`,'Press ▶ Replay journey to watch it again with the time adding up.'],traps.filter(([x])=>x!==d));jmStart(api)};
+  const timeQ=(R0,a,q,extra,arrive=true)=>{const S=R0.segs,d=sgSum(S);api.q(q);api.body.innerHTML=sgMap(R0,a);const ans=arrive?a+d:a;
+    const raw=arrive?asDec(a)+Math.floor(d/60)*100+d%60:null;
+    const traps=[...(raw!==null?[[(x,s)=>+String(s).replace(/\D/g,'')===raw&&raw%100>59,`${String(raw).padStart(4,'0').replace(/(..)$/,' $1')} is not a real time: minutes only go up to 59. Count on to the next hour instead.`]]:[]),...(extra||[])];
+    askTime(api,'sgT',ans,traps,arrive?`${ttm(a)} + ${tdur(d)} = ${ttm(a+d)}`:`${ttm(a+d)} − ${tdur(d)} = ${ttm(a)}`,['Journey time:',`${sgWork(S)} = ${tdur(d)}`,arrive?'Count on from the start time:':'Count back from the arrival time:',hops(a,a+d),'Press ▶ Replay journey to watch it again with the clock.']);jmStart(api)};
+  if(type==='line'||type==='linearr'){const R0=sgBuild(sgRoute(0)),L=MRT[R0.legs[0].k],A=R0.nodes[0].n,B=R0.nodes[R0.nodes.length-1].n;
+    if(type==='line')return durQ(R0,`<p class="qt">Watch the train on the <b>${L.name}</b>. How long does it take from <b>${A}</b> to <b>${B}</b>?</p>`);
+    const a=R(6,20)*60+R(8,11)*5;return timeQ(R0,a,`<p class="qt">${kid} boards the train at <b>${A}</b> at <b>${ttm(a)}</b>. When does ${pr} reach <b>${B}</b>?</p>`)}
+  if(type==='change'||type==='changearr'){const R0=sgBuild(sgRoute(1)),S=R0.segs,ci=S.findIndex(s=>s.mode==='change'),X=R0.nodes[ci].n,A=R0.nodes[0].n,B=R0.nodes[R0.nodes.length-1].n,d=sgSum(S);
+    const L1=MRT[R0.legs[0].k].name,L2=MRT[R0.legs[1].k].name,cm=S[ci].min;
+    const intro=`${kid} travels from <b>${A}</b> to <b>${B}</b>. ${Pr} changes from the ${L1} to the ${L2} at <b>${X}</b>, which takes <b>${cm} min</b> of walking.`;
+    if(type==='change')return durQ(R0,`<p class="qt">${intro} How long is the whole journey?</p>`,[[d-cm,`You left out the ${cm} min walk to change lines at ${X}.`]]);
+    const a=R(6,20)*60+R(6,11)*5;return timeQ(R0,a,`<p class="qt">${intro} ${Pr} sets off at <b>${ttm(a)}</b>. When does ${pr} arrive?</p>`,[[a+d-cm,`You left out the ${cm} min walk to change lines at ${X}.`]])}
+  const place=pick(SGPLACES.filter(p=>STN[p[1]]));
+  const homeNode=(R0first)=>{const[x,y]=outward(R0first.x,R0first.y,55);return{n:'Home',x:x-25,y:y+25,kind:'home'}};
+  const placeNode=st=>{const p=MRT[STN[st][0].k].P[STN[st][0].i],[x,y]=outward(p.x,p.y,50);return{n:place[0],x,y,kind:'place'}};
+  if(type==='trip'||type==='back'){const legs=sgRoute(type==='back'?1:R(0,1),place[1]);const f0=MRT[legs[0].k].P[legs[0].idx[0]];
+    const w1=R(4,9),w2=R(4,10),R0=sgBuild(legs,[{node:homeNode(f0),mode:'walk',min:w1}],[{mode:'walk',min:w2,node:placeNode(place[1])}]),S=R0.segs,d=sgSum(S);
+    const ch=S.find(s=>s.mode==='change'),walks=w1+w2+(ch?ch.min:0);
+    if(type==='trip'){const a=R(7,17)*60+R(0,11)*5;
+      return timeQ(R0,a,`<p class="qt">${kid} leaves home at <b>${ttm(a)}</b> to visit <b>${place[0]}</b>. ${Pr} walks to ${f0.n} station, takes the MRT${ch?' (changing lines once)':''}, then walks the rest of the way. When does ${pr} get there?</p>`,[[a+d-walks,'You left out the walking. Walking to the station'+(ch?', changing lines,':'')+' and walking at the end all take time too.'],[a+d-w2,`You forgot the last ${w2} min walk from the station to ${place[0]}.`]])}
+    const T=R(8,17)*60+pick([0,15,30,45]),a=T-d;
+    return timeQ(R0,a,`<p class="qt">${kid}'s class must reach <b>${place[0]}</b> by <b>${ttm(T)}</b>. Look at the journey. What is the <b>latest</b> time ${pr} can leave home?</p>`,
+      [[T+d,`That is <b>after</b> ${ttm(T)}! ${Pr} must leave <b>before</b> arriving, so count <b>back</b> from ${ttm(T)}.`],[T-(d-walks),'You left out the walking. Count back the walking time as well as the train time.'],
+       [(x,s)=>{const raw=asDec(T)-(Math.floor(d/60)*100+d%60);return raw%100>59&&+String(s).replace(/\D/g,'')===raw},'That is not a real time: minutes only go up to 59. When you cannot take away the minutes, change 1 hour into 60 minutes.']],false)}
+  if(type==='bus'){const legs=sgRoute(0,place[1]),f0=MRT[legs[0].k].P[legs[0].idx[0]],[hx,hy]=outward(f0.x,f0.y,70);
+    const home={n:'Home',x:hx,y:hy,kind:'home'},stop={n:'Bus stop',x:hx+(f0.x-hx)*.2,y:hy+(f0.y-hy)*.2,kind:'stop'},stop2={...stop,dup:1};
+    const a=R(6,17)*60+R(0,11)*5,w1=R(3,6),fq=pick([10,12,15]),wait=R(2,fq-2),ride=R(8,15),w2=R(3,8),next=a+w1+wait;
+    const R0=sgBuild(legs,[{node:home,mode:'walk',min:w1},{node:stop,mode:'wait',min:wait,hide:1},{node:stop2,mode:'bus',min:ride}],[{mode:'walk',min:w2,node:placeNode(place[1])}]),S=R0.segs,d=sgSum(S);
+    const sched=[next-fq,next,next+fq,next+2*fq];
+    api.q(`<p class="qt">${kid} leaves home at <b>${ttm(a)}</b>, walks <b>${w1} min</b> to the bus stop and catches the <b>next bus</b> to ${f0.n} station. Then ${pr} takes the MRT and walks to <b>${place[0]}</b>. When does ${pr} get there?</p>`);
+    api.body.innerHTML=board([['Buses leave at',sched.map(ttm).join(' · ')]],'Bus stop near home')+sgMap(R0,a);
+    const before=next-fq;
+    askTime(api,'sgT',a+d,[[a+d-wait,`You forgot to wait for the bus. ${Pr} reaches the stop at ${ttm(a+w1)}, but the next bus leaves at ${ttm(next)}: that is ${wait} min of waiting.`],[a+d-fq,`The ${ttm(before)} bus left before ${pr} reached the stop at ${ttm(a+w1)}. ${Pr} has to take the next one, at ${ttm(next)}.`],[a+d-w2,`You forgot the last ${w2} min walk to ${place[0]}.`]],
+      `${kid} arrives at ${ttm(a+d)}.`,[`Reach the bus stop: ${ttm(a)} + ${w1} min = ${ttm(a+w1)}. The next bus is at ${ttm(next)}, so wait ${wait} min.`,`Whole journey: ${sgWork(S)} = ${tdur(d)}`,hops(a,a+d),'Press ▶ Replay journey to watch it again with the clock.']);
+    jmStart(api);return}
+  if(type==='compare'){let RA,RB,dA,dB;
+    for(let t=0;t<60;t++){const legs=sgRoute(1,place[1]),f0=MRT[legs[0].k].P[legs[0].idx[0]];
+      RA=sgBuild(legs,[{node:{n:'Home',kind:'home'},mode:'walk',min:R(4,8)}],[{mode:'walk',min:R(3,8),node:{n:place[0],kind:'place'}}]);
+      const bw=R(2,6),bwait=R(3,10),bride=R(15,40),bw2=R(2,6);
+      RB={nodes:[{n:'Home',kind:'home'},{n:'Bus stop',kind:'stop'},{n:'Bus stop',kind:'stop',dup:1},{n:'Stop near '+place[0].split(' ')[0],kind:'stop'},{n:place[0],kind:'place'}],segs:[{mode:'walk',min:bw,col:MODECOL.walk},{mode:'wait',min:bwait,col:MODECOL.wait},{mode:'bus',min:bride,col:MODECOL.bus},{mode:'walk',min:bw2,col:MODECOL.walk}]};
+      dA=sgSum(RA.segs);dB=sgSum(RB.segs);if(Math.abs(dA-dB)>=3&&Math.abs(dA-dB)<=20)break}
+    const diff=Math.abs(dA-dB),faster=dA<dB?'Route A':'Route B';
+    const onlyA=RA.segs.filter(s=>s.mode==='mrt').reduce((x,s)=>x+s.min,0),onlyB=RB.segs.find(s=>s.mode==='bus').min;
+    api.q(`<p class="qt">${kid} can get from home to <b>${place[0]}</b> in two ways. Which route is faster, and <b>by how many minutes</b>?</p>`);
+    api.body.innerHTML=`<div class="jmwrap" style="max-width:660px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26">${sgStrip(RA.nodes,RA.segs,'Route A · walk + MRT')}${sgStrip(RB.nodes,RB.segs,'Route B · walk + bus')}</div>`;
+    askDur(api,'sgC',diff,null,`${faster} is faster by ${tdur(diff)}.`,[`Route A: ${sgWork(RA.segs)} = ${tdur(dA)}`,`Route B: ${sgWork(RB.segs)} = ${tdur(dB)}`,`${faster} is faster: ${tdur(Math.max(dA,dB))} − ${tdur(Math.min(dA,dB))} = ${tdur(diff)}`],
+      [[dA,`${tdur(dA)} is how long Route A takes. Now work out Route B and find the <b>difference</b>.`],[dB,`${tdur(dB)} is how long Route B takes. Now work out Route A and find the <b>difference</b>.`],[Math.abs(onlyA-onlyB),'You only compared the train and bus times. Walking and waiting count too!']].filter(([x])=>x!==diff));
+    return}
+ }});
 /* ================= P4. Treasure Map — 8-point compass and turns ================= */
 const DIRS=['N','NE','E','SE','S','SW','W','NW'],DNAME={N:'North',NE:'North-east',E:'East',SE:'South-east',S:'South',SW:'South-west',W:'West',NW:'North-west'};
 const DV=[[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
@@ -2674,7 +2873,7 @@ const ROSE=[['NW','N','NE'],['W','','E'],['SW','S','SE']];
 const LAND=[['🌴','palm tree'],['⛰️','mountain'],['🏝️','island'],['🦜','parrot'],['🛶','canoe'],['🐚','shell'],['🗿','statue'],['🛖','hut'],['🌋','volcano'],['🐊','crocodile']];
 function mapSvg(N,items,o={}){const S=44,W=N*S;let s=`<rect x="0" y="0" width="${W}" height="${W}" rx="10" class="sea"/>`;
   for(let y=0;y<N;y++)for(let x=0;x<N;x++)s+=`<rect x="${x*S+2}" y="${y*S+2}" width="${S-4}" height="${S-4}" rx="6" class="mcell${o.tap?' tapc':''}" data-x="${x}" data-y="${y}"/>`;
-  items.forEach(it=>{s+=`<text x="${it.x*S+S/2}" y="${it.y*S+S/2+9}" text-anchor="middle" font-size="26" pointer-events="none">${it.e}</text>`});
+  items.forEach(it=>{if(it.e==='🏴‍☠️')s+=`<circle cx="${it.x*S+S/2}" cy="${it.y*S+S/2}" r="19" fill="var(--sun)" fill-opacity=".35" stroke="var(--sun)" stroke-width="3" pointer-events="none"/>`;s+=`<text x="${it.x*S+S/2}" y="${it.y*S+S/2+9}" text-anchor="middle" font-size="26" pointer-events="none">${it.e}</text>`});
   const rot=(o.rot||0)*45;
   s+=`<g transform="translate(${W+34} 40) rotate(${rot})"><circle r="26" class="narrbg"/><path d="M0 -22 L8 6 L0 0 L-8 6 Z" fill="var(--tomato)"/><path d="M0 22 L8 6 L0 0 L-8 6 Z" fill="var(--muted)"/><text y="-28" text-anchor="middle" transform="rotate(${-rot} 0 -33)" font-weight="800" font-size="15" fill="var(--tomato)">N</text></g>`;
   return `<svg class="tmap" viewBox="-2 -2 ${W+76} ${W+4}" role="img" aria-label="Treasure map">${s}</svg>`}
@@ -2706,7 +2905,7 @@ addGame('p4-compass',{level:'P4',strand:'geo',glyph:'🧭',title:'Treasure Map',
     roseAsk(api,'cD',right,d=>rot&&d===asIf?`That would be right if North pointed up. On this map North points ${['','','to the right','','down','','to the left'][rot]}, so turn the compass in your head to match the arrow.`:why(right,d),
       `The ${n} is ${DNAME[right]} of the pirate.`,[rot?`North points ${['','','right','','down','','left'][rot]} on this map. Turn the compass to match, then read the direction.`:'With North at the top: up is N, right is E, down is S, left is W. Diagonals are NE, SE, SW and NW.']);return}
   if(type==='turn'||type==='turn2'){const f=R(0,7),k=type==='turn'?pick([2,2,4]):pick([1,3,6,6]),cw=Math.random()<.5,t=(f+(cw?k:-k)+8)%8,wrong=(f+(cw?-k:k)+8)%8;
-    api.q(`<p class="qt">The pirate faces <b>${DNAME[DIRS[f]]}</b>. She turns <b>${turnName(k)} ${cw?'clockwise':'anticlockwise'}</b>. Which way does she face now?</p>`);
+    api.q(`<p class="qt">The pirate 🏴‍☠️ faces <b>${DNAME[DIRS[f]]}</b>. She turns <b>${turnName(k)} ${cw?'clockwise':'anticlockwise'}</b>. Which way does she face now?</p>`);
     api.body.innerHTML=`<div class="facewrap">${faceSvg('cF',f)}<div class="clockhint"><b>Clockwise</b> ↻ is the way clock hands move.<br><b>Anticlockwise</b> ↺ is the other way.<br>Each step between points is 45°.</div></div>`;
     roseAsk(api,'cT',DIRS[t],d=>d===DIRS[wrong]?`You turned the wrong way. ${cw?'Clockwise':'Anticlockwise'} goes ${cw?'N → NE → E → SE …':'N → NW → W → SW …'}`:DIRS.indexOf(d)===(f+(cw?k/2|0:-(k/2|0))+8)%8&&k>1?`That is only half the turn. ${turnName(k)} is ${k} steps of 45°.`:k===1||k===3?`Count the steps: ${k*45}° is ${k} step${k>1?'s':''} of 45°.`:'',
       `${DNAME[DIRS[f]]} + ${turnName(k)} ${cw?'clockwise':'anticlockwise'} → ${DNAME[DIRS[t]]}`,[`Count ${k} steps of 45° ${cw?'clockwise':'anticlockwise'} from ${DIRS[f]}: ${Array.from({length:k+1},(_,i)=>DIRS[(f+(cw?i:-i)+80)%8]).join(' → ')}`]);
@@ -2719,7 +2918,7 @@ addGame('p4-compass',{level:'P4',strand:'geo',glyph:'🧭',title:'Treasure Map',
     roseAsk(api,'cR',right,d=>d===DIRS[si]?`That is the direction from the ${n2} to the ${n1}. Now stand at the ${n1} and look back: you face the opposite way.`:why(right,d),
       `${n1} is ${DIRS[si]} of the ${n2}, so the ${n2} is ${right} of the ${n1}.`,[`Opposite directions: N ↔ S, E ↔ W, NE ↔ SW, NW ↔ SE.`]);return}
   if(type==='angle'){const f=R(0,7),k=pick([1,2,3,5,6,3]),cw=Math.random()<.5,t=(f+(cw?k:-k)+8)%8;
-    api.q(`<p class="qt">The pirate faces <b>${DNAME[DIRS[f]]}</b> and turns <b>${cw?'clockwise':'anticlockwise'}</b> until she faces <b>${DNAME[DIRS[t]]}</b>. How many degrees did she turn?</p>`);
+    api.q(`<p class="qt">The pirate 🏴‍☠️ faces <b>${DNAME[DIRS[f]]}</b> and turns <b>${cw?'clockwise':'anticlockwise'}</b> until she faces <b>${DNAME[DIRS[t]]}</b>. How many degrees did she turn?</p>`);
     api.body.innerHTML=`<div class="facewrap">${faceSvg('cF',f)}<div class="clockhint">Each step between the 8 points is <b>45°</b>.<br>A full turn is 360°.</div></div>`;
     askOne(api,{id:'cA',unit:'°',w:4,right:k*45,traps:[[(8-k)*45,`That is the angle going the <b>other</b> way. Turn ${cw?'clockwise':'anticlockwise'}: ${Array.from({length:k+1},(_,i)=>DIRS[(f+(cw?i:-i)+80)%8]).join(' → ')}.`],[k*90,'Each step between the 8 points is 45°, not 90°. 90° is from N to E (2 steps).'],[k,`You counted ${k} steps. Good! Now each step is 45°, so multiply: ${k} × 45°.`]],
       ok:`${k} steps × 45° = ${k*45}°`,work:[`${Array.from({length:k+1},(_,i)=>DIRS[(f+(cw?i:-i)+80)%8]).join(' → ')}: ${k} steps of 45° = ${k*45}°`]});
@@ -2728,7 +2927,7 @@ addGame('p4-compass',{level:'P4',strand:'geo',glyph:'🧭',title:'Treasure Map',
     if(type==='walk'){const a=pick([0,4]),b=pick([2,6]),n1=R(1,3),n2=R(1,3);sx=3-DV[a][0]*1;sy=a===0?R(4,6):R(0,2);sx=b===2?R(0,2):R(4,6);moves=[[a,n1],[b,n2]];desc=`Walk <b>${n1}</b> square${n1>1?'s':''} <b>${DNAME[DIRS[a]]}</b>, then <b>${n2}</b> square${n2>1?'s':''} <b>${DNAME[DIRS[b]]}</b>.`}
     else{const f=pick([0,2,4,6]),k=pick([2,6]),cw=Math.random()<.5,h=(f+(cw?k:-k)+8)%8,n=R(2,3);sx=3;sy=3;moves=[[h,n]];desc=`Face <b>${DNAME[DIRS[f]]}</b>. Turn <b>${turnName(k)} ${cw?'clockwise':'anticlockwise'}</b>, then walk <b>${n}</b> squares forward.`;moves.f=f;moves.k=k;moves.cw=cw}
     let x=sx,y=sy;moves.forEach(([d,n])=>{x+=DV[d][0]*n;y+=DV[d][1]*n});
-    api.q(`<p class="qt">${desc} Tap the square where the pirate ends up and dig for treasure!</p><p class="qs">Count the jumps from square to square, not the square you start on.</p>`);
+    api.q(`<p class="qt">Start at the pirate 🏴‍☠️ (yellow ring). ${desc} Tap the square where the pirate ends up and dig for treasure!</p><p class="qs">Count the jumps from square to square, not the square you start on.</p>`);
     api.body.innerHTML=mapSvg(N,[{x:sx,y:sy,e:'🏴‍☠️'},...L.slice(0,3).map(([e])=>{let a,b;do{a=R(0,6);b=R(0,6)}while((a===sx&&b===sy)||(a===x&&b===y));return {x:a,y:b,e}})],{tap:true})+'<div id="cWM"></div>';
     const svg=api.body.querySelector('.tmap');
     svg.querySelectorAll('.tapc').forEach(c=>c.onclick=()=>{if(api.answered)return;const tx=+c.dataset.x,ty=+c.dataset.y;
@@ -3011,7 +3210,7 @@ function tugGame(stage,mode,o){const kind=o.sel.tugK||'t29',WIN=6,TIME=90,bot=mo
     const lines=[`${esc(o.names[0])}: ${S.score[0]} right · ${esc(o.names[1])}: ${S.score[1]} right`];
     [0,1].forEach(p=>{if(S.wrong[p].length&&!(p===1&&bot))lines.push(`<b>${esc(o.names[p])}, facts to practise:</b><br>${S.wrong[p].slice(0,6).join('<br>')}`)});
     if(w===0&&mode!=='pass'){const s=S.score[0]*10;setBest('party-tug',s>=60?3:s>=30?2:1)}
-    if(mode!=='pass')setTimeout(()=>arcReport('party-tug',S.score[0],{mode}),80);partyEnd(stage,w<0?(mode==='pass'?`${esc(o.names[0])} wins!`:'You win! 🏆'):w>0?`${esc(o.names[1])} wins!`:'It’s a draw!',lines,()=>tugGame(stage,mode,o))};
+    if(mode!=='pass')setTimeout(()=>arcReport('party-tug',S.score[0],{mode}),80);partyEnd(stage,w===0?(mode==='pass'?`${esc(o.names[0])} wins!`:'You win! 🏆'):w===1?`${esc(o.names[1])} wins!`:'It’s a draw!',lines,()=>tugGame(stage,mode,o))};
   ask(0);ask(1);knot();
   PT.every(()=>{if(S.over)return;S.t--;$('tgT').textContent=`⏱ ${S.t}s`;if(S.t<=10)$('tgT').classList.add('hot');if(S.t<=0)end()},1000)}
 
@@ -3377,7 +3576,7 @@ const HOWTO={
 'p4-rounding':{steps:['A rocket hovers over a number line with its number on top, e.g. <b>27,104</b>. The digit that decides the rounding is in red.','<b>Step 1:</b> tap the two landing pads the rocket is between, e.g. 27,100 and 27,110.','<b>Step 2:</b> land the rocket on the <b>nearer</b> pad. If the red digit is 5 or more, go to the bigger pad. If it is 4 or less, go to the smaller pad.','You round to the nearest 10 first, then 100, then 1000.'],eg:'27,104 to the nearest 10 → the ones digit is 4, so land on 27,100.'},
 'p4-factors':{steps:['Read the clue at the top, e.g. <b>"Catch every factor of 18"</b>.','Animals are holding numbers. Tap only the animals whose number fits the clue.','Right: the animal jumps into your basket. Wrong: it runs away and counts as a mistake.','The counter shows how many you still need. The round ends when you catch them all.'],eg:'Factors of 18: 1, 2, 3, 6, 9, 18 (because 1 × 18, 2 × 9, 3 × 6).'},
 'p4-product':{steps:['You get some digit cards, e.g. 4, 5, 6 and 7.','Tap the cards to place them in the boxes to make a multiplication. Tap a box to take a card back.','Make the <b>BIGGEST</b> (or <b>SMALLEST</b>) product the question asks for, then press <b>Lock in</b>.','Then work out the multiplication and type the answer.'],eg:'Biggest: put the biggest digits in the biggest place values, e.g. 654 × 7.'},
-'p4-flip':{steps:['12 cards are face down. Each card shows an amount: an improper fraction, a mixed number or a pizza picture.','Tap 2 cards to turn them over. That is <b>1 move</b>.','If both cards show the <b>same amount</b>, they stay face up. If not, they turn back over. Try to remember where they were!','Find all 6 pairs. Fewer moves = more points: 6 moves gets 10 points, and every 2 extra moves costs 1 point.'],eg:'<span class="fr"><span>9</span><span>4</span></span>, <span class="whole">2</span><span class="fr"><span>1</span><span>4</span></span> and a picture of 2 whole pizzas plus <span class="fr"><span>1</span><span>4</span></span> of a pizza all show the same amount.'},
+'p4-flip':{steps:['12 cards are face down. Each card shows an amount: an improper fraction, a mixed number or a pizza picture.','Tap 2 cards to turn them over. That is <b>1 move</b>.','If both cards show the <b>same amount</b>, they stay face up. If not, they stay open for 4 seconds so you can check them, then turn back over (tap any card to turn them back sooner). Try to remember where they were!','Find all 6 pairs. Fewer moves = more points: 6 moves gets 10 points, and every 2 extra moves costs 1 point.'],eg:'<span class="fr"><span>9</span><span>4</span></span>, <span class="whole">2</span><span class="fr"><span>1</span><span>4</span></span> and a picture of 2 whole pizzas plus <span class="fr"><span>1</span><span>4</span></span> of a pizza all show the same amount.'},
 'p4-share':{steps:['Read the question, e.g. "Ali has 12 sweets and gives away <span class="fr"><span>3</span><span>4</span></span> of them."','<b>Step 1:</b> choose how many equal groups to share the sweets into. The bottom number of the fraction tells you (<span class="fr"><span>3</span><span>4</span></span> → 4 groups).','<b>Step 2:</b> tap the groups the fraction talks about. The top number tells you how many (<span class="fr"><span>3</span><span>4</span></span> → 3 groups).','<b>Step 3:</b> count the sweets, type your answer and press Check.'],eg:'<span class="fr"><span>3</span><span>4</span></span> of 12: 4 groups of 3 → 3 groups → 9 sweets.'},
 'p4-target':{steps:['A target fraction is shown at the top.','Pick <b>two fraction cards</b> that add up to the target. In subtraction rounds, pick two cards so that bigger − smaller makes the target.','Hint: change the fractions so they have the same bottom number first, then add or subtract the top numbers.','Press <b>Check</b> to fire at the target.'],eg:'Target <span class="fr"><span>5</span><span>6</span></span>: <span class="fr"><span>1</span><span>2</span></span> + <span class="fr"><span>1</span><span>3</span></span> = <span class="fr"><span>3</span><span>6</span></span> + <span class="fr"><span>2</span><span>6</span></span> = <span class="fr"><span>5</span><span>6</span></span> ✓'},
 'p4-decimals':{steps:['You get some decimal cards, e.g. 0.7, 0.07 and 0.707.','Tap the decimals one at a time to line them up in the order the question asks: increasing (smallest first) or decreasing (greatest first). Tap a placed card to take it back.','Compare the tenths first, then the hundredths, then the thousandths.','Press <b>Check</b> when you are done.'],eg:'0.07 < 0.7 < 0.707, because 0.07 has 0 tenths.'},
@@ -3406,6 +3605,7 @@ const HOWTO={
 'p6-chain':{steps:['The figure is made of squares, rectangles, rhombuses or parallelograms joined to triangles.','First find angle <b>y</b>, then use it to find angle <b>x</b>.','Look for equal sides (isosceles triangles), parallel lines and straight lines (180°).','Type each answer. The figure is not drawn to scale, so do not measure it.'],eg:'In a rhombus the opposite angles are equal, and the angles next to each other add up to 180°.'},
 'p6-average':{steps:['Towers of blocks show how many each child has.','Tap a tower to pick up its top block, then tap another tower to drop it there.','Move blocks until all the towers are the same height. That height is the <b>average</b>.','Other rounds: average = total ÷ number of items, and total = average × number of items.'],eg:'Towers of 2, 5 and 5 → total 12 → 12 ÷ 3 = 4 each.'},
 'p4-diner':{steps:['Read the order ticket. Each order uses decimals.','For adding and subtracting, first choose the layout with the <b>decimal points lined up</b> (not the last digits).','Fill empty places with 0 (3.5 → 3.50, 5 → 5.00), then work out the answer and press Check.','For × and ÷, think in tenths or hundredths first (0.4 = 4 tenths), then change back.','Wrong the first time? Qubi tells you what went wrong so you can fix it.'],eg:'3.5 + 1.25 → 3.50 + 1.25 = 4.75 (not 1.60).'},
+'sg-journeys':{steps:['Watch the journey on the map. A train, bus or walking figure moves along the route, and the time for each part pops up underneath.','Add up the minutes for <b>every</b> part: each train stretch, walking, changing lines and waiting for the bus.','Use the start time and count on to find when you arrive, or count back to find when to leave.','Easy: one MRT line, then changing lines. Hard: walking, buses with a timetable, planning backwards and comparing two routes.'],eg:'Bishan → Braddell 2 min, → Toa Payoh 2 min, → Novena 3 min: 2 + 2 + 3 = 7 min.'},
 'p4-train':{steps:['Read the departure board.','24-hour clock: a.m. keeps the hour, p.m. adds 12 (7.45 p.m. → 19 45). Type 4 digits.','For journeys, count on: to the next hour, then whole hours, then the minutes left. Type the hours and minutes.','Remember: <b>1 hour = 60 minutes</b>, not 100.'],eg:'09 45 → 10 20: 15 min to 10 00, then 20 min → 35 min.'},
 'p4-compass':{steps:['North is at the top unless the North arrow points another way. Always check the arrow first!','Tap a direction on the compass buttons (N, NE, E, SE, S, SW, W, NW).','Turns: clockwise ↻ is the way clock hands move. Each step between the 8 points is 45°, a <span class="fr"><span>1</span><span>4</span></span> turn is 90°.','On walking rounds, tap the square where you end up. Count jumps, not the square you start on.'],eg:'Face N, turn 90° clockwise → you face E.'},
 'p5-pizza':{steps:['Look at the pizzas and read the order.','<b>Step 1:</b> choose the smallest common denominator (a number both bottom numbers go into).','<b>Step 2:</b> type the answer as a mixed number: whole number in the big box, the fraction in the small boxes.','Never add the bottom numbers. When subtracting and the first fraction is smaller, rename 1 whole.'],eg:'<span class="whole">1</span><span class="fr"><span>1</span><span>2</span></span> + <span class="fr"><span>2</span><span>3</span></span> → <span class="whole">1</span><span class="fr"><span>3</span><span>6</span></span> + <span class="fr"><span>4</span><span>6</span></span> = <span class="whole">1</span><span class="fr"><span>7</span><span>6</span></span> = <span class="whole">2</span><span class="fr"><span>1</span><span>6</span></span>.'},
@@ -4380,7 +4580,7 @@ window.MUSICREADY=true;
 /* ================= HUB ================= */
 const OTHER={P5:[{title:'I Want to Be a Millionaire',glyph:'$',strand:'num',topic:'Percentage',d:'15-level game show with lifelines and a money ladder.',url:'https://claude.ai/artifact/EaWLvwRt2H5ry5p66Quc3K'},
   {title:'Percentage Lab',glyph:'%',strand:'num',topic:'Percentage',d:'Hundred square, bar models, discount and GST, pie chart games.',url:'https://claude.ai/artifact/UfwF6vH7GvVHX53QoAdjMq'}],P6:[]};
-const CARD={'p4-diner':'Help the cook add, subtract, multiply and divide decimals. Line up those points!','p4-train':'Read the departure board: 24-hour clock and how long journeys take.','p4-compass':'Find the treasure with the 8-point compass, turns and angles.','p5-pizza':'Add and subtract fractions and mixed numbers with pizzas.','p5-pshop':'Shade, shop and save: percentages, discount, GST and interest.','p6-pie':'Solve problems from the bakery’s pie charts using % and angles.','party-team':'Class teams on their own devices race to answer quick-fire questions. Best for the whole class!','party-tug':'Two players, one rope. Quick-fire facts pull the knot your way.','party-bingo':'Maths-clue bingo: solo, vs Robo or the whole class with paper cards.','party-wall':'Race to fill fraction walls with bricks that fit exactly.','p6-quest':'Full PSLE-style revision: Booklet A MCQs, Booklet B short answers, then Paper 2 boss battles with a calculator. Ends with a topic report card.','p4-rounding':'Land the rocket, then round to the nearest 10, 100 or 1000.','p4-factors':'Catch the jungle animals holding factors, multiples and common factors.','p4-product':'Arrange digit cards for the biggest or smallest product, then multiply.','p4-flip':'A memory game matching improper fractions, mixed numbers and pizzas.','p4-share':'Split a jar of sweets into equal groups to find a fraction of a set.','p4-target':'Choose two fraction cards that add or subtract to hit the target.','p4-decimals':'Put tricky decimals like 0.7, 0.07 and 0.707 in order.','p4-cashier':'Total up canteen orders and give the right change.','p4-garden':'Build gardens on a grid to match an area and a perimeter.','p4-angles':'Aim a cannon by angle to pop hidden balloons, by eye or with a protractor.','p4-mirror':'Complete figures so they are symmetric about a mirror line.','p4-nets':'Will it fold into a cube? Spot the nets of solids.','p4-graphs':'Tap points and segments on line graphs; read pie charts.','p5-vault':'Explore a maze of vaults and crack numbers in the millions. Solo levels or a 2-player gold race.','p5-order':'Tap the right operation first: brackets, then × ÷, then + −.','p5-slide':'Slide digits on a place-value chart to × or ÷ by 10, 100, 1000 and convert units.','p5-share':'Cut and share pizzas to see that a ÷ b is the fraction a/b.','p5-fgrid':'Shade columns and rows on an area model to multiply fractions.','p5-rate':'Find the rate, then use it. Includes car park and postage step rates.','p5-tarea':'Pick the true height of a triangle, then find its area.','p5-volume':'Count, build and calculate volumes, and litres of water in a tank.','p5-angles':'Choose the angle fact, then find x.','p5-triangles':'Name triangles by sides and angles; find unknown angles.','p5-quads':'Guess the mystery quadrilateral from clues; find unknown angles.','p6-fdiv':'Scoop and share on bar models to divide fractions.','p6-pchange':'Build before-and-after bar models for percentage change.','p6-ratio':'Mix drinks with cups, simplify ratios and share with unit models.','p6-algebra':'Take weights off both sides of a balance scale to solve for x.','p6-circle':'Trace the perimeter edges, pick the formula, then calculate with π.','p6-cuberoot':'Crack crates using cube roots, square roots and volume.','p6-chain':'Find y, then x, in figures made of quadrilaterals and triangles.','p6-average':'Level towers of blocks to see what an average really is.'};
+const CARD={'p4-diner':'Help the cook add, subtract, multiply and divide decimals. Line up those points!','p4-train':'Read the departure board: 24-hour clock and how long journeys take.','sg-journeys':'Ride the MRT, buses and walking routes across Singapore. How long? When do you arrive? When must you leave?','p4-compass':'Find the treasure with the 8-point compass, turns and angles.','p5-pizza':'Add and subtract fractions and mixed numbers with pizzas.','p5-pshop':'Shade, shop and save: percentages, discount, GST and interest.','p6-pie':'Solve problems from the bakery’s pie charts using % and angles.','party-team':'Class teams on their own devices race to answer quick-fire questions. Best for the whole class!','party-tug':'Two players, one rope. Quick-fire facts pull the knot your way.','party-bingo':'Maths-clue bingo: solo, vs Robo or the whole class with paper cards.','party-wall':'Race to fill fraction walls with bricks that fit exactly.','p6-quest':'Full PSLE-style revision: Booklet A MCQs, Booklet B short answers, then Paper 2 boss battles with a calculator. Ends with a topic report card.','p4-rounding':'Land the rocket, then round to the nearest 10, 100 or 1000.','p4-factors':'Catch the jungle animals holding factors, multiples and common factors.','p4-product':'Arrange digit cards for the biggest or smallest product, then multiply.','p4-flip':'A memory game matching improper fractions, mixed numbers and pizzas.','p4-share':'Split a jar of sweets into equal groups to find a fraction of a set.','p4-target':'Choose two fraction cards that add or subtract to hit the target.','p4-decimals':'Put tricky decimals like 0.7, 0.07 and 0.707 in order.','p4-cashier':'Total up canteen orders and give the right change.','p4-garden':'Build gardens on a grid to match an area and a perimeter.','p4-angles':'Aim a cannon by angle to pop hidden balloons, by eye or with a protractor.','p4-mirror':'Complete figures so they are symmetric about a mirror line.','p4-nets':'Will it fold into a cube? Spot the nets of solids.','p4-graphs':'Tap points and segments on line graphs; read pie charts.','p5-vault':'Explore a maze of vaults and crack numbers in the millions. Solo levels or a 2-player gold race.','p5-order':'Tap the right operation first: brackets, then × ÷, then + −.','p5-slide':'Slide digits on a place-value chart to × or ÷ by 10, 100, 1000 and convert units.','p5-share':'Cut and share pizzas to see that a ÷ b is the fraction a/b.','p5-fgrid':'Shade columns and rows on an area model to multiply fractions.','p5-rate':'Find the rate, then use it. Includes car park and postage step rates.','p5-tarea':'Pick the true height of a triangle, then find its area.','p5-volume':'Count, build and calculate volumes, and litres of water in a tank.','p5-angles':'Choose the angle fact, then find x.','p5-triangles':'Name triangles by sides and angles; find unknown angles.','p5-quads':'Guess the mystery quadrilateral from clues; find unknown angles.','p6-fdiv':'Scoop and share on bar models to divide fractions.','p6-pchange':'Build before-and-after bar models for percentage change.','p6-ratio':'Mix drinks with cups, simplify ratios and share with unit models.','p6-algebra':'Take weights off both sides of a balance scale to solve for x.','p6-circle':'Trace the perimeter edges, pick the formula, then calculate with π.','p6-cuberoot':'Crack crates using cube roots, square roots and volume.','p6-chain':'Find y, then x, in figures made of quadrilaterals and triangles.','p6-average':'Level towers of blocks to see what an average really is.'};
 let level='P4';try{level=localStorage.getItem('arcLevel')||'P4'}catch(e){}
 function hub(){
   const ids=ORDER.filter(id=>GAMES[id].level===level||GAMES[id].level==='All levels'),other=OTHER[level]||[];

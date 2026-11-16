@@ -34,7 +34,7 @@ $('mute').onclick=()=>{setMute(!muted);if(!muted){ac();sfx.tap()}};setMute(muted
 /* theme: auto (follows the device), light or dark */
 let THEME='auto';try{THEME=localStorage.getItem('arcTheme')||'auto'}catch(e){}
 function setTheme(t){THEME=t;try{localStorage.setItem('arcTheme',t)}catch(e){}if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
-  $('theme').innerHTML=(t==='light'?'☀️<span class="tl"> Light':t==='dark'?'🌙<span class="tl"> Dark':'🌓<span class="tl"> Auto')+' mode</span>';$('theme').setAttribute('aria-label',(t==='light'?'Light':t==='dark'?'Dark':'Auto')+' mode');$('theme').title='Switch between auto, light and dark mode'}
+  const tn=t==='light'?'Light':t==='dark'?'Dark':'Auto';$('theme').innerHTML=(t==='light'?'☀️':t==='dark'?'🌙':'🌓')+'<span class="tl"> Theme: '+tn+'</span>';$('theme').setAttribute('aria-label','Theme: '+tn+'. Tap to change');$('theme').title='Theme: '+tn+(t==='auto'?' (follows your device)':'')+'. Tap to switch: Auto → Light → Dark'}
 $('theme').onclick=()=>{setTheme(THEME==='auto'?'light':THEME==='light'?'dark':'auto');sfx.tap()};setTheme(THEME);
 /* confetti */
 const cv=$('fx'),cx=cv.getContext('2d');let parts=[],raf=null;

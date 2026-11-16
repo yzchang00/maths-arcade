@@ -64,7 +64,7 @@ function tugGame(stage,mode,o){const kind=o.sel.tugK||'t29',WIN=6,TIME=90,bot=mo
     const lines=[`${esc(o.names[0])}: ${S.score[0]} right · ${esc(o.names[1])}: ${S.score[1]} right`];
     [0,1].forEach(p=>{if(S.wrong[p].length&&!(p===1&&bot))lines.push(`<b>${esc(o.names[p])}, facts to practise:</b><br>${S.wrong[p].slice(0,6).join('<br>')}`)});
     if(w===0&&mode!=='pass'){const s=S.score[0]*10;setBest('party-tug',s>=60?3:s>=30?2:1)}
-    if(mode!=='pass')setTimeout(()=>arcReport('party-tug',S.score[0],{mode}),80);partyEnd(stage,w<0?(mode==='pass'?`${esc(o.names[0])} wins!`:'You win! 🏆'):w>0?`${esc(o.names[1])} wins!`:'It’s a draw!',lines,()=>tugGame(stage,mode,o))};
+    if(mode!=='pass')setTimeout(()=>arcReport('party-tug',S.score[0],{mode}),80);partyEnd(stage,w===0?(mode==='pass'?`${esc(o.names[0])} wins!`:'You win! 🏆'):w===1?`${esc(o.names[1])} wins!`:'It’s a draw!',lines,()=>tugGame(stage,mode,o))};
   ask(0);ask(1);knot();
   PT.every(()=>{if(S.over)return;S.t--;$('tgT').textContent=`⏱ ${S.t}s`;if(S.t<=10)$('tgT').classList.add('hot');if(S.t<=0)end()},1000)}
 

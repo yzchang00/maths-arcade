@@ -156,14 +156,14 @@ addGame('p4-flip',{level:'P4',strand:'num',glyph:'¾',title:'Fraction Flip',topi
   api.q(`<p class="qt">Board ${r+1} of 3: find all 6 matching pairs.</p>`);
   api.body.innerHTML=`<div class="mstat" id="mMv"><span>Moves: <b>0</b></span><span>Pairs found: <b>0</b> of 6</span><span>Points if you finish now: <b>10</b></span></div><div class="mgrid" id="mG"></div>`;
   const stat=()=>{$('mMv').innerHTML=`<span>Moves: <b>${moves}</b></span><span>Pairs found: <b>${got}</b> of 6</span><span>Points if you finish now: <b>${ptsFor(Math.max(moves,6))}</b></span>`};
-  let open=[],lock=false,moves=0,got=0;
+  let open=[],miss=null,moves=0,got=0;const hide=()=>{if(!miss)return;miss.forEach(o=>{o.b.classList.remove('up');o.b.textContent='?'});miss=null};
   cards.forEach((c,ci)=>{const b=document.createElement('button');b.className='mcard';b.textContent='?';b.setAttribute('aria-label','Hidden card');
-    b.onclick=()=>{if(lock||b.classList.contains('up')||b.classList.contains('got'))return;sfx.tap();b.classList.add('up');b.innerHTML=c.html;open.push({b,c});
+    b.onclick=()=>{if(miss){const was=miss.some(o=>o.b===b);hide();if(was)return}if(b.classList.contains('up')||b.classList.contains('got'))return;sfx.tap();b.classList.add('up');b.innerHTML=c.html;open.push({b,c});
       if(open.length===2){moves++;const [x,y]=open;open=[];
         if(x.c.i===y.c.i){x.b.classList.add('got');y.b.classList.add('got');sfx.pop();got++;stat();
           if(got===6){const pts=ptsFor(moves);api.log(`Board ${r+1}: ${moves} moves → ${pts} points`);api.done(true,`Board cleared in ${moves} moves → ${pts} points${moves>6?` (6 moves = 10 points; you used ${moves-6} extra move${moves-6>1?'s':''}, which costs ${Math.min(9,Math.floor((moves-6)/2))} point${Math.floor((moves-6)/2)===1?'':'s'})`:' (a perfect board!)'}.`,
             pairs.map(p=>`${fr(p.n,p.d)} = <span class="whole">${Math.floor(p.n/p.d)}</span>${fr(p.n%p.d,p.d)} &nbsp;because ${p.n} ÷ ${p.d} = ${Math.floor(p.n/p.d)} remainder ${p.n%p.d}`),pts)}}
-        else{lock=true;sfx.soft();stat();api.later(()=>{[x,y].forEach(o=>{o.b.classList.remove('up');o.b.textContent='?'});lock=false},950)}}};
+        else{sfx.soft();stat();const m=[x,y];miss=m;api.later(()=>{if(miss===m)hide()},4000)}}};
     $('mG').appendChild(b)})}});
 
 /* 5. Sweet Share — Fraction of a set 2.1 */
