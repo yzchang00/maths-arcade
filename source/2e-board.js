@@ -23,7 +23,7 @@ async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();
   try{const res=await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(SCORECAP[id]||1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
     if(res&&res.taken)return lbNote(`Someone on another device already uses the name <b>${esc(me.nick)}</b>${me.cls?' in '+esc(me.cls):''}. <button class="btn sm" id="lbRename">Pick a different nickname</button>`,()=>$('lbRename').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
     const rows=bestPer(window.ARCB.rank?await window.ARCB.rank(id,diff):(await window.ARCB.top(id)).filter(r=>r.diff===diff));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
-    const dn=diff!=='-'?` (${LVNAME[diff]})`:'',pts=champPts(id,diff,o.stars);
+    const dn=diff!=='-'?` (${(GAMES[id]&&GAMES[id].sec?SECLVNAME:LVNAME)[diff]})`:'',pts=champPts(id,diff,o.stars);
     lbNote(`🏆 Score saved${k>=0?` · you are <b>#${k+1}</b> of ${rows.length} for ${esc(G.title)}${dn}`:''}. <button class="btn sm" id="lbSee">See the leaderboard</button>${pts?`<br>⭐ 3 stars${diff!=='-'?' on '+LVNAME[diff]:''}: worth ${pts} Champion point${pts>1?'s':''}!`:''}`,
       ()=>$('lbSee').onclick=()=>lbPopup(id,diff))}
   catch(e){lbNote('Could not reach the leaderboard just now. Your game still counts on this device.')}}
@@ -37,7 +37,7 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
     <div class="row"><button class="btn primary" id="lbOk">Save</button><button class="btn" id="lbGuest">Play as guest</button></div>
     ${window.ARCB&&window.ARCB.canSignIn&&!window.ARCB.user?`<p style="margin:6px 0 0">Have a Google account? Sign in to keep your progress on any device. (Optional)</p><div class="row"><button class="btn" id="lbGoogle">☁️ Sign in with Google</button></div>`:''}</div>`;
   document.body.appendChild(o);$('lbNick').focus();
-  const close=()=>{o.remove();if(location.hash===''||location.hash==='#')hub()};
+  const close=()=>{o.remove();if(isHome())homeView()};
   $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
   const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
   $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
@@ -47,9 +47,9 @@ function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
   return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
 function wireHubPlayer(){const b=$('lbWho');if(b)b.onclick=()=>playerPrompt();
   const i=$('lbIn');if(i)i.onclick=async()=>{try{await arcSignIn();if(!(arcMe()||{}).nick)playerPrompt()}catch(e){}};
-  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();hub()}}
+  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();homeView()}}
 async function arcSignIn(){await window.ARCB.signIn();for(let k=0;k<40&&!window.ARCB.user;k++)await new Promise(r=>setTimeout(r,150));arcLog('signin')}
-addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(!h&&!document.querySelector('.lbmodal'))hub()});
+addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(isHome()&&!document.querySelector('.lbmodal'))homeView()});
 const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
   const isMe=x=>x.nick===me.nick&&x.cls===(me.cls||''),val=x=>`${x.score}${x.stars>=0?` <small>${'★'.repeat(x.stars)}</small>`:''}${x.sub?` <small class="pts">${x.sub}</small>`:''}`,mood=['party','wave','cheer'];
   const step=i=>{const x=r[i];if(!x)return `<div class="lbp-col lbp-${i+1} lbp-none"><div class="lbp-who"><b>—</b><span class="lbc">No one yet</span></div><div class="lbp-block"><span>${i+1}</span></div></div>`;
@@ -90,5 +90,5 @@ async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','
   $('lbC').onchange=()=>{cls=$('lbC').value;draw()};$('lbG').onchange=()=>{const g=$('lbG').value;$('lbG').value='';if(g)lbPopup(g)};
   if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
   try{rows=await window.ARCB.champs();draw()}catch(e){$('lbList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'}}
-addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(!h||h==='')hub();else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
+addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(isHome())homeView(true);else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
   const me=arcMe();if(!me&&(!h||h===''))setTimeout(()=>{if(!arcMe())playerPrompt()},400)});

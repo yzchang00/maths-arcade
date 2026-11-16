@@ -333,6 +333,29 @@ body.ingame #bgfx{opacity:.4}
 .hero .qubi{width:130px}
 .hero h1 .hl{display:inline-block;animation:ltin .7s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i)*55ms)}
 .hero h1 .hl:hover{animation:ltjump .5s ease}
+
+.start{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;padding:6px 0 30px}
+.st-top{display:grid;justify-items:center;gap:6px}
+.st-top .mbox{animation:stdrop .8s cubic-bezier(.3,1.5,.5,1) both}.st-top .qubi{width:150px}
+.st-title{font:700 clamp(2.8rem,11vw,5.4rem)/1 var(--display);margin:0;letter-spacing:-.01em}.st-title>span{color:var(--tomato)}
+.st-title .hl{display:inline-block;animation:ltin .7s cubic-bezier(.3,1.6,.5,1) both,stfade .4s both;animation-delay:calc(.5s + var(--i)*70ms)}
+.st-sub{margin:6px 0 0;color:var(--muted);font-weight:700;font-size:1.1rem;animation:stfade .6s 1.5s both}
+.st-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:128px 24px;width:100%;max-width:840px;margin-top:128px;animation:stfade .7s 1.7s both}
+.st-opt{position:relative;display:grid;gap:8px;padding:34px 20px 28px;border:3.5px solid var(--ink);border-radius:26px;background:var(--surface);color:var(--ink);font:inherit;text-align:center;cursor:pointer;text-decoration:none;box-shadow:0 8px 0 var(--c);transition:transform .18s,box-shadow .18s}
+.st-opt.pri{--c:var(--teal)}.st-opt.sec{--c:var(--violet)}
+.st-opt b{font:700 clamp(1.5rem,4.5vw,2rem)/1.1 var(--display)}.st-opt small{color:var(--muted);font-weight:700;font-size:1rem}
+.st-opt .st-go{justify-self:center;margin-top:6px;background:var(--c);color:#fff;font-weight:800;border-radius:999px;padding:6px 16px}
+.st-opt:hover,.st-opt:focus-visible{transform:translateY(-6px);box-shadow:0 14px 0 var(--c);outline:none}
+.st-pop{position:absolute;left:0;right:0;bottom:100%;height:124px;overflow:hidden;display:flex;justify-content:center;align-items:flex-end;gap:6px;pointer-events:none}
+.st-pop .qubi{width:60px;transform:translateY(115%);transition:transform .38s cubic-bezier(.3,1.6,.5,1)}
+.st-pop .k2{transition-delay:.07s;width:52px}.st-pop .k3{transition-delay:.14s}.st-pop .teen{width:84px}
+.st-opt:hover .st-pop .qubi,.st-opt:focus-visible .st-pop .qubi{transform:translateY(14%)}
+@media (hover:none){.st-pop .qubi{transform:translateY(14%)}}
+.qubi .q-teen{display:none}.qubi.teen .q-teen{display:block}
+#volPanel[hidden]{display:none!important}
+@media (max-width:430px){#theme,#music,#mute,#vol{padding-inline:8px;min-width:0}#theme{margin-left:-4px}}
+@keyframes stdrop{from{transform:translateY(-60px) scale(.6);opacity:0}}@keyframes stfade{from{opacity:0}}
+@media (max-width:520px){.st-top .qubi{width:120px}}
 @keyframes ltin{from{transform:translateY(-26px) rotate(-8deg)}}
 @keyframes ltjump{40%{transform:translateY(-14px) rotate(6deg)}}
 .gcard{animation:cardin .55s cubic-bezier(.3,1.5,.5,1) both;animation-delay:calc(var(--i)*35ms)}
@@ -725,8 +748,12 @@ body.playing .gbtn{display:none}
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="app">
   <div class="topbar">
-    <a class="brand" href="#"><i>+</i>Maths Arcade</a>
-    <div class="row" style="gap:8px"><button class="btn" id="theme">🌓 Theme: auto</button><button class="btn" id="music" aria-pressed="true">♪ Music: on</button><button class="btn" id="mute" aria-pressed="true">🔊 Sound effects: on</button></div>
+    <a class="brand" href="#start" title="Back to the start screen"><i>+</i>Maths Arcade</a>
+    <div class="row" style="gap:8px"><button class="btn" id="theme">🌓 Theme: auto</button><button class="btn" id="music" aria-pressed="true" hidden style="display:none">♪ Music: on</button><button class="btn" id="mute" aria-pressed="true" hidden style="display:none">🔊 Sound effects: on</button><span style="position:relative"><button class="btn" id="vol" aria-expanded="false" aria-controls="volPanel" title="Set how loud the music and sound effects are, or turn them off">🔊<span class="tl"> Sound</span></button>
+      <div id="volPanel" hidden style="position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(280px,86vw);background:var(--surface);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:14px 16px;box-shadow:0 6px 0 var(--ink);display:grid;gap:10px;text-align:left">
+        <label style="display:grid;gap:4px;font-weight:800"><span>♪ Music <span id="vol_mv" style="float:right;font-weight:700"></span></span><input type="range" id="vol_m" min="0" max="150" step="5" style="width:100%"></label>
+        <label style="display:grid;gap:4px;font-weight:800"><span>🔊 Sound effects <span id="vol_sv" style="float:right;font-weight:700"></span></span><input type="range" id="vol_s" min="0" max="150" step="5" style="width:100%"></label>
+        <small style="color:var(--muted)">Slide to 0 to turn it off. 100% is the normal loudness.</small></div></span></div>
   </div>
   <main id="view"></main>
 </div>

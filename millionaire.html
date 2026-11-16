@@ -1,0 +1,343 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>I Want to Be a Millionaire</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;700;800;900&display=swap">
+<style>
+/* Layout: game-show stage — question + answer plates on the left, prize ladder on the right (stacks below on phones). Deliberately single dark theme: a studio at night. */
+:root{
+  --bg:#071d24; --stage:#0d3440; --plate:#0f2c36; --line:#2c6a78; --ink:#eefbfd; --muted:#9cc3cb;
+  --gold:#ffc94a; --coral:#ff7a59; --good:#34d27b; --bad:#ff5468;
+  --display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  background:radial-gradient(ellipse 80% 55% at 50% 0%,#145466 0%,transparent 70%),var(--bg);min-height:100%}
+.wrap{max-width:1040px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(1.8rem,5.5vw,3rem);line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1 em{font-style:normal;color:var(--gold);text-shadow:0 0 18px rgba(255,201,74,.45)}
+.sub{color:var(--muted);margin:4px 0 0;font-weight:700}
+.game{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:18px;align-items:start}
+@media (max-width:760px){.game{grid-template-columns:1fr}}
+.stage{background:linear-gradient(180deg,var(--stage),var(--plate));border:2px solid var(--line);border-radius:22px;padding:20px;display:grid;gap:16px;min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
+.pill{font:800 13px var(--body);letter-spacing:.06em;text-transform:uppercase;border:1.5px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--muted)}
+.pill.gold{color:var(--bg);background:var(--gold);border-color:var(--gold)}
+.qbox{border:2px solid var(--gold);border-radius:18px;padding:18px 20px;background:rgba(0,0,0,.25);font-size:clamp(1.1rem,2.6vw,1.4rem);font-weight:800;text-wrap:pretty;box-shadow:0 0 30px rgba(255,201,74,.12)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{display:flex;align-items:center;gap:12px;text-align:left;font:800 1.1rem var(--body);color:var(--ink);background:var(--plate);border:2px solid var(--line);border-radius:999px;padding:12px 18px;cursor:pointer;min-height:56px;transition:background .2s,border-color .2s,transform .1s}
+.opt:hover:not(:disabled){border-color:var(--gold)}
+.opt:active:not(:disabled){transform:scale(.98)}
+.opt b{font-family:var(--display);font-weight:400;color:var(--gold);font-size:1.2rem}
+.opt.lock{background:var(--coral);border-color:var(--coral)} .opt.lock b{color:var(--bg)}
+.opt.ok{background:var(--good);border-color:var(--good);color:#04210f} .opt.ok b{color:#04210f}
+.opt.no{background:var(--bad);border-color:var(--bad)} .opt.no b{color:var(--ink)}
+.opt.gone{visibility:hidden}
+.opt:disabled{cursor:default}
+.life{display:flex;flex-wrap:wrap;gap:10px}
+.lbtn{font:800 14px var(--body);color:var(--ink);background:transparent;border:2px solid var(--gold);border-radius:999px;padding:8px 14px;cursor:pointer}
+.lbtn:disabled{opacity:.35;cursor:default;text-decoration:line-through}
+.lbtn.walk{border-color:var(--muted);color:var(--muted)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.panel{border-radius:16px;background:rgba(0,0,0,.28);border:1.5px solid var(--line);padding:14px 16px;display:grid;gap:6px}
+.panel h3{margin:0;font-family:var(--display);font-weight:400;font-size:1.3rem}
+.panel .w{font-variant-numeric:tabular-nums}
+.poll{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;height:120px}
+.poll div{display:grid;align-items:end;justify-items:center;gap:4px;height:100%}
+.poll i{display:block;width:70%;background:var(--gold);border-radius:6px 6px 0 0;transition:height .6s}
+.poll span{font-weight:800;font-size:13px}
+.go{font:400 1.25rem var(--display);background:var(--gold);color:var(--bg);border:0;border-radius:999px;padding:12px 26px;cursor:pointer;justify-self:start}
+.ladder{list-style:none;margin:0;padding:10px;border:2px solid var(--line);border-radius:18px;background:rgba(0,0,0,.25);display:flex;flex-direction:column-reverse;gap:2px;font-variant-numeric:tabular-nums}
+.ladder li{display:flex;justify-content:space-between;padding:4px 10px;border-radius:8px;font-weight:800;color:var(--muted);font-size:14px}
+.ladder li.safe{color:var(--ink)}
+.ladder li.safe span:last-child::after{content:" ★";color:var(--gold)}
+.ladder li.done{color:var(--good)}
+.ladder li.now{background:var(--gold);color:var(--bg)}
+.ladder li.now span:last-child::after{color:var(--bg)}
+@media (max-width:760px){.ladder{flex-direction:row-reverse;flex-wrap:wrap;justify-content:center}.ladder li{font-size:12px;padding:3px 7px;gap:6px}}
+.tier{font:400 1rem var(--display);letter-spacing:.03em}
+.rules{display:grid;gap:8px;margin:0;padding-left:1.2em;color:var(--muted);max-width:62ch}
+.rules b{color:var(--ink)}
+.result{font-family:var(--display);font-size:clamp(1.6rem,5vw,2.4rem);color:var(--gold);margin:0;line-height:1.1}
+.topr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+.banner{position:fixed;inset:0;display:grid;place-items:center;z-index:40;pointer-events:none;background:radial-gradient(circle,rgba(7,29,36,.7),rgba(7,29,36,.92))}
+.banner div{text-align:center;animation:pop 1.9s ease forwards}
+.banner small{display:block;font:800 1rem var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.banner b{display:block;font:400 clamp(2.4rem,9vw,5rem) var(--display);color:var(--gold);text-shadow:0 0 30px rgba(255,201,74,.6);line-height:1.05}
+@keyframes pop{0%{transform:scale(.4);opacity:0}15%{transform:scale(1.12);opacity:1}25%{transform:scale(1)}85%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
+.stage.shake{animation:shake .5s}
+@keyframes shake{20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+.ladder li.now{animation:glow 1.2s ease-in-out infinite alternate}
+@keyframes glow{from{box-shadow:0 0 0 rgba(255,201,74,0)}to{box-shadow:0 0 18px rgba(255,201,74,.75)}}
+.qbox{animation:rise .45s ease}
+@keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.hype{font:400 clamp(1.4rem,4vw,1.9rem) var(--display);color:var(--good);margin:0}
+.hype.no{color:var(--bad)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div><h1>I Want to Be a <em>Millionaire</em></h1><p class="sub">Primary 5 Percentage Edition</p></div>
+    <div class="topr"><span class="pill" id="tierPill">15 questions · 5 stages</span><button class="lbtn" id="mute" aria-pressed="false">Sound: on</button></div>
+  </div>
+
+  <div class="game">
+    <div class="stage" id="stage"></div>
+    <ol class="ladder" id="ladder" aria-label="Prize ladder"></ol>
+  </div>
+</div>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+<script>
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const frac=(a,b)=>{const g=gcd(a,b);return b/g===1?String(a/g):`${a/g}/${b/g}`};
+const r2=n=>Math.round(n*100)/100;
+const num=n=>{const x=r2(n);return Number.isInteger(x)?x.toLocaleString('en-SG'):x.toFixed(2)};
+const $m=n=>{const x=r2(n);return '$'+(Number.isInteger(x)?x.toLocaleString('en-SG'):x.toLocaleString('en-SG',{minimumFractionDigits:2,maximumFractionDigits:2}))};
+const dec=n=>String(+n.toFixed(6));
+const PRIZES=[100,200,300,500,1000,2000,4000,8000,16000,32000,64000,125000,250000,500000,1000000];
+const SAFE=[4,9];
+const TIERS=['Warm-up','Getting going','Number crunch','Real-world money','Millionaire round','Champion round'];
+const tierOf=l=>Math.floor(l/3);
+/* three levels: each maps the 5 stages of the show to question banks */
+const STAGEMAP={easy:[0,0,1,2,2],mixed:[0,1,2,3,4],hard:[1,2,3,4,5]},LVN={easy:'Easy',mixed:'Medium',hard:'Hard'};
+const bankOf=l=>STAGEMAP[g.level||'mixed'][tierOf(l)];
+
+/* build 4 unique options: correct first, then distractors; f formats the value */
+function opts(correct,wrong,f=x=>x){const seen=new Set([f(correct)]),out=[{t:f(correct),ok:true}];
+  for(const w of wrong){const s=f(w);if(out.length===4)break;if(w===null||w===undefined||Number.isNaN(w)||seen.has(s))continue;if(typeof w==='number'&&w<0)continue;seen.add(s);out.push({t:s,ok:false})}
+  let k=1;while(out.length<4&&typeof correct==='number'){const c=correct+k*(correct>=20?5:1)*(k%2?1:-1);k++;const s=f(c);if(c>=0&&!seen.has(s)){seen.add(s);out.push({t:s,ok:false})}}
+  return shuffle(out);}
+const Q=(q,o,work,hint)=>({q,o,work,hint:hint||work[0]});
+
+/* ---------- question banks by stage ---------- */
+const BANK=[
+ [ // Stage 1: Warm-up — meaning of percent, simple conversions
+  ()=>Q('What does "per cent" mean?',shuffle([{t:'Out of 100',ok:true},{t:'Out of 10',ok:false},{t:'Out of 1000',ok:false},{t:'Out of 50',ok:false}]),
+    ['"Per cent" comes from Latin: "per centum" means "for every hundred".','So 30% means 30 out of 100.']),
+  ()=>{const n=R(11,99);return Q(`${n}/100 is the same as ...`,opts(n,[n/10,n*10,100-n],x=>dec(x)+'%'),[`A fraction out of 100 is already a percentage.`,`${n}/100 = ${n}%`])},
+  ()=>{const [a,b]=pick([[1,2],[1,4],[3,4],[1,5],[1,10]]),p=a*100/b;return Q(`Express ${a}/${b} as a percentage.`,opts(p,[b*10,a*10,b,100-p],x=>x+'%'),
+    [`Make the denominator 100: ${a}/${b} = ${a*100/b}/100`,`${a*100/b}/100 = ${p}%`])},
+  ()=>{const d=R(1,9);return Q(`Express 0.${d} as a percentage.`,opts(d*10,[d,d/10,d*100],x=>dec(x)+'%'),[`Multiply by 100%: 0.${d} × 100% = ${d*10}%`,`(Move the decimal point 2 places to the right.)`])},
+  ()=>{const s=R(21,89);return Q(`In a hundred square, ${s} squares are shaded. What percentage of the squares are NOT shaded?`,opts(100-s,[s,100-s+10,100-s-10],x=>x+'%'),
+    [`Not shaded: 100 − ${s} = ${100-s} squares`,`${100-s} out of 100 = ${100-s}%`])},
+  ()=>Q('Which of these is equal to 50%?',shuffle([{t:'1/2',ok:true},{t:'1/5',ok:false},{t:'5/100',ok:false},{t:'1/50',ok:false}]),['50% = 50/100','50/100 = 1/2 (divide top and bottom by 50)']),
+ ],
+ [ // Stage 2: harder conversions and comparing
+  ()=>{const [a,b]=pick([[7,20],[9,20],[3,20],[11,25],[7,25],[13,50],[17,50],[3,25]]),k=100/b,p=a*k;
+    return Q(`Express ${a}/${b} as a percentage.`,opts(p,[a,b,a*10,a+b],x=>x+'%'),[`${b} × ${k} = 100, so multiply top and bottom by ${k}.`,`${a}/${b} = ${a*k}/100 = ${p}%`])},
+  ()=>{const d=pick([0.05,0.08,0.03,0.06,0.09]);return Q(`Express ${d} as a percentage.`,opts(d*100,[d*1000,d*10,d],x=>dec(x)+'%'),[`${d} × 100% = ${dec(d*100)}%`,`Careful: 0.0 at the front means fewer than 10 hundredths.`])},
+  ()=>{const p=pick([45,35,15,65,85,24,36,75,12]);const s=frac(p,100);const [n,d]=s.split('/').map(Number);
+    return Q(`Express ${p}% as a fraction in its simplest form.`,opts(s,[`${p}/10`,`${d}/${n}`,`${n}/${d*10}`,`1/${p}`]),[`${p}% = ${p}/100`,`Divide top and bottom by ${gcd(p,100)}: ${p}/100 = ${s}`])},
+  ()=>{const p=pick([8,4,6,2,15,35,72,9]);return Q(`Express ${p}% as a decimal.`,opts(p/100,[p/10,p,p/1000],dec),[`${p}% = ${p} ÷ 100`,`${p} ÷ 100 = ${dec(p/100)} (move the decimal point 2 places left)`])},
+  ()=>{const p=pick([10,20,25,50,75]),W=pick([40,80,120,160,200,240,360,400]);return Q(`What is ${p}% of ${W}?`,opts(W*p/100,[W-W*p/100,W/p,p*10,W*p/10]),
+    [`${p}% = ${frac(p,100)}`,`${frac(p,100)} of ${W} = ${W*p/100}`])},
+  ()=>{const sets=[[['2/5',40],['0.45',45],['42%',42],['3/8',37.5]],[['0.6',60],['3/5',60.0001],['65%',65],['13/20',65.0001]],[['1/4',25],['0.3',30],['28%',28],['7/25',28.0001]]];
+    // choose a set that has a single largest
+    const s=pick([[['2/5',40],['0.45',45],['42%',42],['3/8',37.5]],[['1/4',25],['0.3',30],['28%',28],['7/20',35]],[['0.7',70],['3/4',75],['72%',72],['17/25',68]],[['0.09',9],['1/10',10],['8%',8],['3/50',6]]]);
+    const big=s.reduce((a,b)=>b[1]>a[1]?b:a);
+    return Q('Which of these is the LARGEST?',shuffle(s.map(x=>({t:x[0],ok:x===big}))),['Change them all to percentages: '+s.map(x=>`${x[0]} = ${dec(x[1])}%`).join(', '),`The largest is ${big[0]} (${dec(big[1])}%).`])},
+ ],
+ [ // Stage 3: percentage of a quantity, part as percentage, discount, remainder
+  ()=>{const p=pick([15,35,45,65,85]),W=pick([120,240,360,480,600,840]);const a=W*p/100;
+    return Q(`What is ${p}% of ${W}?`,opts(a,[a*10,W-a,a/10,W/100+p]),[`1% of ${W} = ${W} ÷ 100 = ${dec(W/100)}`,`${p}% of ${W} = ${dec(W/100)} × ${p} = ${a}`])},
+  ()=>{const b=pick([20,25,40,50]);let a;do{a=R(Math.ceil(b/2),b-1)}while((a*100/b)%1);const p=a*100/b;
+    return Q(`Siti scored ${a} out of ${b} in a spelling test. What percentage did she score?`,opts(p,[a,b-a,100-p,a*2],x=>x+'%'),[`Fraction scored = ${a}/${b}`,`${a}/${b} × 100% = ${p}%`])},
+  ()=>{const P=pick([60,80,120,150,240,300]),d=pick([10,15,20,25,30]);const disc=P*d/100;
+    return Q(`A pair of shoes costs ${$m(P)}. During a sale, there is a ${d}% discount. What is the sale price?`,opts(P-disc,[disc,P+disc,P-d],$m),[`Discount = ${d}% of ${$m(P)} = ${$m(disc)}`,`Sale price = ${$m(P)} − ${$m(disc)} = ${$m(P-disc)}`])},
+  ()=>{const T=pick([400,500,600,800,1200]),p=pick([35,40,45,55,60]);const w=T*p/100;
+    return Q(`There are ${T} pupils in a school. ${p}% of them walk to school and the rest take the bus. How many pupils take the bus?`,opts(T-w,[w,T-p,w/10]),
+      [`Bus: 100% − ${p}% = ${100-p}%`,`${100-p}% of ${T} = ${T*(100-p)/100}`])},
+  ()=>{const b=pick([40,50,80,200]);const p=pick([5,15,35,45]);const a=b*p/100;
+    return Q(`A box has ${b} marbles. ${a} of them are red. What percentage of the marbles are red?`,opts(p,[a,b-a,100-p],x=>x+'%'),[`Fraction red = ${a}/${b}`,`${a}/${b} × 100% = ${p}%`])},
+  ()=>{const L=pick([40,60,80,120,200]),p=pick([15,25,35,45,60,85]),full=L*p/100,ans=L-full;return Q(`A tank can hold ${L} litres of water. It is ${p}% full. How many more litres are needed to fill it?`,opts(ans,[full,L-p,100-p],x=>num(x)+' litres'),
+    [`Water in the tank: ${p}% of ${L} = ${num(full)} litres`,`Still needed: ${L} − ${num(full)} = ${num(ans)} litres`])},
+  ()=>{const b=pick([40,80,200,500]),p=pick([15,35,45,65,85]),a=b*p/100;return Q(`${a} out of ${b} pupils in a hall wear glasses. What percentage of the pupils wear glasses?`,opts(p,[a,100-p,r2(a/b*10),r2(b/a)],x=>dec(x)+'%'),
+    [`${a}/${b} × 100%`,`= ${p}%`])},
+ ],
+ [ // Stage 4: GST, interest, discount + GST, comparing groups
+  ()=>{const P=pick([200,300,400,500,800,1200]);const g=P*.09;
+    return Q(`A bicycle costs ${$m(P)} before GST. GST is 9%. How much must be paid for the bicycle?`,opts(P+g,[g,P+9,P-g],$m),[`GST = 9% of ${$m(P)} = ${$m(g)}`,`Price paid = ${$m(P)} + ${$m(g)} = ${$m(P+g)}`])},
+  ()=>{const P=pick([1000,2000,5000,8000,3000]),r=pick([2,3,4,5]);const i=P*r/100;
+    return Q(`Mr Lim puts ${$m(P)} in a bank. The bank pays ${r}% interest per year. How much money will he have in the bank after 1 year?`,opts(P+i,[i,P+r,P+i*10],$m),
+      [`Interest = ${r}% of ${$m(P)} = ${$m(i)}`,`Amount after 1 year = ${$m(P)} + ${$m(i)} = ${$m(P+i)}`])},
+  ()=>{const P=pick([100,200,300,400,500]),d=pick([10,20,30]);const s=P*(100-d)/100,g=s*.09;
+    return Q(`A watch costs ${$m(P)}. It is sold at a ${d}% discount. 9% GST is then charged on the sale price. How much is paid for the watch?`,opts(s+g,[s,P*(100-d+9)/100,P*1.09,g],$m),
+      [`Sale price = ${100-d}% of ${$m(P)} = ${$m(s)}`,`GST = 9% of ${$m(s)} = ${$m(g)}`,`Price paid = ${$m(s)} + ${$m(g)} = ${$m(s+g)}`])},
+  ()=>{const T=pick([40,60,80,120]);let p;do{p=pick([30,35,40,45])}while((T*p)%100);const b=T*p/100,g=T-b;
+    return Q(`There are ${T} children at a party. ${p}% of them are boys. How many more girls than boys are there?`,opts(g-b,[b,g,100-2*p,T-p]),
+      [`Boys = ${p}% of ${T} = ${b}`,`Girls = ${T} − ${b} = ${g}`,`More girls than boys: ${g} − ${b} = ${g-b}`])},
+  ()=>{const T=pick([40,80,120,200]);const a=25,b=30,c=20,d=100-a-b-c;
+    return Q(`In a class survey of ${T} pupils, 1/4 chose art, 0.3 chose music and 20% chose sports. The rest chose drama. How many pupils chose drama?`,opts(T*d/100,[d,T*a/100,T*b/100,T-T*c/100]),
+      [`Change all to percentages: 1/4 = 25%, 0.3 = 30%, 20%`,`Drama: 100% − 25% − 30% − 20% = ${d}%`,`${d}% of ${T} = ${T*d/100}`])},
+  ()=>{const P=pick([80,120,250,360,480]),d=pick([15,25,35]),disc=P*d/100;return Q(`A bag costs ${$m(P)}. It is sold at a ${d}% discount. How much is the discount, in dollars?`,opts(disc,[P-disc,d,P*d/10],$m),
+    [`Discount = ${d}% of ${$m(P)}`,`= ${d}/100 × ${P} = ${$m(disc)}`,`(The sale price would be ${$m(P-disc)}. The question asks for the discount.)`])},
+  ()=>{const S=pick([100,200,300,400,500]),x=pick([35,45,60,85]),ans=r2(S*1.09);return Q(`Mrs Lee buys a kettle for ${$m(x)} and a toaster for ${$m(S-x)}. GST of 9% is added to the total. How much does she pay?`,opts(ans,[r2(S*.09),S+9,r2(S*1.9)],$m),
+    [`Total before GST: ${$m(x)} + ${$m(S-x)} = ${$m(S)}`,`GST: 9% of ${$m(S)} = ${$m(S*.09)}`,`She pays ${$m(S)} + ${$m(S*.09)} = ${$m(ans)}`])},
+ ],
+ [ // Stage 5: multi-step and comparing
+  ()=>{const P1=pick([120,160,200]),a=pick([20,25]),P2=P1-pick([10,20]),b=pick([10,15]);const s1=P1*(100-a)/100,s2=P2*(100-b)/100;
+    const cheap=s1<s2?'Shop A':'Shop B',diff=Math.abs(s1-s2);if(diff===0)return BANK[4][1]();
+    return Q(`The same scooter is sold in two shops. Shop A: ${$m(P1)} with ${a}% off. Shop B: ${$m(P2)} with ${b}% off. Which shop is cheaper, and by how much?`,
+      (()=>{const other=cheap==='Shop A'?'Shop B':'Shop A',seen=new Set(),out=[];[[cheap,diff,true],[other,diff],[cheap,Math.abs(P1-P2)],[other,Math.abs(a-b)],[other,Math.abs(P1-P2)],[cheap,Math.abs(a-b)],[cheap,diff+5]].forEach(([s_,v,ok])=>{const t=`${s_}, by ${$m(v)}`;if(out.length<4&&!seen.has(t)){seen.add(t);out.push({t,ok:!!ok})}});return shuffle(out)})(),
+      [`Shop A: ${100-a}% of ${$m(P1)} = ${$m(s1)}`,`Shop B: ${100-b}% of ${$m(P2)} = ${$m(s2)}`,`${cheap} is cheaper by ${$m(diff)}`])},
+  ()=>{const M=pick([400,600,800,1000,1200]),a=pick([20,25,30]),b=pick([35,40,45]);const left=M*(100-a-b)/100;
+    return Q(`Mrs Tan had ${$m(M)}. She spent ${a}% of it on a phone and ${b}% of it on a bag. How much money did she have left?`,opts(left,[M*(100-a)/100*(100-b)/100,M*(a+b)/100,M-a-b],$m),
+      [`Spent: ${a}% + ${b}% = ${a+b}%`,`Left: 100% − ${a+b}% = ${100-a-b}%`,`${100-a-b}% of ${$m(M)} = ${$m(left)}`])},
+  ()=>{const t=pick([40,50]),p=pick([80,70,60]);const ben=t*p/100,ali=ben+pick([2,3,4]);const d=ali-ben;
+    return Q(`In a test marked out of ${t}, Ali scored ${ali} marks and Ben scored ${p}%. Who scored more, and by how many marks?`,
+      shuffle([{t:`Ali, by ${d} marks`,ok:true},{t:`Ben, by ${p-ali} marks`,ok:false},{t:`Ben, by ${d} marks`,ok:false},{t:`Ali, by ${Math.round(ali*100/t-p)} marks`,ok:false}]),
+      [`Ben: ${p}% of ${t} = ${ben} marks`,`Ali: ${ali} marks`,`Ali scored more by ${ali} − ${ben} = ${d} marks`])},
+  ()=>{const P=pick([2000,4000,5000,10000]),r=pick([2,3,4]),yrs=pick([2,3]);
+    return Q(`Ravi saves ${$m(P)} in a bank that pays ${r}% interest per year. The interest stays the same each year. What is the total interest after ${yrs} years?`,opts(P*r/100*yrs,[P*r/100,P*r*yrs/10,P+P*r/100*yrs],$m),
+      [`Interest for 1 year = ${r}% of ${$m(P)} = ${$m(P*r/100)}`,`Interest for ${yrs} years = ${$m(P*r/100)} × ${yrs} = ${$m(P*r/100*yrs)}`])},
+  ()=>{const P=pick([200,400,600,800]),d=pick([15,25,35]);const s=P*(100-d)/100,full=P*1.09,paid=s*1.09;
+    return Q(`A TV costs ${$m(P)} before GST. Jia Hui buys it at a ${d}% discount and pays 9% GST on the sale price. How much does she save compared with paying full price with GST?`,
+      opts(full-paid,[P*d/100,full-s,paid],$m),[`Full price with GST = ${$m(P)} + 9% = ${$m(full)}`,`Sale price ${$m(s)}, with GST = ${$m(paid)}`,`Saved: ${$m(full)} − ${$m(paid)} = ${$m(full-paid)}`])},
+ ],
+ [ // Stage 6: Champion round (Hard level only) — two steps where the second percentage is of a NEW amount
+  ()=>{const P=pick([200,400,500,800]),d1=pick([10,20]),d2=pick([10,20,25]),s1=P*(100-d1)/100,ans=r2(s1*(100-d2)/100);return Q(`A jacket costs ${$m(P)}. In a sale it is ${d1}% off. Members get a further ${d2}% off the sale price. How much does a member pay?`,opts(ans,[P*(100-d1-d2)/100,s1,P*(d1+d2)/100],$m),
+    [`Sale price: ${100-d1}% of ${$m(P)} = ${$m(s1)}`,`Member price: ${100-d2}% of ${$m(s1)} = ${$m(ans)}`,`The second discount is taken from the sale price, so you cannot just add ${d1}% and ${d2}%.`])},
+  ()=>{const M=pick([200,400,500,800,1000]),a=pick([20,25,40]),b=pick([10,20,50]),rem=M*(100-a)/100,ans=r2(rem*(100-b)/100);return Q(`Ali had ${$m(M)}. He spent ${a}% of it on a book. Then he spent ${b}% of the remainder on food. How much money did he have left?`,opts(ans,[M*(100-a-b)/100,r2(rem*b/100),M*a/100],$m),
+    [`After the book: ${100-a}% of ${$m(M)} = ${$m(rem)}`,`Food: ${b}% of the remainder ${$m(rem)} = ${$m(rem*b/100)}`,`Left: ${$m(rem)} − ${$m(rem*b/100)} = ${$m(ans)}`])},
+  ()=>{const P=pick([50,80,100,120,200]),sc=r2(P*1.1),ans=r2(sc*1.09);return Q(`A meal at a restaurant costs ${$m(P)}. A 10% service charge is added. Then 9% GST is charged on the new total. How much is the final bill?`,opts(ans,[r2(P*1.19),sc,r2(P*1.09)],$m),
+    [`With service charge: 110% of ${$m(P)} = ${$m(sc)}`,`GST: 9% of ${$m(sc)} = ${$m(sc*.09)}`,`Final bill: ${$m(sc)} + ${$m(sc*.09)} = ${$m(ans)}`,`GST is charged on ${$m(sc)}, not on ${$m(P)}, so the answer is not 119% of ${$m(P)}.`])},
+  ()=>{const P=pick([2000,5000,8000]),r=pick([2,3,4]),n=pick([2,3]),I=P*r/100,ans=P+I*n;return Q(`Mdm Goh puts ${$m(P)} in a bank that pays ${r}% interest per year. The interest is the same each year. How much money will she have after ${n} years?`,opts(ans,[I*n,P+I,P+I*n*10],$m),
+    [`Interest for 1 year: ${r}% of ${$m(P)} = ${$m(I)}`,`Interest for ${n} years: ${n} × ${$m(I)} = ${$m(I*n)}`,`Total: ${$m(P)} + ${$m(I*n)} = ${$m(ans)}`])},
+  ()=>{const T=pick([400,600,800,1200]),p=pick([25,40,50]),q=pick([10,20,30]),up=T*p/100,ans=up*q/100;return Q(`A school has ${T} pupils. ${p}% of them are in Primary 5 and 6. ${q}% of these Primary 5 and 6 pupils wear glasses. How many Primary 5 and 6 pupils wear glasses?`,opts(ans,[T*(p+q)/100,up,T*q/100],x=>num(x)+' pupils'),
+    [`Primary 5 and 6 pupils: ${p}% of ${T} = ${up}`,`Wear glasses: ${q}% of ${up} = ${ans}`,`The ${q}% is of the ${up} pupils, not of the whole school.`])},
+  ()=>{const [set,big]=pick([[['3/8','0.38','37%'],1],[['2/5','0.45','42%'],1],[['7/20','0.3','33%'],0],[['3/4','0.7','78%'],2],[['1/8','0.12','13%'],2],[['9/20','0.4','48%'],2]]),vals=set.map(t=>t.includes('/')?t.split('/')[0]/t.split('/')[1]*100:t.includes('%')?parseFloat(t):t*100),small=vals.indexOf(Math.min(...vals)),wantBig=Math.random()<.5,ok=wantBig?big:small;
+    return Q(`Which of these is the ${wantBig?'largest':'smallest'}: ${set.join(', ')}?`,shuffle([...set.map((t,i)=>({t,ok:i===ok})),{t:'They are all equal',ok:false}]),[`Change them all to percentages: ${set.map((t,i)=>`${t} = ${dec(vals[i])}%`).join(', ')}`,`The ${wantBig?'largest':'smallest'} is ${set[ok]}.`])},
+  ()=>{const P=pick([100,200,300,500]),a=pick([10,20]),up=P*(100+a)/100,ans=r2(up*(100-a)/100);return Q(`A shop raises the price of a ${$m(P)} bag by ${a}%. Later, it gives a ${a}% discount on the new price. What is the final price?`,opts(ans,[P,up,P*(100-a)/100],$m),
+    [`New price: ${100+a}% of ${$m(P)} = ${$m(up)}`,`Discount: ${a}% of ${$m(up)} = ${$m(up*a/100)}`,`Final price: ${$m(up)} − ${$m(up*a/100)} = ${$m(ans)}`,`It does not go back to ${$m(P)}: the discount is ${a}% of a bigger amount.`])},
+  ()=>{const N=pick([80,160,240,400,640]);return Q(`What is 12.5% of ${N}?`,opts(N/8,[N*1.25,r2(N/12.5),N/10],num),[`12.5% = 12.5/100 = 1/8`,`1/8 of ${N} = ${N/8}`])},
+ ]
+];
+
+/* ---------- sound (made live with Web Audio, no files) ---------- */
+let AC=null,muted=false;try{muted=localStorage.getItem('wtbmMute')==='1'}catch(e){}
+const ac=()=>{if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC};
+function tone(f,t0,dur,{type='triangle',vol=.18,to=null}={}){const c=ac();if(!c||muted)return;
+  const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+t0;o.type=type;o.frequency.setValueAtTime(f,t);
+  if(to)o.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.015);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.05);}
+const N={C4:262,E4:330,G4:392,A4:440,B4:494,C5:523,D5:587,E5:659,F5:698,G5:784,A5:880,C6:1047,E6:1319,G6:1568};
+const sfx={
+  start(){[N.C4,N.E4,N.G4,N.C5].forEach((f,i)=>tone(f,i*.11,.25,{type:'square',vol:.12}));[N.C5,N.E5,N.G5].forEach(f=>tone(f,.48,.9,{type:'sawtooth',vol:.07}));tone(N.C6,.48,.9,{vol:.12})},
+  lock(){tone(110,0,.35,{type:'sawtooth',vol:.15});tone(104,.32,.5,{type:'sawtooth',vol:.15})},
+  roll(d){const n=Math.floor(d/70);for(let i=0;i<n;i++)tone(180+i*14,i*.07,.06,{type:'square',vol:.04+.06*i/n})},
+  correct(){[N.C5,N.E5,N.G5,N.C6].forEach((f,i)=>tone(f,i*.09,.3,{vol:.2}));[N.E6,N.G6].forEach((f,i)=>tone(f,.4+i*.07,.4,{type:'sine',vol:.12}))},
+  wrong(){tone(196,0,.55,{type:'sawtooth',vol:.2,to:98});tone(185,0,.55,{type:'square',vol:.1,to:92})},
+  life(){tone(300,0,.35,{type:'sine',vol:.15,to:1400});tone(1400,.3,.15,{type:'triangle',vol:.1})},
+  safe(){[N.G4,N.C5,N.E5,N.G5,N.E5,N.G5].forEach((f,i)=>tone(f,.55+i*.1,.22,{type:'square',vol:.1}))},
+  stage(){[N.C4,N.G4,N.C5].forEach((f,i)=>tone(f,i*.15,.3,{type:'sawtooth',vol:.1}));tone(N.C5,.45,.8,{type:'square',vol:.1});tone(N.E5,.45,.8,{vol:.1});tone(N.G5,.45,.8,{vol:.1})},
+  walk(){tone(N.E5,0,.12,{type:'square',vol:.1});tone(N.C6,.1,.4,{vol:.15})},
+  win(){const m=[N.C5,N.C5,N.C5,N.G5,N.E5,N.G5,N.C6];const d=[0,.15,.3,.45,.75,.9,1.05];m.forEach((f,i)=>tone(f,d[i],i===6?1.4:.25,{type:'square',vol:.12}));[N.C5,N.E5,N.G5].forEach(f=>tone(f,1.05,1.4,{type:'sawtooth',vol:.06}))},
+  click(){tone(880,0,.05,{type:'square',vol:.05})}
+};
+// heartbeat that speeds up as the money gets bigger
+let beat=null;
+function heartbeat(level){stopBeat();const gap=Math.max(520,1100-level*40);
+  const thump=()=>{tone(70,0,.14,{type:'sine',vol:.35,to:45});tone(70,.18,.12,{type:'sine',vol:.22,to:45})};thump();beat=setInterval(thump,gap)}
+function stopBeat(){clearInterval(beat);beat=null}
+function setMute(m){muted=m;try{localStorage.setItem('wtbmMute',m?'1':'0')}catch(e){}$('mute').textContent='Sound: '+(m?'off':'on');$('mute').setAttribute('aria-pressed',m)}
+$('mute').onclick=()=>{setMute(!muted);if(!muted){ac();sfx.click()}};setMute(muted);
+
+/* ---------- visual hype ---------- */
+const calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv=$('fx'),cx=cv.getContext('2d');let parts=[],raf=null;
+function confetti(n=90,big=false){if(calm)return;cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#ffc94a','#ff7a59','#34d27b','#5ad8f0','#ffffff'];
+  for(let i=0;i<n;i++)parts.push({x:big?Math.random()*cv.width:cv.width/2+(Math.random()-.5)*200,y:big?-20-Math.random()*cv.height*.5:cv.height*.45,
+    vx:(Math.random()-.5)*(big?3:14),vy:big?2+Math.random()*3:-6-Math.random()*9,s:5+Math.random()*7,r:Math.random()*6,vr:(Math.random()-.5)*.3,c:pick(cols),life:0});
+  if(!raf)raf=requestAnimationFrame(tick);}
+function tick(){cx.clearRect(0,0,cv.width,cv.height);
+  parts=parts.filter(p=>p.y<cv.height+30&&p.life<400);
+  parts.forEach(p=>{p.life++;p.vy+=.25;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);cx.restore()});
+  raf=parts.length?requestAnimationFrame(tick):null;if(!raf)cx.clearRect(0,0,cv.width,cv.height);}
+function banner(small,big){if(calm)return;const b=document.createElement('div');b.className='banner';b.innerHTML=`<div><small>${small}</small><b>${big}</b></div>`;document.body.appendChild(b);setTimeout(()=>b.remove(),1900)}
+const HYPE=['Correct!','Brilliant!','Spot on!','Nailed it!','Percent-tastic!','Yes! Well done!'];
+const HYPE_BIG=['Unstoppable!','You are on fire!','Genius move!','The crowd goes wild!','Maths champion!'];
+const OOPS=['Oh no!','So close!','Not this time!'];
+
+/* ---------- game state ---------- */
+const g={lvl:0,used:{},life:{half:true,poll:true,hint:true},q:null,busy:false};
+function ladder(){$('ladder').innerHTML=PRIZES.map((p,i)=>`<li class="${SAFE.includes(i)?'safe':''} ${i<g.lvl?'done':''} ${i===g.lvl&&g.playing?'now':''}"><span>${i+1}</span><span>${$m(p)}</span></li>`).join('')}
+function safeWin(){let w=0;SAFE.forEach(i=>{if(g.lvl>i)w=PRIZES[i]});return w}
+function newQ(){const t=bankOf(g.lvl),bank=BANK[t];g.used[t]=g.used[t]||[];
+  let ix,tries=0;do{ix=R(0,bank.length-1);tries++}while(g.used[t].includes(ix)&&tries<30);g.used[t].push(ix);
+  return bank[ix]();}
+
+function startScreen(){g.playing=false;ladder();
+  $('stage').innerHTML=`<p class="tier" style="margin:0;color:var(--gold)">Welcome, contestant!</p>
+   <ol class="rules">
+    <li>Answer <b>15 percentage questions</b>. They get harder every 3 questions.</li>
+    <li>Questions <b>5</b> and <b>10</b> are safe levels (★). Once you pass them, you keep that money even if you get one wrong later.</li>
+    <li>You have three lifelines, each used once: <b>Remove 2</b>, <b>Ask the Class</b> and <b>Hint Card</b>.</li>
+    <li>You can <b>walk away</b> with your money at any time.</li>
+    <li>After every answer, the working is shown so you can learn from it.</li>
+   </ol>
+   <p style="margin:6px 0 0;font-weight:800">Choose your level:</p>
+   <div style="display:flex;flex-wrap:wrap;gap:10px">${[['easy','🌱 Easy','Stays with the basics: what percent means, conversions and simple amounts.'],['mixed','⚡ Medium','The full show, from warm-up to the Millionaire round.'],['hard','🔥 Hard','Skips the warm-up and ends with the Champion round: two-step problems.']].map(([k,n,d])=>`<button class="go lv" data-lv="${k}" style="flex:1 1 180px;text-align:left;border-radius:18px;${k==='mixed'?'':'background:transparent;color:var(--gold);border:2px solid var(--gold);'}"><span style="display:block">${n}</span><span style="display:block;font:600 .85rem/1.3 system-ui,sans-serif;margin-top:4px">${d}</span></button>`).join('')}</div>`;
+  document.querySelectorAll('.go.lv').forEach(b=>b.onclick=()=>{g.level=b.dataset.lv;start()});}
+function start(){ac();sfx.start();Object.assign(g,{lvl:0,used:{},life:{half:true,poll:true,hint:true},playing:true});banner('Let the game begin','Question 1');setTimeout(play,calm?0:900)}
+function play(){g.busy=false;g.q=newQ();ladder();const L=g.lvl;
+  if(L>0&&L%3===0){sfx.stage();banner(`Stage ${tierOf(L)+1}`,TIERS[bankOf(L)])}
+  heartbeat(L);
+  $('tierPill').textContent=`${LVN[g.level||'mixed']} · Stage ${tierOf(L)+1}: ${TIERS[bankOf(L)]}`;
+  $('stage').innerHTML=`<div class="meta"><span class="pill gold">Question ${L+1} of 15</span><span class="pill">Playing for ${$m(PRIZES[L])}</span></div>
+   <div class="qbox">${g.q.q}</div>
+   <div class="opts" id="opts">${g.q.o.map((o,i)=>`<button class="opt" data-i="${i}"><b>${'ABCD'[i]}</b><span>${o.t}</span></button>`).join('')}</div>
+   <div class="life">
+     <button class="lbtn" id="lHalf" ${g.life.half?'':'disabled'}>Remove 2</button>
+     <button class="lbtn" id="lPoll" ${g.life.poll?'':'disabled'}>Ask the Class</button>
+     <button class="lbtn" id="lHint" ${g.life.hint?'':'disabled'}>Hint Card</button>
+     <button class="lbtn walk" id="lWalk">Walk away with ${$m(L?PRIZES[L-1]:0)}</button>
+   </div>
+   <div id="extra"></div>`;
+  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(+b.dataset.i,b));
+  $('lHalf').onclick=()=>{if(g.busy)return;sfx.life();g.life.half=false;$('lHalf').disabled=true;
+    const wrong=shuffle(g.q.o.map((o,i)=>o.ok?-1:i).filter(i=>i>=0)).slice(0,2);
+    wrong.forEach(i=>{const b=document.querySelector(`.opt[data-i="${i}"]`);b.classList.add('gone');b.disabled=true});};
+  $('lPoll').onclick=()=>{if(g.busy)return;sfx.life();g.life.poll=false;$('lPoll').disabled=true;
+    const acc=0.85-L*0.03,live=g.q.o.map((o,i)=>!document.querySelector(`.opt[data-i="${i}"]`).classList.contains('gone'));
+    let w=g.q.o.map((o,i)=>!live[i]?0:o.ok?(Math.random()<acc?60+R(0,30):R(5,25)):R(5,35));
+    const s=w.reduce((a,b)=>a+b,0);let pc=w.map(x=>Math.round(x*100/s));pc[pc.indexOf(Math.max(...pc))]+=100-pc.reduce((a,b)=>a+b,0);
+    $('extra').innerHTML=`<div class="panel"><h3>The class voted</h3><div class="poll">${pc.map((p,i)=>`<div><span>${p}%</span><i style="height:${p*0.8}px"></i><span>${'ABCD'[i]}</span></div>`).join('')}</div><span class="w" style="color:var(--muted)">Classmates can be wrong too, especially on harder questions!</span></div>`;};
+  $('lHint').onclick=()=>{if(g.busy)return;sfx.life();g.life.hint=false;$('lHint').disabled=true;
+    $('extra').innerHTML=`<div class="panel"><h3>Hint Card</h3><div class="w">${g.q.hint}</div></div>`;};
+  $('lWalk').onclick=()=>{if(g.busy)return;stopBeat();sfx.walk();end(L?PRIZES[L-1]:0,'walk')};}
+function answer(i,btn){if(g.busy)return;g.busy=true;
+  document.querySelectorAll('.opt,.lbtn').forEach(b=>b.disabled=true);btn.classList.add('lock');stopBeat();sfx.lock();
+  const wait=calm?200:1300+g.lvl*60;setTimeout(()=>sfx.roll(wait-450),400);
+  setTimeout(()=>{const ok=g.q.o[i].ok;btn.classList.remove('lock');
+    const ci=g.q.o.findIndex(o=>o.ok);document.querySelector(`.opt[data-i="${ci}"]`).classList.add('ok');if(!ok)btn.classList.add('no');
+    if(ok){sfx.correct();confetti(g.lvl>=9?160:90)}else{sfx.wrong();$('stage').classList.add('shake');setTimeout(()=>$('stage').classList.remove('shake'),600)}
+    const work=`<div class="panel"><p class="hype ${ok?'':'no'}">${ok?pick(g.lvl>=8?HYPE_BIG:HYPE):pick(OOPS)}</p><h3>${ok?'Here is the working':'Here is how to do it'}</h3>${g.q.work.map(w=>`<div class="w">${w}</div>`).join('')}</div>`;
+    if(ok){g.lvl++;ladder();if(SAFE.includes(g.lvl-1)){sfx.safe();setTimeout(()=>banner('Safe level reached',`${$m(PRIZES[g.lvl-1])} is yours!`),700)}
+      if(g.lvl===15){$('extra').innerHTML=work;setTimeout(()=>end(PRIZES[14],'win'),1500);return}
+      $('extra').innerHTML=work+`<button class="go" id="nextBtn" style="margin-top:12px">${SAFE.includes(g.lvl-1)?`Safe! You keep ${$m(PRIZES[g.lvl-1])}. `:''}Next: play for ${$m(PRIZES[g.lvl])}</button>`;
+      $('nextBtn').onclick=()=>{sfx.click();play()};}
+    else{$('extra').innerHTML=work+`<button class="go" id="nextBtn" style="margin-top:12px">See my result</button>`;$('nextBtn').onclick=()=>end(safeWin(),'lose');}
+  },wait);}
+function end(amount,how){g.playing=false;stopBeat();ladder();
+  if(how==='win'){sfx.win();confetti(260,true);setTimeout(()=>confetti(200,true),1200);banner('Champion','MILLIONAIRE!')}
+  const msg=how==='win'?'You are a PERCENTAGE MILLIONAIRE!':how==='walk'?'You walked away. Smart thinking!':(amount?`You fall back to the safe level.`:`Better luck next time!`);
+  $('stage').innerHTML=`<p class="pill gold" style="justify-self:start;margin:0">Game over</p>
+    <p class="result">You take home ${$m(amount)}</p><p style="margin:0;font-weight:800">${msg}</p>
+    <p style="margin:0;color:var(--muted)">You answered ${g.lvl} question${g.lvl===1?'':'s'} correctly, reaching Stage ${Math.min(5,tierOf(Math.min(g.lvl,14))+1)}: ${TIERS[bankOf(Math.min(g.lvl,14))]} (${LVN[g.level||'mixed']} level).</p>
+    <button class="go" id="again">Play again</button>`;
+  $('again').onclick=start;}
+startScreen();
+</script>
+
+<div style="height:60px"></div><a href="index.html" style="position:fixed;left:10px;bottom:10px;z-index:9999;font:800 14px Nunito,system-ui,sans-serif;background:#16233a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.35);opacity:.92">← Maths Arcade</a></body></html>

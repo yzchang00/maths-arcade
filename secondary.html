@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maths Arcade · Secondary Visual Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* VOICE: playful arcade, but the maths is exact and the feedback is a teacher's.
+   IDEA: a lab bench of moving models: each applet is a "cabinet" you open and play with.
+   PICTURE: the live model itself (graph, circle, discs) fills the first screen of every applet.
+   COLOUR and TYPE: Maths Arcade's own palette (teal, tomato, sun, violet on mint), Fredoka + Nunito.
+   LAYOUT: hub of cabinets by level; applet = model left, controls right, stacks below 760px. */
+:root{color-scheme:light;
+  --bg:#edf4f2;--surface:#fff;--ink:#16233a;--muted:#56667b;--line:#cddbdb;--soft:#e1eeeb;
+  --teal:#0b968b;--tomato:#ef5240;--sun:#ffb81f;--violet:#5f50ec;--good:#12985a;--bad:#de3f46;
+  --display:"Fredoka",ui-rounded,system-ui,sans-serif;--body:"Nunito",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#0e191c;--surface:#172528;--ink:#e7f2f0;--muted:#9db2af;--line:#2a3d41;--soft:#1c3033;
+  --teal:#38c4b8;--tomato:#ff7b6b;--sun:#ffc94f;--violet:#9a8fff;--good:#45d08a;--bad:#ff6f73}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0e191c;--surface:#172528;--ink:#e7f2f0;--muted:#9db2af;--line:#2a3d41;--soft:#1c3033;
+  --teal:#38c4b8;--tomato:#ff7b6b;--sun:#ffc94f;--violet:#9a8fff;--good:#45d08a;--bad:#ff6f73}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);overflow-x:clip}
+.app{max-width:1120px;margin:0 auto;padding:14px max(16px,4vw) 56px;display:grid;gap:20px}
+button{font-family:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font:700 1.3rem var(--display);display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit}
+.brand i{font-style:normal;width:34px;height:34px;border-radius:10px;background:var(--sun);color:#16233a;display:grid;place-items:center;font-size:1.05rem;transform:rotate(-6deg)}
+.btn{font:800 15px var(--body);color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:12px;padding:8px 14px;cursor:pointer;min-height:44px}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.pill{font:800 13px var(--body);border:2px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.between{justify-content:space-between}
+/* hub */
+.hero h1{font:700 clamp(2.2rem,7vw,3.6rem)/1 var(--display);margin:0}
+.hero h1 span{color:var(--tomato)}
+.hero p{margin:10px 0 0;color:var(--muted);max-width:62ch;font-weight:600}
+.levels{display:flex;gap:8px;flex-wrap:wrap}
+.levels button{font:600 1.05rem var(--display);border:2px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 18px;cursor:pointer;min-height:44px}
+.levels button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.lvl{display:grid;gap:12px}
+.lvl h2{font:600 1.25rem var(--display);margin:0;display:flex;align-items:center;gap:10px}
+.lvl h2 small{font:700 14px var(--body);color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.gcard{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:start;text-decoration:none;color:inherit;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:12px;transition:border-color .15s,transform .15s}
+.gcard:hover{border-color:var(--c);transform:translateY(-2px)}
+.gl{width:64px;height:64px;border-radius:14px;background:var(--c);color:#fff;display:grid;place-items:center;font:700 1.35rem var(--display);line-height:1}
+.gcard b{font:600 1.15rem var(--display);display:block;line-height:1.2}
+.gcard small{display:block;color:var(--muted);font-weight:800;font-size:12.5px;margin-top:2px}
+.gcard span.d{display:block;font-size:14px;margin-top:4px}
+.stars{color:var(--sun);letter-spacing:2px}
+/* applet screen */
+.back{font:800 15px var(--body);color:var(--ink);text-decoration:none;border:2px solid var(--ink);border-radius:999px;padding:6px 14px;background:var(--surface)}
+.ghead .tag{font:800 13px var(--body);color:var(--c)}
+.ghead h2{font:700 clamp(1.8rem,5vw,2.5rem)/1.05 var(--display);margin:2px 0 6px}
+.ghead p{margin:0;color:var(--muted);max-width:66ch;font-weight:600}
+.tabs{display:flex;gap:8px}
+.tabs button{font:600 1.05rem var(--display);border:2px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:12px;padding:6px 16px;cursor:pointer;min-height:44px}
+.tabs button[aria-selected="true"]{background:var(--c);border-color:var(--c);color:#fff}
+.stage{background:var(--surface);border:2px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--c);padding:18px;display:grid;gap:16px}
+.two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.two{grid-template-columns:minmax(0,1fr)}}
+.fig svg{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+.ctl{display:grid;gap:14px;align-content:start}
+.sl{display:grid;gap:2px;font-weight:800;font-size:15px}
+.sl span{display:flex;justify-content:space-between;gap:8px}
+.sl b{font-variant-numeric:tabular-nums;color:var(--violet)}
+input[type=range]{width:100%;height:32px;accent-color:var(--violet);margin:0}
+select{font:700 16px var(--body);border:2px solid var(--ink);border-radius:10px;padding:6px 8px;background:var(--surface);color:var(--ink);min-height:44px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:800 14px var(--body);border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer;min-height:44px}
+.seg button[aria-pressed="true"]{border-color:var(--violet);background:var(--violet);color:#fff}
+.stp{display:grid;grid-template-columns:1fr 44px 56px 44px;align-items:center;gap:6px;font-weight:800}
+.stp button{font:700 1.3rem var(--display);height:44px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer}
+.stp output{font:700 1.4rem var(--display);text-align:center;font-variant-numeric:tabular-nums}
+.chk{display:flex;gap:8px;align-items:center;font-weight:800;cursor:pointer;min-height:44px}
+.chk input{width:20px;height:20px;accent-color:var(--violet)}
+.read{display:grid;gap:8px;font-size:16px}
+.read p{margin:0}
+.eq{font:600 1.45rem var(--display)}
+.big{font:700 clamp(1.5rem,4vw,2rem) var(--display)}
+.say{margin:0;border-left:4px solid var(--c);padding:6px 0 6px 12px;font-weight:600}
+.warn{border-left-color:var(--tomato);background:color-mix(in srgb,var(--tomato) 8%,transparent);border-radius:0 10px 10px 0}
+.watch{background:var(--soft);border-radius:16px;padding:14px 18px}
+.watch h3{font:600 1.1rem var(--display);margin:0 0 6px}
+.watch ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.05;font-size:.86em;margin:0 .12em}
+.fr>span:first-child{border-bottom:2px solid currentColor;padding:0 .18em}
+.col{display:inline-grid;vertical-align:middle;text-align:center;line-height:1.1;padding:0 .45em;position:relative;font-variant-numeric:tabular-nums}
+.col::before,.col::after{content:"";position:absolute;top:0;bottom:0;width:.35em;border:2px solid currentColor}
+.col::before{left:0;border-right:0;border-radius:.5em 0 0 .5em}.col::after{right:0;border-left:0;border-radius:0 .5em .5em 0}
+.mx{display:inline-grid;gap:2px 14px;padding:4px 12px;position:relative;vertical-align:middle;font:700 1.15rem var(--display);text-align:center;font-variant-numeric:tabular-nums}
+.mx::before,.mx::after{content:"";position:absolute;top:0;bottom:0;width:8px;border:2.5px solid currentColor}
+.mx::before{left:0;border-right:0;border-radius:10px 0 0 10px}.mx::after{right:0;border-left:0;border-radius:0 10px 10px 0}
+.mx span{min-width:1.6em;padding:2px 4px;border-radius:6px}
+.mx span.r{background:color-mix(in srgb,var(--tomato) 22%,transparent)}
+.mx span.c{background:color-mix(in srgb,var(--teal) 25%,transparent)}
+.mx button{font:700 1.15rem var(--display);min-width:2.4em;min-height:40px;border:2px dashed var(--muted);border-radius:8px;background:var(--soft);color:var(--ink);cursor:pointer}
+.mx button.on{border:2px solid var(--violet);background:color-mix(in srgb,var(--violet) 18%,var(--surface))}
+.mxrow{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font:700 1.3rem var(--display)}
+/* quiz */
+.qn{margin:0;font:800 13px var(--body);color:var(--muted)}
+.qt{font-size:1.2rem;font-weight:800;margin:0;text-wrap:pretty}
+.qfig{max-width:440px}
+.qfig svg{width:100%;height:auto;display:block}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.choices{grid-template-columns:minmax(0,1fr)}}
+.choices .btn{font:600 1.2rem var(--display);min-height:58px;text-align:center}
+.choices .btn.right{background:var(--good);border-color:var(--good);color:#fff}
+.choices .btn.wrong{background:var(--bad);border-color:var(--bad);color:#fff}
+.fb{border-radius:14px;padding:14px;display:grid;gap:8px;border:2px solid var(--good);background:color-mix(in srgb,var(--good) 10%,var(--surface))}
+.fb.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--surface))}
+.fb p{margin:0}
+.fbt{font:600 1.3rem var(--display);color:var(--good)}
+.fb.no .fbt{color:var(--bad)}
+.end{display:grid;gap:12px;justify-items:start}
+.end .stars{font-size:3rem;letter-spacing:6px;line-height:1}
+.end h3{font:700 2rem var(--display);margin:0}
+/* svg classes */
+svg text{font-family:var(--body);font-weight:800;fill:var(--ink)}
+.gl1{stroke:var(--line);stroke-width:1}
+.ax{stroke:var(--ink);stroke-width:2}
+.tk{font-size:13px;fill:var(--muted)!important}
+.ink{stroke:var(--ink)}
+.dot{fill:var(--ink)}
+.hit{cursor:grab}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+{
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const M='−';
+const num=(x,dp=2)=>{if(Math.abs(x)<1e-9)return'0';const r=Math.round(x*10**dp)/10**dp;return String(r).replace('-',M)};
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1};
+const frac=(n,d=1)=>{if(d<0){n=-n;d=-d}const g=gcd(n,d);n/=g;d/=g;if(d===1)return num(n);return(n<0?M:'')+`<span class="fr"><span>${Math.abs(n)}</span><span>${d}</span></span>`};
+const br=n=>n<0?`(${num(n)})`:num(n);
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const rad=d=>d*Math.PI/180, deg=r=>r*180/Math.PI;
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+/* signed term: coefficient c of v (v '' for constant) */
+function term(c,v,first){if(!c)return'';const s=c<0?M:'+';const a=Math.abs(c);const body=(v&&a===1)?v:num(a)+v;return first?(c<0?M:'')+body:` ${s} ${body}`}
+function poly(cs,vs){let out='',first=true;cs.forEach((c,i)=>{if(c){out+=term(c,vs[i],first);first=false}});return out||'0'}
+const P2=(a,b,c)=>poly([a,b,c],['x²','x','']);
+const colv=(x,y)=>`<span class="col"><span>${num(x)}</span><span>${num(y)}</span></span>`;
+const mxh=(rows,cls)=>`<span class="mx" style="grid-template-columns:repeat(${rows[0].length},auto)">${rows.map((r,i)=>r.map((v,j)=>`<span class="${cls?cls(i,j):''}">${num(v)}</span>`).join('')).join('')}</span>`;
+function plane(o){const W=o.W||520,H=o.H||520,{x0,x1,y0,y1}=o;const sx=W/(x1-x0),sy=H/(y1-y0);
+  const X=x=>(x-x0)*sx,Y=y=>H-(y-y0)*sy;
+  function grid(step=1,lab=2,ys=step,ylab=lab){let s='';
+    for(let x=Math.ceil(x0/step)*step;x<=x1+1e-9;x+=step)s+=`<line class="gl1" x1="${X(x)}" y1="0" x2="${X(x)}" y2="${H}"/>`;
+    for(let y=Math.ceil(y0/ys)*ys;y<=y1+1e-9;y+=ys)s+=`<line class="gl1" x1="0" y1="${Y(y)}" x2="${W}" y2="${Y(y)}"/>`;
+    if(y0<=0&&y1>=0)s+=`<line class="ax" x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}"/><text x="${W-12}" y="${Y(0)-8}" font-size="15">x</text>`;
+    if(x0<=0&&x1>=0)s+=`<line class="ax" x1="${X(0)}" y1="0" x2="${X(0)}" y2="${H}"/><text x="${X(0)+8}" y="16" font-size="15">y</text>`;
+    const ly=Math.min(Math.max(Y(0)+17,14),H-4),lx=Math.min(Math.max(X(0)-6,26),W-4);
+    for(let x=Math.ceil(x0/lab)*lab;x<=x1+1e-9;x+=lab)if(Math.abs(x)>1e-9&&x>x0&&x<x1)s+=`<text class="tk" x="${X(x)}" y="${ly}" text-anchor="middle">${num(x)}</text>`;
+    for(let y=Math.ceil(y0/ylab)*ylab;y<=y1+1e-9;y+=ylab)if(Math.abs(y)>1e-9&&y>y0&&y<y1)s+=`<text class="tk" x="${lx}" y="${Y(y)+4}" text-anchor="end">${num(y)}</text>`;
+    return s}
+  return{W,H,X,Y,grid,ix:p=>x0+p/sx,iy:p=>y0+(H-p)/sy}}
+function sp(svg,e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())}
+function dragger(svg,cb){let k=null;
+  svg.addEventListener('pointerdown',e=>{const t=e.target.closest('[data-drag]');if(!t)return;k=t.dataset.drag;try{svg.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();cb(k,sp(svg,e))});
+  svg.addEventListener('pointermove',e=>{if(k)cb(k,sp(svg,e))});
+  const up=()=>{k=null};svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up)}
+function arrow(x1,y1,x2,y2,col,w=3.5,dash){const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);if(L<2)return'';const ux=dx/L,uy=dy/L,hs=Math.min(15,L*.45),bx=x2-ux*hs,by=y2-uy*hs;
+  return`<line x1="${x1}" y1="${y1}" x2="${bx}" y2="${by}" style="stroke:${col}" stroke-width="${w}" ${dash?'stroke-dasharray="7 6"':''} stroke-linecap="round"/><polygon points="${x2},${y2} ${bx-uy*hs*.55},${by+ux*hs*.55} ${bx+uy*hs*.55},${by-ux*hs*.55}" style="fill:${col}"/>`}
+const lbl=(x,y,t,col='var(--ink)',fs=16,anc='middle')=>`<text x="${x}" y="${y}" text-anchor="${anc}" font-size="${fs}" style="fill:${col};paint-order:stroke;stroke:var(--surface);stroke-width:5px;stroke-linejoin:round">${t}</text>`;
+function sliders(el,st,draw,fmt={}){$$('input[type=range]',el).forEach(i=>{const k=i.dataset.k;const show=()=>{const b=$(`b[data-k="${k}"]`,el);if(b)b.innerHTML=(fmt[k]||num)(st[k])};show();i.addEventListener('input',()=>{st[k]=+i.value;show();draw()})})}
+const sl=(k,label,min,max,step,v)=>`<label class="sl"><span>${label}<b data-k="${k}"></b></span><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" value="${v}"></label>`;
+function seg(el,sel,st,key,draw){$$(sel+' button',el).forEach(b=>{b.setAttribute('aria-pressed',b.dataset.v===String(st[key]));b.addEventListener('click',()=>{st[key]=b.dataset.v;$$(sel+' button',el).forEach(x=>x.setAttribute('aria-pressed',x===b));draw()})})}
+/* angle arc: centre (cx,cy) svg, from math-angle a1 to a2 counter-clockwise */
+function sector(cx,cy,r,a1,a2,style){const p=a=>[cx+r*Math.cos(rad(a)),cy-r*Math.sin(rad(a))];const[x1,y1]=p(a1),[x2,y2]=p(a2);const sw=((a2-a1)%360+360)%360;
+  return`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${sw>180?1:0} 0 ${x2},${y2} Z" style="${style}"/>`}
+const mang=(x,y)=>(deg(Math.atan2(-y,x))+360)%360; /* math angle of svg vector */
+
+/* ---------- quiz engine (wrong options = real misconceptions) ---------- */
+function quiz(el,app,n=6){let i=0,score=0;
+  function show(){if(i>=n)return end();const q=app.gen(i);const seen=new Set();
+    const ch=q.choices.filter(c=>{if(seen.has(c.t))return false;seen.add(c.t);return true});shuffle(ch);
+    el.innerHTML=`<p class="qn">Question ${i+1} of ${n} · score ${score}</p>${q.fig?`<div class="qfig">${q.fig}</div>`:''}<p class="qt">${q.prompt}</p><div class="choices">${ch.map((c,k)=>`<button class="btn" data-k="${k}">${c.t}</button>`).join('')}</div><div id="qf"></div>`;
+    $$('.choices .btn',el).forEach(b=>b.addEventListener('click',()=>{const c=ch[+b.dataset.k];$$('.choices .btn',el).forEach(x=>{x.disabled=true;if(ch[+x.dataset.k].ok)x.classList.add('right')});
+      if(c.ok)score++;else b.classList.add('wrong');
+      $('#qf',el).innerHTML=`<div class="fb ${c.ok?'':'no'}"><p class="fbt">${c.ok?pick(['Spot on.','Correct!','Nailed it.']):'Not quite.'}</p>${c.ok?'':`<p>${c.why||''}</p>`}<p>${q.explain}</p><div><button class="btn primary" id="qn">${i+1<n?'Next question':'See score'}</button></div></div>`;
+      $('#qn',el).addEventListener('click',()=>{i++;show()});$('#qn',el).focus()}))}
+  function end(){const st=score>=n?3:score>=n-1?2:score>=Math.ceil(n/2)?1:0;const key='vlab-'+app.id;const best=store.get(key)||0;if(st>best)store.set(key,st);
+    el.innerHTML=`<div class="end"><div class="stars">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div><h3>${score} out of ${n}</h3><p>${score===n?'Perfect round. Try Explore mode on a harder setting, or move to the next topic.':'Every wrong option here is a mistake real students make. Read the feedback, then play again.'}</p><button class="btn primary" id="qa">Play again</button></div>`;
+    $('#qa',el).addEventListener('click',()=>{i=0;score=0;show()})}
+  show()}
+
+/* ================= APPLETS ================= */
+const A=[];
+
+/* ---- Sec 1: Zero-pair zapper ---- */
+const dz=n=>n===0?'no discs':`${Math.abs(n)} ${n>0?'+1':M+'1'} disc${Math.abs(n)>1?'s':''}`;
+function discSteps(a,b,op){const P=[],N=[],S=[];const snap=note=>S.push({P:P.slice(),N:N.slice(),note});
+  const put=(n,s)=>{for(let i=0;i<Math.abs(n);i++)(n>0?P:N).push(s)};
+  put(a,'n');snap(`Start with ${br(a)}: ${dz(a)}.`);
+  if(op==='+'){put(b,'new');snap(`Add ${br(b)}: put in ${dz(b)}.`);const k=Math.min(P.length,N.length);
+    if(k){for(let i=0;i<k;i++){P[i]='pair';N[i]='pair'}snap(`A +1 and a ${M}1 make a zero pair, worth 0. There ${k===1?'is 1 zero pair':'are '+k+' zero pairs'}. Remove them.`);P.splice(0,k);N.splice(0,k)}}
+  else{const s=Math.sign(b),nb=Math.abs(b),R=s>0?P:N,need=Math.max(0,nb-R.length);
+    if(need){for(let i=0;i<need;i++){P.push('zero');N.push('zero')}snap(`To take away ${dz(b)} we need ${nb} ${s>0?'+1':M+'1'} disc${nb>1?'s':''}, but only have ${nb-need}. Add ${need} zero pair${need>1?'s':''}. That adds 0, so the value is still ${br(a)}.`)}
+    if(nb){for(let i=R.length-nb;i<R.length;i++)R[i]='gone';snap(`Take away ${dz(b)}.`);R.splice(R.length-nb,nb)}}
+  P.fill('n');N.fill('n');const r=op==='+'?a+b:a-b;
+  snap(`Left over: ${dz(r)}. So ${br(a)} ${op==='+'?'+':M} ${br(b)} = ${num(r)}.`+(op==='-'&&b<0?` Taking away negatives leaves more behind: subtracting a negative is the same as adding a positive.`:''));return S}
+A.push({id:'discs',lvl:'s1',code:'N1.3 · Integers',g:'±',c:'var(--teal)',title:'Zero-Pair Zapper',
+  blurb:'Algebra discs show why subtracting a negative is the same as adding.',
+  watch:[`(${M}3) ${M} (${M}5) worked out as ${M}8: the sign of the second number is ignored.`,`"Two negatives make a positive" used for adding: (${M}3) + (${M}5) is ${M}8, not 8.`,`Adding zero pairs can feel like cheating. It isn't: +1 and ${M}1 together are worth 0.`],
+  explore(el){const st={a:3,b:-5,op:'-',k:0};let S;
+    const stp=(k,l)=>`<div class="stp"><span>${l}</span><button data-k="${k}" data-d="-1" aria-label="decrease">${M}</button><output id="o${k}"></output><button data-k="${k}" data-d="1" aria-label="increase">+</button></div>`;
+    el.innerHTML=`<div class="two"><div class="fig"><svg id="dz" viewBox="0 0 600 240" role="img" aria-label="Algebra discs"></svg><p class="say" id="dzs" aria-live="polite"></p></div>
+    <div class="ctl">${stp('a','First number')}<div class="seg" id="dop"><button data-v="+">+ Add</button><button data-v="-">${M} Subtract</button></div>${stp('b','Second number')}
+    <div class="row"><button class="btn" id="dzb">Back</button><button class="btn primary" id="dzn">Next step</button></div><p class="big" id="dzr"></p></div></div>`;
+    const svg=$('#dz',el);
+    function calc(){S=discSteps(st.a,st.b,st.op);st.k=0;$('#oa',el).textContent=num(st.a);$('#ob',el).textContent=num(st.b);draw()}
+    function disc(x,y,s,state){const pos=s>0;const f=pos?'var(--sun)':'var(--tomato)';let o=`<g opacity="${state==='gone'?.28:1}">`;
+      o+=`<circle cx="${x}" cy="${y}" r="19" style="fill:${state==='zero'?'var(--surface)':f};stroke:${state==='zero'?f:'var(--ink)'}" stroke-width="${state==='zero'?3:2}" ${state==='zero'?'stroke-dasharray="5 4"':''}/>`;
+      o+=`<text x="${x}" y="${y+7}" text-anchor="middle" font-size="22" style="fill:${state==='zero'?f:'#16233a'}">${pos?'+':M}</text>`;
+      if(state==='gone')o+=`<path d="M${x-15},${y-15} L${x+15},${y+15} M${x+15},${y-15} L${x-15},${y+15}" style="stroke:var(--ink)" stroke-width="3"/>`;
+      if(state==='new')o+=`<circle cx="${x}" cy="${y}" r="24" fill="none" style="stroke:var(--violet)" stroke-width="2.5"/>`;
+      return o+'</g>'}
+    function draw(){const s=S[st.k];let o=`<text x="8" y="22" font-size="14" class="tk">+1 discs</text><text x="8" y="132" font-size="14" class="tk">${M}1 discs</text>`;
+      const X=i=>44+i*46;
+      s.P.forEach((v,i)=>{if(v==='pair'&&s.N[i]==='pair')o+=`<rect x="${X(i)-25}" y="38" width="50" height="132" rx="14" fill="none" style="stroke:var(--violet)" stroke-width="2.5" stroke-dasharray="6 5"/>`});
+      s.P.forEach((v,i)=>o+=disc(X(i),70,1,v));s.N.forEach((v,i)=>o+=disc(X(i),140,-1,v));
+      if(!s.P.length&&!s.N.length)o+=lbl(300,110,'Nothing left: the answer is 0','var(--muted)');
+      o+=`<text x="300" y="224" text-anchor="middle" class="tk">Step ${st.k+1} of ${S.length}</text>`;svg.innerHTML=o;
+      $('#dzs',el).innerHTML=s.note;$('#dzb',el).disabled=st.k===0;$('#dzn',el).disabled=st.k===S.length-1;
+      $('#dzr',el).innerHTML=`${br(st.a)} ${st.op==='+'?'+':M} ${br(st.b)} = ${st.k===S.length-1?num(st.op==='+'?st.a+st.b:st.a-st.b):'?'}`}
+    $$('.stp button',el).forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.k;st[k]=Math.max(-6,Math.min(6,st[k]+ +b.dataset.d));calc()}));
+    seg(el,'#dop',st,'op',calc);$('#dzn',el).onclick=()=>{st.k++;draw()};$('#dzb',el).onclick=()=>{st.k--;draw()};calc()},
+  gen(i){const op=i%2?'+':'-';let a,b;do{a=ri(-9,9);b=ri(-9,9)}while(!a||!b||a===-b||a===b||(op==='-'&&i%3===0&&b>0)||(op==='+'&&Math.sign(a)===Math.sign(b)&&i%4));
+    const r=op==='+'?a+b:a-b;const ch=[{t:num(r),ok:true}];
+    if(op==='-'){ch.push({t:num(a+b),why:b<0?`Subtracting a negative is adding a positive: ${br(a)} ${M} (${num(b)}) = ${br(a)} + ${-b}.`:`You added ${b} instead of subtracting it.`});
+      ch.push({t:num(-r),why:'Right size, wrong sign. Check which colour discs are left over.'});ch.push({t:num(r+(r>0?-2:2)*(1+(i%2))),why:'Count again: after taking away, how many discs are left?'})}
+    else{ch.push({t:num(Math.sign(a)*(Math.abs(a)+Math.abs(b))),why:`A +1 and a ${M}1 cancel. When the signs are different, the discs make zero pairs instead of piling up.`});
+      ch.push({t:num(-r),why:'Right size, wrong sign. Which kind of disc is there more of?'});ch.push({t:num(a-b),why:'You subtracted instead of adding.'})}
+    return{prompt:`Work out ${br(a)} ${op==='+'?'+':M} ${br(b)}.`,choices:ch,explain:`Answer: ${num(r)}. `+(op==='-'&&b<0?`Taking away ${Math.abs(b)} negative discs is the same as adding ${Math.abs(b)} positive ones.`:op==='+'&&Math.sign(a)!==Math.sign(b)?`${Math.min(Math.abs(a),Math.abs(b))} zero pair${Math.min(Math.abs(a),Math.abs(b))>1?'s':''} cancel, leaving ${num(r)}.`:'Picture the discs to check the sign.')}}});
+
+/* ---- Sec 1: Gradient garage ---- */
+const lineEq=(n,d,c)=>{const g=gcd(n,d);n/=g;d/=g;let mx=n===0?'':(d===1?(n===1?'':n===-1?M:num(n)):frac(n,d))+'x';let s='y = '+(mx||'');if(c)s+=mx?` ${c<0?M:'+'} ${Math.abs(c)}`:num(c);else if(!mx)s+='0';return s};
+A.push({id:'gradient',lvl:'s1',code:'N6.5 · Gradient',g:'m',c:'var(--teal)',title:'Gradient Garage',
+  blurb:'Build a line from its rise and run, and see what m and c do.',
+  watch:['Saying the gradient of y = 2x + 1 is "2x". The gradient is the number 2.','Turning rise ÷ run upside down (horizontal change on top).','Forgetting that a line going down to the right has a negative gradient.'],
+  explore(el){const st={rise:2,run:1,c:1};const P=plane({x0:-8,x1:8,y0:-8,y1:8});
+    el.innerHTML=`<div class="two"><div class="fig"><svg id="gg" viewBox="0 0 520 520" role="img" aria-label="Line on a grid"></svg></div><div class="ctl">${sl('rise','Rise (up is +)',-6,6,1,2)}${sl('run','Run (across)',1,6,1,1)}${sl('c','c (where it crosses the y-axis)',-6,6,1,1)}<div class="read" id="gr"></div></div></div>`;
+    const svg=$('#gg',el);
+    function draw(){const{rise,run,c}=st,m=rise/run;let o=P.grid(1,2);
+      o+=`<line x1="${P.X(-8)}" y1="${P.Y(c-8*m)}" x2="${P.X(8)}" y2="${P.Y(c+8*m)}" style="stroke:var(--violet)" stroke-width="4"/>`;
+      const x1=P.X(0),y1=P.Y(c),x2=P.X(run),y2=P.Y(c+rise);
+      o+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y1}" style="stroke:var(--teal)" stroke-width="5"/>`;
+      if(rise)o+=`<line x1="${x2}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:var(--tomato)" stroke-width="5"/>`;
+      o+=lbl((x1+x2)/2,y1+(rise>0?24:-12),'run '+run,'var(--teal)');if(rise)o+=lbl(x2+8,(y1+y2)/2+5,'rise '+num(rise),'var(--tomato)',16,'start');
+      o+=`<circle cx="${x1}" cy="${y1}" r="6" class="dot"/><circle cx="${x2}" cy="${y2}" r="6" class="dot"/>`;svg.innerHTML=o;
+      $('#gr',el).innerHTML=`<p class="eq">${lineEq(rise,run,c)}</p><p>Gradient m = rise ÷ run = ${num(rise)} ÷ ${run} = <b>${frac(rise,run)}</b></p><p>${rise===0?'A horizontal line: no rise at all, so m = 0.':`For every 1 unit across, the line goes <b>${m>0?'up':'down'} ${num(Math.abs(m))}</b>. ${m>0?'Up to the right means a positive gradient.':'Down to the right means a negative gradient.'}`}</p><p>c = ${num(c)}: the line crosses the y-axis at (0, ${num(c)}).</p>`}
+    sliders(el,st,draw);draw()},
+  gen(){let dx,dy;do{dx=ri(1,4);dy=ri(-4,4)}while(!dy||Math.abs(dy)===dx||gcd(dx,dy)>1&&Math.random()<.5);
+    const x1=ri(-4,4-dx),y1=dy>0?ri(-4,4-dy):ri(-4-dy,4),x2=x1+dx,y2=y1+dy;const P=plane({x0:-6,x1:6,y0:-6,y1:6,W:360,H:360}),m=dy/dx;
+    let f=`<svg viewBox="0 0 360 360">${P.grid(1,2)}<line x1="${P.X(-6)}" y1="${P.Y(y1+m*(-6-x1))}" x2="${P.X(6)}" y2="${P.Y(y1+m*(6-x1))}" style="stroke:var(--violet)" stroke-width="3.5"/>`;
+    f+=`<circle cx="${P.X(x1)}" cy="${P.Y(y1)}" r="6" class="dot"/><circle cx="${P.X(x2)}" cy="${P.Y(y2)}" r="6" class="dot"/>${lbl(P.X(x1)-6,P.Y(y1)+(dy>0?20:-10),`(${num(x1)}, ${num(y1)})`,'var(--ink)',14,'end')}${lbl(P.X(x2)+6,P.Y(y2)+(dy>0?-8:20),`(${num(x2)}, ${num(y2)})`,'var(--ink)',14,'start')}</svg>`;
+    const mx=frac(dy,dx);
+    return{fig:f,prompt:'What is the gradient of this line?',choices:[{t:mx,ok:true},{t:frac(dx,dy),why:'That is run ÷ rise. Gradient = vertical change ÷ horizontal change.'},{t:frac(-dy,dx),why:'Check the direction: as you move right, does the line go up (+) or down (−)?'},{t:(dx===1?num(dy):mx)+'x',why:'The gradient is a number. In y = 2x + 1 the gradient is 2, not 2x.'}],
+      explain:`From (${num(x1)}, ${num(y1)}) to (${num(x2)}, ${num(y2)}): rise = ${num(dy)}, run = ${dx}, so m = ${mx}.`}}});
+
+/* ---- Sec 1: Coordinate catch (game) ---- */
+A.push({id:'coords',lvl:'s1',code:'N6.1 · Coordinates',g:'xy',c:'var(--teal)',title:'Coordinate Catch',
+  blurb:'Ten targets, all four quadrants. Tap the point as fast as you can.',
+  watch:['Swapping x and y: (3, 5) plotted as (5, 3). Across first, then up or down.','Points on an axis, like (0, 4) or (−3, 0), plotted in the wrong place.','Counting the gridlines from 1 instead of from 0.'],
+  explore(el){const P=plane({x0:-6,x1:6,y0:-6,y1:6});el.innerHTML=`<div class="two"><div class="fig"><svg id="ce" viewBox="0 0 520 520" role="img" aria-label="Coordinate grid"></svg></div><div class="ctl"><p class="say">Move or tap on the grid. The point snaps to the nearest gridline crossing.</p><p class="big" id="cr">( , )</p><p id="cw" class="read"></p></div></div>`;
+    const svg=$('#ce',el);const base=P.grid(1,1);svg.innerHTML=base;
+    const mv=e=>{const p=sp(svg,e),x=Math.round(P.ix(p.x)),y=Math.round(P.iy(p.y));if(Math.abs(x)>6||Math.abs(y)>6)return;
+      svg.innerHTML=base+`<line x1="${P.X(x)}" y1="${P.Y(0)}" x2="${P.X(x)}" y2="${P.Y(y)}" style="stroke:var(--teal)" stroke-width="3" stroke-dasharray="6 5"/><line x1="${P.X(0)}" y1="${P.Y(y)}" x2="${P.X(x)}" y2="${P.Y(y)}" style="stroke:var(--tomato)" stroke-width="3" stroke-dasharray="6 5"/><circle cx="${P.X(x)}" cy="${P.Y(y)}" r="8" style="fill:var(--violet)"/>`;
+      $('#cr',el).innerHTML=`(<span style="color:var(--teal)">${num(x)}</span>, <span style="color:var(--tomato)">${num(y)}</span>)`;
+      $('#cw',el).innerHTML=`<p>Go <b style="color:var(--teal)">${x===0?'nowhere across':Math.abs(x)+(x>0?' right':' left')}</b>, then <b style="color:var(--tomato)">${y===0?'nowhere up or down':Math.abs(y)+(y>0?' up':' down')}</b>.</p><p>${x===0&&y===0?'The origin.':x===0?'On the y-axis, so x = 0.':y===0?'On the x-axis, so y = 0.':`Quadrant ${x>0?(y>0?1:4):(y>0?2:3)}.`}</p>`};
+    svg.addEventListener('pointermove',mv);svg.addEventListener('pointerdown',mv)},
+  game(el){const P=plane({x0:-6,x1:6,y0:-6,y1:6});const N=10;let i=0,sc=0,t0=0,T,lock=false,marks='';
+    const pts=[];while(pts.length<N){const z=pts.length===3||pts.length===7;const x=z&&pts.length===3?0:ri(-5,5),y=z&&pts.length===7?0:ri(-5,5);if((x||y)&&x!==y&&!pts.some(p=>p[0]===x&&p[1]===y))pts.push([x,y])}
+    el.innerHTML=`<div class="row between"><p class="qt" id="cq"></p><span class="pill" id="cs"></span></div><div class="fig" style="max-width:520px"><svg id="cg" viewBox="0 0 520 520" role="img" aria-label="Tap the target point"></svg></div><p class="say" id="cf" aria-live="polite">Tap the point on the grid.</p><div id="cn"></div>`;
+    const svg=$('#cg',el),base=P.grid(1,1);
+    function show(){if(i>=N)return end();T=pts[i];lock=false;$('#cq',el).innerHTML=`Tap (${num(T[0])}, ${num(T[1])})`;$('#cs',el).textContent=`${i+1}/${N} · ${sc} caught`;svg.innerHTML=base+marks}
+    svg.addEventListener('pointerdown',e=>{if(lock||i>=N)return;if(!t0)t0=performance.now();const p=sp(svg,e),x=Math.round(P.ix(p.x)),y=Math.round(P.iy(p.y));const[tx,ty]=T;lock=true;
+      const ok=x===tx&&y===ty;if(ok)sc++;
+      marks+=`<circle cx="${P.X(tx)}" cy="${P.Y(ty)}" r="9" style="fill:var(--${ok?'good':'violet'})"/>`;
+      let msg=ok?'Caught it!':x===ty&&y===tx?`You tapped (${num(x)}, ${num(y)}): x and y are swapped. The first number is across (x), the second is up or down (y).`:x===-tx&&y===ty||x===tx&&y===-ty||x===-tx&&y===-ty?`You tapped (${num(x)}, ${num(y)}). Check the sign: negative x is left, negative y is down.`:`You tapped (${num(x)}, ${num(y)}). Go ${num(tx)} across first, then ${num(ty)} up or down.`;
+      if(!ok)marks+=`<circle cx="${P.X(x)}" cy="${P.Y(y)}" r="8" fill="none" style="stroke:var(--bad)" stroke-width="3"/>`;
+      svg.innerHTML=base+marks;$('#cf',el).textContent=msg;i++;$('#cs',el).textContent=`${Math.min(i+1,N)}/${N} · ${sc} caught`;setTimeout(show,ok?450:1500)});
+    function end(){const s=((performance.now()-t0)/1000);const st=sc===N?(s<40?3:2):sc>=8?2:sc>=5?1:0;const key='vlab-coords';if(st>(store.get(key)||0))store.set(key,st);
+      $('#cq',el).textContent='Round over';$('#cn',el).innerHTML=`<div class="end"><div class="stars">${'★'.repeat(st)}${'☆'.repeat(3-st)}</div><h3>${sc} out of ${N} in ${num(s,1)} s</h3><p>Three stars: all ten in under 40 seconds.</p><button class="btn primary" id="ca">Play again</button></div>`;
+      $('#ca',el).onclick=()=>A.find(a=>a.id==='coords').game(el)}
+    show()}});
+
+/* ---- Sec 1: Parallel lines ---- */
+const POS=['UL','UR','LL','LR'],KEYS='abcdefgh';
+const angVal=(k,t)=>{const p=POS[KEYS.indexOf(k)%4];return p==='UR'||p==='LL'?t:180-t};
+function relOf(k1,k2){const i1=KEYS.indexOf(k1)>>2,i2=KEYS.indexOf(k2)>>2,p1=POS[KEYS.indexOf(k1)%4],p2=POS[KEYS.indexOf(k2)%4];
+  if(i1===i2){const s=new Set([p1,p2]);return(s.has('UR')&&s.has('LL'))||(s.has('UL')&&s.has('LR'))?'vo':'line'}
+  const T=i1===0?p1:p2,B=i1===0?p2:p1;if(T===B)return'corr';if((T==='LL'&&B==='UR')||(T==='LR'&&B==='UL'))return'alt';if((T==='LL'&&B==='UL')||(T==='LR'&&B==='UR'))return'co';return null}
+const REL={corr:{n:'Corresponding',eq:true,d:'same position at each crossing (an F shape)'},alt:{n:'Alternate',eq:true,d:'between the parallel lines, on opposite sides of the transversal (a Z shape)'},co:{n:'Co-interior',eq:false,d:'between the parallel lines, on the same side of the transversal (a C shape)'},vo:{n:'Vertically opposite',eq:true,d:'at the same crossing, facing each other across the point'},line:{n:'Angles on a straight line',eq:false,d:'side by side at the same crossing'}};
+function parSVG(t,o={}){const yT=110,yB=290,cx=300,cy=200,cot=1/Math.tan(rad(t));const xT=cx+(cy-yT)*cot,xB=cx+(cy-yB)*cot;let s='';
+  s+=`<line x1="20" y1="${yT}" x2="580" y2="${yT}" class="ink" stroke-width="3"/><line x1="20" y1="${yB}" x2="580" y2="${yB}" class="ink" stroke-width="3"/>`;
+  s+=`<path d="M545,${yT-7} l10,7 l-10,7 M545,${yB-7} l10,7 l-10,7" fill="none" class="ink" stroke-width="2.5"/>`;
+  s+=`<line x1="${cx+(cy-15)*cot}" y1="15" x2="${cx+(cy-385)*cot}" y2="385" style="stroke:var(--violet)" stroke-width="3"/>`;
+  const rng={UR:[0,t],UL:[t,180],LL:[180,180+t],LR:[180+t,360]};
+  [[xT,yT,0],[xB,yB,1]].forEach(([x,y,i])=>POS.forEach((p,j)=>{const k=KEYS[i*4+j],[a1,a2]=rng[p],col=o.col&&o.col[k];
+    if(o.all||col)s+=`<g ${o.click?`data-k="${k}" style="cursor:pointer"`:''}>${sector(x,y,o.click?44:36,a1,a2,`fill:${col||'transparent'};${col?'fill-opacity:.55;':''}stroke:none`)}</g>`;
+    const mid=rad((a1+a2)/2),r=o.click?60:58,lx=x+r*Math.cos(mid),ly=y-r*Math.sin(mid)+5;const txt=o.marks?o.marks[k]:o.all?(o.vals?`${k} ${angVal(k,t)}°`:k):'';
+    if(txt)s+=lbl(lx,ly,txt,'var(--ink)',o.vals?14:17)}));
+  return s}
+A.push({id:'parallel',lvl:'s1',code:'G1.3 · Angles and parallel lines',g:'∠',c:'var(--tomato)',title:'Parallel Lines Lab',
+  blurb:'Tilt the transversal and tap any angle to see which angles match it.',
+  watch:['Mixing up corresponding (F) and alternate (Z) angles.','Thinking co-interior angles are equal. They add up to 180°.','Using the parallel-line facts when the lines are not marked as parallel.'],
+  explore(el){const st={t:62,sel:'c',vals:'1'};
+    el.innerHTML=`<div class="two"><div class="fig"><svg id="pl" viewBox="0 0 600 400" role="img" aria-label="Two parallel lines cut by a transversal"></svg></div><div class="ctl">${sl('t','Tilt of transversal',35,145,1,62)}<label class="chk"><input type="checkbox" id="pv" checked> Show angle sizes</label><p class="say">Tap an angle. Matching angles light up.</p><div class="read" id="pr"></div></div></div>`;
+    const svg=$('#pl',el);
+    function draw(){const col={};col[st.sel]='var(--violet)';const rows=[];
+      for(const k of KEYS){if(k===st.sel)continue;const r=relOf(st.sel,k);if(!r)continue;col[k]=REL[r].eq?'var(--teal)':'var(--sun)';rows.push(`<p><b>${st.sel} and ${k}</b>: ${REL[r].n.toLowerCase()}, so ${REL[r].eq?`<b style="color:var(--teal)">equal</b> (both ${angVal(k,st.t)}°)`:`<b>add up to 180°</b> (${angVal(st.sel,st.t)}° + ${angVal(k,st.t)}°)`}</p>`)}
+      svg.innerHTML=parSVG(st.t,{all:true,click:true,col,vals:$('#pv',el).checked});
+      $('#pr',el).innerHTML=`<p class="eq">Angle ${st.sel} = ${angVal(st.sel,st.t)}°</p>${rows.join('')}<p style="color:var(--muted)">Teal: equal to ${st.sel}. Yellow: adds to ${st.sel} to make 180°.</p>`}
+    svg.addEventListener('click',e=>{const g=e.target.closest('[data-k]');if(g){st.sel=g.dataset.k;draw()}});$('#pv',el).onchange=draw;sliders(el,st,draw,{t:v=>v+'°'});draw()},
+  gen(i){const t=pick([40,50,55,60,65,70,75,105,110,115,120,125,130,140]);let k1,k2,r;
+    do{k1=pick([...KEYS]);k2=pick([...KEYS]);r=k1!==k2&&relOf(k1,k2)}while(!r||(i%2===0&&r==='line'));
+    const v=angVal(k1,t),x=angVal(k2,t),R=REL[r];const marks={};marks[k1]=v+'°';marks[k2]='x';const col={};col[k1]='var(--violet)';col[k2]='var(--sun)';
+    const fig=`<svg viewBox="0 0 600 400">${parSVG(t,{marks,col})}</svg>`;
+    if(i%2===0)return{fig,prompt:'The two black lines are parallel. Find x.',choices:[{t:x+'°',ok:true},{t:(R.eq?180-v:v)+'°',why:R.eq?`These are ${R.n.toLowerCase()} angles, which are equal. They don't add up to 180°.`:`${R.n} angles add up to 180°. They aren't equal.`},{t:Math.abs(90-v)+'°',why:'Nothing here makes a right angle. Use the parallel-line facts.'}],explain:`${R.n} angles: ${R.d}. So x = ${x}°.`};
+    const names=['corr','alt','co','vo'];if(r==='line')names[3]='line';if(!names.includes(r))names[0]=r;
+    return{fig,prompt:'What is the name for this pair of angles?',choices:names.map(n=>({t:REL[n].n,ok:n===r,why:`${REL[n].n} angles are ${REL[n].d}. Look again at where the two marked angles sit.`})),explain:`${R.n}: ${R.d}. They are ${R.eq?'equal':'supplementary (add up to 180°)'}.`}}});
+
+/* ---- Sec 2: Expansion area model ---- */
+A.push({id:'expand',lvl:'s2',code:'N5.9, N5.12 · Expansion',g:'x²',c:'var(--teal)',title:'Expansion Area Model',
+  blurb:'See every term of (x + p)(x + q) as a piece of one rectangle.',
+  watch:['(x + 3)² written as x² + 9. The two 3x rectangles have gone missing.','Writing the last term as p + q instead of p × q.','Sign slips with negatives: (x + 4)(x − 2) has −2x and −8, not +2x or +8.'],
+  explore(el){const st={mode:'pq',x:4,p:3,q:2,a:4,b:3,wrong:false};
+    el.innerHTML=`<div class="seg" id="em"><button data-v="pq">(x + p)(x + q)</button><button data-v="sq">(a + b)²</button></div><div class="two"><div class="fig"><svg id="ex" viewBox="0 0 520 470" role="img" aria-label="Area model"></svg></div><div class="ctl" id="ec"></div></div>`;
+    const svg=$('#ex',el),u=36,ox=70,oy=50;
+    function rect(x,y,w,h,col,t,dim){return`<g opacity="${dim?.25:1}"><rect x="${ox+x*u}" y="${oy+y*u}" width="${w*u}" height="${h*u}" style="fill:${col};stroke:var(--ink)" stroke-width="2"/>${lbl(ox+(x+w/2)*u,oy+(y+h/2)*u+6,t,'#16233a',w*u<60?14:18)}</g>`}
+    function controls(){$('#ec',el).innerHTML=st.mode==='pq'?`${sl('x','x (length shown)',2,6,1,st.x)}${sl('p','p',1,5,1,st.p)}${sl('q','q',1,5,1,st.q)}<div class="read" id="er"></div>`:`${sl('a','a',1,6,1,st.a)}${sl('b','b',1,5,1,st.b)}<label class="chk"><input type="checkbox" id="ew" ${st.wrong?'checked':''}> Show the wrong answer a² + b²</label><div class="read" id="er"></div>`;
+      sliders(el,st,draw);const w=$('#ew',el);if(w)w.onchange=()=>{st.wrong=w.checked;draw()};draw()}
+    function draw(){let o='';if(st.mode==='pq'){const{x,p,q}=st;
+        o+=rect(0,0,x,x,'var(--teal)','x²')+rect(x,0,p,x,'var(--sun)',p+'x')+rect(0,x,x,q,'var(--violet)',q+'x')+rect(x,x,p,q,'var(--tomato)',String(p*q));
+        o+=lbl(ox+x*u/2,oy-12,'x','var(--ink)',18)+lbl(ox+(x+p/2)*u,oy-12,String(p),'var(--ink)',18)+lbl(ox-14,oy+x*u/2+6,'x','var(--ink)',18)+lbl(ox-14,oy+(x+q/2)*u+6,String(q),'var(--ink)',18);
+        $('#er',el).innerHTML=`<p class="eq">(x + ${p})(x + ${q})</p><p>= x² + ${p}x + ${q}x + ${p*q}</p><p class="eq" style="color:var(--violet)">= ${P2(1,p+q,p*q)}</p><p>Four pieces, so four terms before you collect like terms. The two middle pieces give the x term: ${p}x + ${q}x = ${p+q}x. The corner gives ${p} × ${q} = ${p*q}.</p><p style="color:var(--muted)">Check with x = ${x}: (${x}+${p})(${x}+${q}) = ${(x+p)*(x+q)}, and ${x}² + ${p+q}×${x} + ${p*q} = ${x*x+(p+q)*x+p*q}.</p>`}
+      else{const{a,b,wrong}=st;o+=rect(0,0,a,a,'var(--teal)','a²')+rect(a,0,b,a,'var(--sun)','ab',wrong)+rect(0,a,a,b,'var(--sun)','ab',wrong)+rect(a,a,b,b,'var(--tomato)','b²');
+        if(wrong)o+=lbl(ox+(a+b/2)*u,oy+a*u/2+30,'missing!','var(--bad)',15)+lbl(ox+a*u/2,oy+(a+b/2)*u+30,'missing!','var(--bad)',15);
+        o+=lbl(ox+a*u/2,oy-12,'a','var(--ink)',18)+lbl(ox+(a+b/2)*u,oy-12,'b','var(--ink)',18)+lbl(ox-14,oy+a*u/2+6,'a','var(--ink)',18)+lbl(ox-14,oy+(a+b/2)*u+6,'b','var(--ink)',18);
+        $('#er',el).innerHTML=`<p class="eq">(a + b)² = a² + 2ab + b²</p><p>With a = ${a}, b = ${b}: (${a} + ${b})² = <b>${(a+b)**2}</b></p><p>a² + b² = ${a*a} + ${b*b} = <b style="color:var(--bad)">${a*a+b*b}</b>, short by 2ab = ${2*a*b}.</p><p class="say warn">(a + b)² ≠ a² + b². Squaring a sum makes a square with <b>four</b> pieces, and the two ab rectangles can't be left out.</p>`}
+      svg.innerHTML=o}
+    seg(el,'#em',st,'mode',controls);controls()},
+  gen(i){let p,q;do{p=ri(-6,6);q=i%3===2?p:ri(-6,6)}while(!p||!q||(i%3!==2&&p===q)||p+q===0);
+    const lhs=p===q?`(x ${p<0?M:'+'} ${Math.abs(p)})²`:`(x ${p<0?M:'+'} ${Math.abs(p)})(x ${q<0?M:'+'} ${Math.abs(q)})`;
+    return{prompt:`Expand ${lhs}.`,choices:[{t:P2(1,p+q,p*q),ok:true},{t:P2(1,0,p*q),why:`The middle term is missing. Multiply every term by every term: x × ${br(q)} and ${br(p)} × x give the x terms (the two side rectangles).`},{t:P2(1,p+q,p+q),why:`The last term is ${br(p)} × ${br(q)} = ${p*q}, not ${br(p)} + ${br(q)}.`},{t:P2(1,-(p+q),p*q),why:'Check the signs of the x terms: they come from x × each number, so they keep those numbers\' signs.'}],
+      explain:`${lhs} = x² ${p<0?M:'+'} ${Math.abs(p)}x ${q<0?M:'+'} ${Math.abs(q)}x ${p*q<0?M:'+'} ${Math.abs(p*q)} = ${P2(1,p+q,p*q)}.`}}});
+
+/* ---- Sec 2/3: Parabola lab ---- */
+A.push({id:'parabola',lvl:'s2',code:'N6.6–6.8 · Quadratic graphs',g:'∪',c:'var(--teal)',title:'Parabola Lab',
+  blurb:'Switch between three forms of a quadratic and watch the same curve.',
+  watch:['Reading the turning point of y = (x − 3)² + 2 as (−3, 2). The sign inside the bracket flips.','Reading the roots of y = (x + 1)(x − 4) as x = 1 and x = −4.','Thinking every quadratic crosses the x-axis.'],
+  explore(el){const st={f:'v',a:1,b:-2,c:-3,h:1,k:-4,p:-1,q:3};const P=plane({x0:-8,x1:8,y0:-10,y1:10,W:520,H:520});
+    el.innerHTML=`<div class="seg" id="pf"><button data-v="g">y = ax² + bx + c</button><button data-v="v">y = a(x − h)² + k</button><button data-v="f">y = a(x − p)(x − q)</button></div><div class="two"><div class="fig"><svg id="pa" viewBox="0 0 520 520" role="img" aria-label="Quadratic graph"></svg></div><div class="ctl" id="pc"></div></div>`;
+    const svg=$('#pa',el);
+    function coeffs(){const{a}=st;if(st.f==='g')return[a,st.b,st.c];if(st.f==='v')return[a,-2*a*st.h,a*st.h*st.h+st.k];return[a,-a*(st.p+st.q),a*st.p*st.q]}
+    function controls(){const A_=sl('a','a',-3,3,.5,st.a);$('#pc',el).innerHTML=A_+(st.f==='g'?sl('b','b',-8,8,1,st.b)+sl('c','c',-8,8,1,st.c):st.f==='v'?sl('h','h',-5,5,1,st.h)+sl('k','k',-8,8,1,st.k):sl('p','p',-6,6,1,st.p)+sl('q','q',-6,6,1,st.q))+`<div class="read" id="pr"></div>`;
+      $$('input[data-k="a"]',el)[0].addEventListener('input',e=>{if(+e.target.value===0){e.target.value=st.a=.5}});sliders(el,st,draw);draw()}
+    function draw(){if(!st.a)st.a=.5;const[a,b,c]=coeffs(),h=-b/(2*a),k=c-b*b/(4*a),D=b*b-4*a*c;let pts='';
+      for(let x=-8;x<=8.001;x+=.05){const y=a*x*x+b*x+c;pts+=`${P.X(x).toFixed(1)},${P.Y(Math.max(-30,Math.min(30,y))).toFixed(1)} `}
+      let o=P.grid(1,2,1,2)+`<line x1="${P.X(h)}" y1="0" x2="${P.X(h)}" y2="520" style="stroke:var(--sun)" stroke-width="2.5" stroke-dasharray="7 6"/><polyline points="${pts}" fill="none" style="stroke:var(--violet)" stroke-width="4"/>`;
+      o+=`<circle cx="${P.X(h)}" cy="${P.Y(k)}" r="7" style="fill:var(--tomato)"/><circle cx="${P.X(0)}" cy="${P.Y(c)}" r="6" style="fill:var(--teal)"/>`;
+      let roots=[];if(D>=-1e-9){const s=Math.sqrt(Math.max(0,D));roots=D<1e-9?[h]:[(-b-s)/(2*a),(-b+s)/(2*a)];roots.forEach(r=>o+=`<circle cx="${P.X(r)}" cy="${P.Y(0)}" r="6" class="dot"/>`)}
+      svg.innerHTML=o;
+      const fv=`y = ${a===1?'':a===-1?M:num(a)}(x ${h<0?'+':M} ${num(Math.abs(h))})² ${k<0?M:'+'} ${num(Math.abs(k))}`;
+      $('#pr',el).innerHTML=`<p class="eq">y = ${poly([a,b,c],['x²','x',''])}</p><p style="color:var(--muted)">Same curve: ${fv}</p>
+        <p>${a>0?'a > 0: opens upwards (∪), so the turning point is a <b>minimum</b>.':'a < 0: opens downwards (∩), so the turning point is a <b>maximum</b>.'}</p>
+        <p><b style="color:var(--tomato)">Turning point</b> (${num(h)}, ${num(k)}) · <b style="color:var(--sun)">line of symmetry</b> x = ${num(h)}</p>
+        <p><b style="color:var(--teal)">y-intercept</b> (0, ${num(c)})</p>
+        <p><b>x-intercepts</b> ${roots.length?roots.map(r=>`(${num(r)}, 0)`).join(' and '):'none: the curve never reaches the x-axis, so there are no real roots.'}</p>
+        ${st.f==='v'?`<p class="say">In (x − h)², the curve turns where the bracket is 0: x = ${num(st.h)}. So a bracket like (x ${st.h<0?'+':M} ${Math.abs(st.h)}) gives h = ${num(st.h)}.</p>`:st.f==='f'?`<p class="say">y = 0 when either bracket is 0: x = ${num(st.p)} or x = ${num(st.q)}.</p>`:''}`}
+    seg(el,'#pf',st,'f',controls);controls()},
+  gen(i){if(i%2===0){let h,k;do{h=ri(-5,5);k=ri(-6,6)}while(!h||!k||h===k||h===-k);
+      return{prompt:`What is the turning point of y = (x ${h<0?'+':M} ${Math.abs(h)})² ${k<0?M:'+'} ${Math.abs(k)}?`,choices:[{t:`(${num(h)}, ${num(k)})`,ok:true},{t:`(${num(-h)}, ${num(k)})`,why:`The bracket is zero when x = ${num(h)}, so that's where the curve turns. The sign inside the bracket flips.`},{t:`(${num(h)}, ${num(-k)})`,why:`The number outside the bracket is added as it is: the minimum value of y is ${num(k)}.`},{t:`(${num(k)}, ${num(h)})`,why:'x and y are swapped. The bracket gives x; the number outside gives y.'}],explain:`(x ${h<0?'+':M} ${Math.abs(h)})² is never negative and equals 0 at x = ${num(h)}. So the lowest point is (${num(h)}, ${num(k)}).`}}
+    let p,q;do{p=ri(-6,6);q=ri(-6,6)}while(!p||!q||p===q||p===-q);const bx=n=>`(x ${n<0?'+':M} ${Math.abs(n)})`;
+    return{prompt:`Where does y = ${bx(p)}${bx(q)} cross the x-axis?`,choices:[{t:`x = ${num(p)} and x = ${num(q)}`,ok:true},{t:`x = ${num(-p)} and x = ${num(-q)}`,why:`Set each bracket to 0: x ${p<0?'+':M} ${Math.abs(p)} = 0 gives x = ${num(p)}. The sign flips.`},{t:`x = ${num(p*q)}`,why:`${num(p*q)} is the y-intercept (put x = 0), not an x-intercept.`},{t:`x = ${num(-p)} and x = ${num(q)}`,why:'Flip both signs consistently: each root makes its own bracket zero.'}],explain:`y = 0 when ${bx(p)} = 0 or ${bx(q)} = 0, so x = ${num(p)} or x = ${num(q)}.`}}});
+
+/* ---- Sec 2: Trig ratios ---- */
+function triSVG(o){/* o: {adj,opp,ref:'A'|'B',theta,labels:{adj,opp,hyp}, sc} right angle at C */
+  const W=600,H=380,sc=o.sc;const Ax=60,Ay=340,Cx=Ax+o.adj*sc,Cy=Ay,Bx=Cx,By=Ay-o.opp*sc;let s='';
+  const sides={AC:[Ax,Ay,Cx,Cy],BC:[Bx,By,Cx,Cy],AB:[Ax,Ay,Bx,By]};
+  const role=o.ref==='A'?{AC:'adj',BC:'opp',AB:'hyp'}:{AC:'opp',BC:'adj',AB:'hyp'};const colr=o.plain?{opp:'var(--ink)',adj:'var(--ink)',hyp:'var(--ink)'}:{opp:'var(--tomato)',adj:'var(--teal)',hyp:'var(--violet)'};
+  for(const k in sides){const[x1,y1,x2,y2]=sides[k];s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:${colr[role[k]]}" stroke-width="${o.plain?4:6}" stroke-linecap="round"/>`}
+  s+=`<path d="M${Cx-22},${Cy} v-22 h22" fill="none" class="ink" stroke-width="2.5"/>`;
+  const ang=deg(Math.atan2(o.opp,o.adj));
+  if(o.ref==='A')s+=sector(Ax,Ay,46,0,ang,'fill:var(--sun);fill-opacity:.7;stroke:var(--ink);stroke-width:1.5')+lbl(Ax+64,Ay-12,'θ','var(--ink)',20);
+  else s+=sector(Bx,By,46,180+ang,270,'fill:var(--sun);fill-opacity:.7;stroke:var(--ink);stroke-width:1.5')+lbl(Bx-18,By+70,'θ','var(--ink)',20);
+  const L=o.labels||{};const tag=k=>L[role[k]]!==undefined?L[role[k]]:'';
+  s+=lbl((Ax+Cx)/2,Ay+26,tag('AC'),colr[role.AC],17)+lbl(Cx+12,(By+Cy)/2+6,tag('BC'),colr[role.BC],17,'start')+lbl((Ax+Bx)/2-18,(Ay+By)/2-8,tag('AB'),colr.hyp,17,'end');
+  return`<svg viewBox="0 0 ${W} ${H+20}">${s}</svg>`}
+A.push({id:'trig',lvl:'s2',code:'G4.3 · Trigonometric ratios',g:'sin',c:'var(--tomato)',title:'Trig Ratio Lab',
+  blurb:'Resize the triangle and watch sin, cos and tan stay put. Only the angle matters.',
+  watch:['Labelling opposite and adjacent from the wrong angle. They depend on which angle is θ.','Writing sin θ upside down (hypotenuse on top). sin and cos are never more than 1.','Using sin when the two sides given are the opposite and adjacent (that needs tan).'],
+  explore(el){const st={t:35,h:8,ref:'A'};
+    el.innerHTML=`<div class="two"><div class="fig"><svg id="tr" viewBox="0 0 600 400" role="img" aria-label="Right-angled triangle"></svg></div><div class="ctl">${sl('t','Angle at the bottom left',15,75,1,35)}${sl('h','Size (hypotenuse)',3,10,.5,8)}<div class="seg" id="tref"><button data-v="A">θ at bottom left</button><button data-v="B">θ at the top</button></div><div class="read" id="tt"></div></div></div>`;
+    const svg=$('#tr',el);
+    function draw(){const adj=st.h*Math.cos(rad(st.t)),opp=st.h*Math.sin(rad(st.t));const th=st.ref==='A'?st.t:90-st.t;const O=st.ref==='A'?opp:adj,Ad=st.ref==='A'?adj:opp;
+      svg.innerHTML=triSVG({adj,opp,ref:st.ref,sc:36,labels:{opp:'opp '+num(O),adj:'adj '+num(Ad),hyp:'hyp '+num(st.h)}}).replace(/^<svg[^>]*>|<\/svg>$/g,'');
+      $('#tt',el).innerHTML=`<p class="eq">θ = ${th}°</p><p><b style="color:var(--tomato)">sin θ</b> = opp ÷ hyp = ${num(O)} ÷ ${num(st.h)} = <b>${num(O/st.h,3)}</b></p><p><b style="color:var(--teal)">cos θ</b> = adj ÷ hyp = ${num(Ad)} ÷ ${num(st.h)} = <b>${num(Ad/st.h,3)}</b></p><p><b style="color:var(--violet)">tan θ</b> = opp ÷ adj = ${num(O)} ÷ ${num(Ad)} = <b>${num(O/Ad,3)}</b></p><p class="say">Drag the size slider: every side changes, but the three ratios don't. All right-angled triangles with angle ${th}° are similar. ${st.ref==='B'?'Notice opposite and adjacent swapped when θ moved to the top.':'Now move θ to the top and watch opposite and adjacent swap.'}</p>`}
+    sliders(el,st,draw,{t:v=>v+'°'});seg(el,'#tref',st,'ref',draw);draw()},
+  gen(i){const[a,b,c]=pick([[3,4,5],[5,12,13],[8,15,17],[7,24,25],[6,8,10],[9,12,15]]);const ref=pick(['A','B']);const adjL=ref==='A'?a:b,oppL=ref==='A'?b:a;
+    /* draw with AC=a, BC=b */
+    const fig=triSVG({plain:true,adj:a,opp:b,ref,sc:Math.min(320/a,260/b),labels:{opp:String(oppL),adj:String(adjL),hyp:String(c)}});
+    const f=['sin','cos','tan'][i%3];const R={'o/h':[oppL,c,'sin θ (opposite ÷ hypotenuse)'],'a/h':[adjL,c,'cos θ (adjacent ÷ hypotenuse)'],'o/a':[oppL,adjL,'tan θ (opposite ÷ adjacent)'],'a/o':[adjL,oppL,'adjacent ÷ opposite, which is tan upside down'],'h/o':[c,oppL,'hypotenuse ÷ opposite, which is sin upside down']};
+    const want={sin:'o/h',cos:'a/h',tan:'o/a'}[f];const def={sin:'opposite ÷ hypotenuse (SOH)',cos:'adjacent ÷ hypotenuse (CAH)',tan:'opposite ÷ adjacent (TOA)'}[f];
+    const opts=[want,...shuffle(Object.keys(R).filter(k=>k!==want)).slice(0,3)];
+    return{fig,prompt:`Find ${f} θ as a fraction.`,choices:opts.map(k=>({t:frac(R[k][0],R[k][1]),ok:k===want,why:`That's ${R[k][2]}. ${f} θ = ${def}. Opposite is across from θ; adjacent touches θ and isn't the hypotenuse.`})),explain:`For this θ: opposite = ${oppL}, adjacent = ${adjL}, hypotenuse = ${c}. ${f} θ = ${def} = ${frac(R[want][0],R[want][1])}.`}}});
+
+/* ---- Sec 3/4: Circle theorems ---- */
+const CX=280,CY=280,CR=200,cpt=t=>[CX+CR*Math.cos(rad(t)),CY-CR*Math.sin(rad(t))];
+function angAt(V,P1,P2){const a=[P1[0]-V[0],P1[1]-V[1]],b=[P2[0]-V[0],P2[1]-V[1]];return deg(Math.acos(Math.max(-1,Math.min(1,(a[0]*b[0]+a[1]*b[1])/Math.hypot(...a)/Math.hypot(...b)))))}
+function inArc(t,s,e){const L=((e-s)%360+360)%360,d=((t-s)%360+360)%360;return d>0&&d<L}
+function vArc(V,P1,P2,r,col,txt){const a1=mang(P1[0]-V[0],P1[1]-V[1]),a2=mang(P2[0]-V[0],P2[1]-V[1]);let d=((a2-a1)%360+360)%360;const[s,e]=d<=180?[a1,a2]:[a2,a1];const m=rad(s+(((e-s)%360+360)%360)/2);
+  return sector(V[0],V[1],r,s,e,`fill:${col};fill-opacity:.6;stroke:none`)+(txt?lbl(V[0]+(r+22)*Math.cos(m),V[1]-(r+22)*Math.sin(m)+6,txt,'var(--ink)',16):'')}
+function circBase(){return`<circle cx="${CX}" cy="${CY}" r="${CR}" fill="none" class="ink" stroke-width="3"/>`}
+const seg2=(P1,P2,col='var(--ink)',w=3)=>`<line x1="${P1[0]}" y1="${P1[1]}" x2="${P2[0]}" y2="${P2[1]}" style="stroke:${col}" stroke-width="${w}"/>`;
+const handle=(P,k,t,col='var(--violet)')=>`<circle cx="${P[0]}" cy="${P[1]}" r="11" style="fill:${col};stroke:var(--surface)" stroke-width="3" ${k?`data-drag="${k}" class="hit"`:''}/>${lbl(P[0]+(P[0]-CX)*.12,P[1]+(P[1]-CY)*.12+6,t,'var(--ink)',17)}`;
+function centreFig(tA,tB,tP,show){const A_=cpt(tA),B=cpt(tB),Pp=cpt(tP),O=[CX,CY];let s=circBase();
+  let sw=((tB-tA)%360+360)%360,dir=1;if(inArc(tP,tA,tA+sw)){sw=360-sw;dir=-1}
+  const[s1,e1]=dir===1?[tA,tB]:[tB,tA];
+  s+=sector(CX,CY,40,s1,e1,'fill:var(--teal);fill-opacity:.5;stroke:none')+seg2(O,A_)+seg2(O,B)+seg2(Pp,A_)+seg2(Pp,B)+vArc(Pp,A_,B,38,'var(--sun)',show.p);
+  const mid=rad(s1+(((e1-s1)%360+360)%360)/2);s+=lbl(CX+64*Math.cos(mid),CY-64*Math.sin(mid)+6,show.o,'var(--ink)',16);
+  s+=`<circle cx="${CX}" cy="${CY}" r="5" class="dot"/>`+lbl(CX-20*Math.cos(mid),CY+20*Math.sin(mid)+6,'O');return{s,sw,A_,B,Pp}}
+A.push({id:'circles',lvl:'s3',code:'G3.2 · Angle properties of circles',g:'○',c:'var(--tomato)',title:'Circle Theorem Studio',
+  blurb:'Drag points round the circle. The angle facts hold wherever you put them.',
+  watch:['Thinking the angle at the centre equals the angle at the circumference. It is double.','Mixing up "angles in the same segment are equal" with "opposite angles of a cyclic quadrilateral add to 180°".','Missing the right angle in a semicircle when the diameter isn\'t drawn horizontally.'],
+  explore(el){const st={m:'centre',A:215,B:325,P:95,Q:140,D1:100,D2:200,D3:290,D4:20};
+    el.innerHTML=`<div class="seg" id="cm"><button data-v="centre">Angle at centre</button><button data-v="same">Same segment</button><button data-v="semi">Semicircle</button><button data-v="cyc">Cyclic quadrilateral</button></div><div class="two"><div class="fig"><svg id="cs" viewBox="0 0 560 560" role="img" aria-label="Circle with points to drag"></svg></div><div class="ctl"><p class="say">Drag the purple points around the circle.</p><div class="read" id="crd"></div></div></div>`;
+    const svg=$('#cs',el);
+    function draw(){let s='',r='';const m=st.m;
+      if(m==='centre'){const f=centreFig(st.A,st.B,st.P,{});const ap=angAt(f.Pp,f.A_,f.B);s=centreFig(st.A,st.B,st.P,{p:num(ap,0)+'°',o:num(f.sw,0)+'°'}).s+handle(f.A_,'A','A')+handle(f.B,'B','B')+handle(f.Pp,'P','P');
+        r=`<p class="eq">∠AOB = ${num(f.sw,0)}°</p><p class="eq">∠APB = ${num(ap,0)}°</p><p>${num(f.sw,0)} = 2 × ${num(ap,0)}. The angle at the centre is <b>twice</b> the angle at the circumference.</p>${f.sw>180?'<p class="say">P is on the minor arc now, so the angle at the centre is the reflex angle. The rule still works.</p>':''}`}
+      else if(m==='same'){const A_=cpt(st.A),B=cpt(st.B),Pp=cpt(st.P),Q=cpt(st.Q);const ap=angAt(Pp,A_,B),aq=angAt(Q,A_,B),same=inArc(st.P,st.A,st.B)===inArc(st.Q,st.A,st.B);
+        s=circBase()+seg2(A_,B,'var(--muted)',2.5)+seg2(Pp,A_)+seg2(Pp,B)+seg2(Q,A_,'var(--teal)')+seg2(Q,B,'var(--teal)')+vArc(Pp,A_,B,36,'var(--sun)',num(ap,0)+'°')+vArc(Q,A_,B,36,'var(--teal)',num(aq,0)+'°')+handle(A_,'A','A','var(--ink)')+handle(B,'B','B','var(--ink)')+handle(Pp,'P','P')+handle(Q,'Q','Q');
+        r=`<p class="eq">∠APB = ${num(ap,0)}°, ∠AQB = ${num(aq,0)}°</p>`+(same?`<p>P and Q are on the <b>same side</b> of chord AB (the same segment), so the angles are <b>equal</b>.</p>`:`<p class="say warn">P and Q are now in <b>opposite</b> segments. The angles aren't equal: they add up to ${num(ap+aq,0)}°. APBQ is a cyclic quadrilateral.</p>`)}
+      else if(m==='semi'){const A_=cpt(180),B=cpt(0),Pp=cpt(st.P);const ap=angAt(Pp,A_,B);
+        s=circBase()+seg2(A_,B,'var(--tomato)',4)+seg2(Pp,A_)+seg2(Pp,B)+vArc(Pp,A_,B,30,'var(--sun)',num(ap,0)+'°')+`<circle cx="${CX}" cy="${CY}" r="5" class="dot"/>`+handle(A_,0,'A','var(--ink)')+handle(B,0,'B','var(--ink)')+handle(Pp,'P','P');
+        r=`<p class="eq">∠APB = ${num(ap,0)}°</p><p>AB is a diameter. Wherever P goes, the angle in the semicircle is <b>90°</b>.</p><p class="say">Why: the angle at the centre is the straight angle AOB = 180°, and the angle at the circumference is half of it.</p>`}
+      else{const ts=[st.D1,st.D2,st.D3,st.D4].map((t,i)=>({t,k:'D'+(i+1)})).sort((a,b)=>a.t-b.t);const Ps=ts.map(o=>cpt(o.t));const nm='ABCD';const an=Ps.map((V,i)=>angAt(V,Ps[(i+3)%4],Ps[(i+1)%4]));
+        s=circBase();for(let i=0;i<4;i++)s+=seg2(Ps[i],Ps[(i+1)%4]);for(let i=0;i<4;i++)s+=vArc(Ps[i],Ps[(i+3)%4],Ps[(i+1)%4],32,i%2?'var(--teal)':'var(--sun)',num(an[i],0)+'°');ts.forEach((o,i)=>s+=handle(Ps[i],o.k,nm[i]));
+        r=`<p class="eq">A + C = ${num(an[0],0)}° + ${num(an[2],0)}° = ${num(an[0]+an[2],0)}°</p><p class="eq">B + D = ${num(an[1],0)}° + ${num(an[3],0)}° = ${num(an[1]+an[3],0)}°</p><p>Opposite angles of a cyclic quadrilateral add up to <b>180°</b>. They are not equal (unless both are 90°).</p>`}
+      svg.innerHTML=s;$('#crd',el).innerHTML=r}
+    dragger(svg,(k,p)=>{const t=mang(p.x-CX,p.y-CY);
+      const near=({cyc:['D1','D2','D3','D4'],centre:['A','B','P'],same:['A','B','P','Q'],semi:[]})[st.m].filter(x=>x!==k);if(near.some(o=>{const d=Math.abs(((t-st[o])%360+540)%360-180);return d<10}))return;
+      if(st.m==='semi'&&(t<6||t>354||Math.abs(t-180)<6))return;st[k]=t;draw()});
+    seg(el,'#cm',st,'m',draw);draw()},
+  gen(i){const ty=i%3;if(ty===0){const v=ri(4,16)*5,askC=i%2===0;const f=centreFig(270-v,270+v,90,askC?{p:v+'°',o:'x'}:{p:'x',o:2*v+'°'});
+      const fig=`<svg viewBox="0 0 560 560">${f.s}${handle(f.A_,0,'A','var(--ink)')}${handle(f.B,0,'B','var(--ink)')}${handle(f.Pp,0,'P','var(--ink)')}</svg>`;
+      return askC?{fig,prompt:'O is the centre. Find x.',choices:[{t:2*v+'°',ok:true},{t:v+'°',why:'The angle at the centre is twice the angle at the circumference, not equal to it.'},{t:v/2+'°',why:'It is the other way round: the angle at the centre is the bigger one.'},{t:180-v+'°',why:'Adding to 180° is the rule for opposite angles of a cyclic quadrilateral.'}],explain:`Angle at centre = 2 × angle at circumference = 2 × ${v}° = ${2*v}°.`}
+        :{fig,prompt:'O is the centre. Find x.',choices:[{t:v+'°',ok:true},{t:2*v+'°',why:'x is at the circumference, so it is half the angle at the centre, not double.'},{t:4*v+'°',why:'x is at the circumference, so it is half the angle at the centre.'},{t:180-2*v+'°',why:'That treats OAB and PAB as the same triangle. Use the centre theorem instead.'}],explain:`Angle at circumference = ½ × angle at centre = ½ × ${2*v}° = ${v}°.`}}
+    if(ty===1){const v=ri(5,16)*5;const A_=cpt(180),B=cpt(0),Pp=cpt(2*v);const s=circBase()+seg2(A_,B,'var(--tomato)',3.5)+seg2(Pp,A_)+seg2(Pp,B)+vArc(A_,B,Pp,40,'var(--sun)',v+'°')+vArc(B,A_,Pp,40,'var(--teal)','x')+`<circle cx="${CX}" cy="${CY}" r="5" class="dot"/>`+lbl(CX,CY+22,'O')+handle(A_,0,'A','var(--ink)')+handle(B,0,'B','var(--ink)')+handle(Pp,0,'P','var(--ink)');
+      return{fig:`<svg viewBox="0 0 560 560">${s}</svg>`,prompt:'AB is a diameter. Find x.',choices:[{t:90-v+'°',ok:true},{t:180-v+'°',why:`You need the third angle too: ∠APB = 90° because it's in a semicircle. Then x = 180° − 90° − ${v}°.`},{t:v+'°',why:'Triangle APB is not isosceles here. Use the right angle at P.'},{t:2*v+'°',why:'The doubling rule is for an angle at the centre. Here, ∠APB = 90° (angle in a semicircle).'}],explain:`∠APB = 90° (angle in a semicircle), so x = 180° − 90° − ${v}° = ${90-v}°.`}}
+    const v=ri(13,26)*5;const tA=180,tB=tA+(180-v),tC=tB+v,tD=tC+v;const Ps=[tA,tB,tC,tD].map(cpt);let s=circBase();for(let k=0;k<4;k++)s+=seg2(Ps[k],Ps[(k+1)%4]);
+    s+=vArc(Ps[0],Ps[3],Ps[1],34,'var(--sun)',v+'°')+vArc(Ps[2],Ps[1],Ps[3],34,'var(--teal)','x');'ABCD'.split('').forEach((n,k)=>s+=handle(Ps[k],0,n,'var(--ink)'));
+    return{fig:`<svg viewBox="0 0 560 560">${s}</svg>`,prompt:'ABCD is a cyclic quadrilateral. Find x.',choices:[{t:180-v+'°',ok:true},{t:v+'°',why:'Opposite angles of a cyclic quadrilateral add up to 180°. "Equal" is for angles in the same segment.'},{t:360-v+'°',why:'The angles of a quadrilateral add to 360°, but you only know one of them. Use the cyclic quadrilateral rule.'},{t:2*v>180?(v/2)+'°':(2*v)+'°',why:'Doubling or halving is for the angle at the centre. There\'s no centre angle here.'}],explain:`Opposite angles of a cyclic quadrilateral are supplementary: x = 180° − ${v}° = ${180-v}°.`}}});
+
+/* ---- Sec 3/4: Vectors ---- */
+A.push({id:'vectors',lvl:'s3',code:'G7 · Vectors in two dimensions',g:'→',c:'var(--tomato)',title:'Vector Lab',
+  blurb:'Drag two vectors and build a + b, a − b and ka on the grid.',
+  watch:['Writing the column vector upside down: the top number is the horizontal move.','Getting AB and BA the wrong way round. AB = OB − OA (end minus start).',`Thinking |a + b| = |a| + |b|. Lengths only add when the vectors point the same way.`],
+  explore(el){const st={a:[4,1],b:[1,3],m:'tri',k:2};const P=plane({x0:-8,x1:8,y0:-8,y1:8});
+    el.innerHTML=`<div class="seg" id="vm"><button data-v="tri">a + b (triangle law)</button><button data-v="par">a + b (parallelogram)</button><button data-v="sub">a − b</button><button data-v="bsa">b − a</button><button data-v="k">k × a</button></div><div class="two"><div class="fig"><svg id="vs" viewBox="0 0 520 520" role="img" aria-label="Vectors on a grid"></svg></div><div class="ctl"><p class="say">Drag the arrow tips of <b style="color:var(--teal)">a</b> and <b style="color:var(--tomato)">b</b>.</p><div id="vk"></div><div class="read" id="vr"></div></div></div>`;
+    const svg=$('#vs',el);const O=[0,0];let lastM=null;
+    const ar=(p,q,col,dash,w)=>arrow(P.X(p[0]),P.Y(p[1]),P.X(q[0]),P.Y(q[1]),col,w,dash);
+    const tip=(p,k,col)=>`<circle cx="${P.X(p[0])}" cy="${P.Y(p[1])}" r="13" style="fill:${col};fill-opacity:.25" data-drag="${k}" class="hit"/>`;
+    function draw(){const[a,b]=[st.a,st.b];const add=(u,v)=>[u[0]+v[0],u[1]+v[1]],neg=u=>[-u[0],-u[1]],ln=u=>Math.hypot(...u);let s=P.grid(1,2),r='';const T='var(--teal)',R='var(--tomato)',V='var(--violet)';
+      const lab=(p,t,col)=>lbl(P.X(p[0])+10,P.Y(p[1])-10,t,col,18,'start');
+      if(st.m==='tri'){const sm=add(a,b);s+=ar(O,a,T)+ar(a,sm,R)+ar(O,sm,V,0,5)+lab(a,'a',T)+lab(sm,'a + b',V)+ar(O,b,R,1,2);
+        r=`<p class="eq">a + b = ${colv(...a)} + ${colv(...b)} = ${colv(...sm)}</p><p>Triangle law: the second arrow starts where the first one ends.</p><p>|a| + |b| = ${num(ln(a))} + ${num(ln(b))} = ${num(ln(a)+ln(b))}, but |a + b| = ${num(ln(sm))}.${Math.abs(ln(a)+ln(b)-ln(sm))>.01?' Lengths only add when a and b point the same way.':' Here a and b point the same way, so the lengths do add.'}</p>`}
+      else if(st.m==='par'){const sm=add(a,b);s+=ar(a,sm,R,1,2)+ar(b,sm,T,1,2)+ar(O,a,T)+ar(O,b,R)+ar(O,sm,V,0,5)+lab(a,'a',T)+lab(b,'b',R)+lab(sm,'a + b',V);
+        r=`<p class="eq">a + b = ${colv(...sm)}</p><p>Parallelogram law: both arrows start at the same point, and a + b is the diagonal from that point.</p>`}
+      else if(st.m==='sub'||st.m==='bsa'){const sub=st.m==='sub',d=sub?add(a,neg(b)):add(b,neg(a));s+=ar(O,a,T)+ar(O,b,R)+(sub?ar(b,a,V,0,5):ar(a,b,V,0,5))+lab(a,'a',T)+lab(b,'b',R);
+        if(sub)s+=ar(a,add(a,neg(b)),R,1,2)+lab(add(a,neg(b)),'a + (−b)','var(--muted)');
+        r=`<p class="eq">${sub?'a − b':'b − a'} = ${colv(...d)}</p><p>${sub?'a − b':'b − a'} goes from the tip of ${sub?'b':'a'} to the tip of ${sub?'a':'b'}: <b>end minus start</b>.</p>${sub?'<p>It is also a + (−b): the dashed arrow reverses b and adds it to a.</p>':''}<p class="say">a − b and b − a have the same length but point in opposite directions.</p>`}
+      else{const ka=[st.k*a[0],st.k*a[1]];s+=ar(O,ka,V,0,6)+ar(O,a,T)+lab(a,'a',T)+lab(ka,num(st.k)+'a',V);
+        r=`<p class="eq">${num(st.k)}a = ${colv(...ka)}</p><p>${st.k>0?'k > 0: same direction as a.':st.k<0?'k < 0: the <b>opposite</b> direction (still parallel to a).':'k = 0 gives the zero vector.'} |${num(st.k)}a| = ${num(Math.abs(st.k))} × |a|.</p>`}
+      s+=tip(a,'a',T)+(st.m!=='k'?tip(b,'b',R):'');svg.innerHTML=s;$('#vr',el).innerHTML=`<p>a = ${colv(...a)}, |a| = ${num(ln(a))}</p>${st.m!=='k'?`<p>b = ${colv(...b)}, |b| = ${num(ln(b))}</p>`:''}`+r;
+      if(lastM!==st.m){lastM=st.m;$('#vk',el).innerHTML=st.m==='k'?sl('k','k',-3,3,.5,st.k):'';if(st.m==='k')sliders($('#vk',el),st,draw)}}
+    dragger(svg,(k,p)=>{const v=[Math.round(P.ix(p.x)),Math.round(P.iy(p.y))];if(Math.abs(v[0])>7||Math.abs(v[1])>7||(!v[0]&&!v[1]))return;if(v[0]===st[k][0]&&v[1]===st[k][1])return;st[k]=v;draw()});
+    seg(el,'#vm',st,'m',draw);draw()},
+  gen(i){const P=plane({x0:-6,x1:6,y0:-6,y1:6,W:360,H:360});if(i%2===0){let p,q,dx,dy;do{p=[ri(-5,5),ri(-5,5)];dx=ri(-5,5);dy=ri(-5,5);q=[p[0]+dx,p[1]+dy]}while(!dx||!dy||Math.abs(dx)===Math.abs(dy)||Math.abs(q[0])>5||Math.abs(q[1])>5||(q[0]===dx&&q[1]===dy));
+      const fig=`<svg viewBox="0 0 360 360">${P.grid(1,2)}${arrow(P.X(p[0]),P.Y(p[1]),P.X(q[0]),P.Y(q[1]),'var(--violet)',3.5)}${lbl(P.X(p[0])-8,P.Y(p[1])+18,'P','var(--ink)',17,'end')}${lbl(P.X(q[0])+8,P.Y(q[1])-6,'Q','var(--ink)',17,'start')}</svg>`;
+      return{fig,prompt:'Write PQ as a column vector.',choices:[{t:colv(dx,dy),ok:true},{t:colv(dy,dx),why:'The top number is the horizontal move (x); the bottom is the vertical move (y).'},{t:colv(-dx,-dy),why:'That is QP. PQ goes from P to Q: Q − P (end minus start).'},{t:colv(q[0],q[1]),why:'That is the position vector of Q (from the origin). PQ is the move from P to Q.'}],explain:`From P(${num(p[0])}, ${num(p[1])}) to Q(${num(q[0])}, ${num(q[1])}): ${num(dx)} across and ${num(dy)} up, so PQ = ${colv(dx,dy)}.`}}
+    const fig=`<svg viewBox="0 0 360 260">${arrow(60,220,170,60,'var(--teal)',3.5)}${arrow(60,220,310,190,'var(--tomato)',3.5)}<line x1="170" y1="60" x2="310" y2="190" class="ink" stroke-width="2.5" stroke-dasharray="6 5"/>${lbl(48,240,'O')}${lbl(170,48,'A')}${lbl(326,196,'B','var(--ink)',16,'start')}${lbl(100,130,'a','var(--teal)',18)}${lbl(190,224,'b','var(--tomato)',18)}</svg>`;
+    const ask=pick(['AB','BA']);const ok=ask==='AB'?'b − a':'a − b',bad=ask==='AB'?'a − b':'b − a';
+    return{fig,prompt:`OA = a and OB = b. Find ${ask} in terms of a and b.`,choices:[{t:ok,ok:true},{t:bad,why:`That is ${ask==='AB'?'BA':'AB'}. ${ask} = O${ask[1]} − O${ask[0]}: end minus start.`},{t:'a + b',why:`To get from ${ask[0]} to ${ask[1]}, go ${ask[0]} → O → ${ask[1]}. The first part goes backwards along ${ask[0]==='A'?'a':'b'}, so it's negative.`},{t:'−a − b',why:`Only the first leg (${ask[0]} → O) is backwards. The second leg O → ${ask[1]} goes the same way as ${ask[1]==='A'?'a':'b'}.`}],explain:`${ask} = ${ask[0]}O + O${ask[1]} = ${ask[0]==='A'?'−a + b':'−b + a'} = ${ok}.`}}});
+
+/* ---- Sec 3/4: Matrix multiplier ---- */
+const rmat=(r,c)=>Array.from({length:r},()=>Array.from({length:c},()=>ri(0,5)));
+A.push({id:'matrices',lvl:'s3',code:'N9 · Matrices',g:'[ ]',c:'var(--teal)',title:'Matrix Multiplier',
+  blurb:'Tap any cell of the answer to see which row and column made it.',
+  watch:['Multiplying matching positions, the way addition works.','Not checking the orders first. The inner numbers must match; the outer numbers give the answer\'s order.','Stopping a row × column sum early and leaving out a term.'],
+  explore(el){const st={m:2,n:3,n2:3,p:2,A:null,B:null,sel:null,done:{}};
+    const opt=(k)=>`<select data-o="${k}" aria-label="${k}">${[1,2,3].map(v=>`<option ${st[k]===v?'selected':''}>${v}</option>`).join('')}</select>`;
+    el.innerHTML=`<div class="row"><span>A is</span>${opt('m')}<span>×</span>${opt('n')}<span style="margin-left:12px">B is</span>${opt('n2')}<span>×</span>${opt('p')}<button class="btn" id="mnew">New numbers</button><button class="btn" id="mall">Fill all</button></div><div class="mxrow" id="mx"></div><div class="read" id="mr"></div>`;
+    function fresh(){st.A=rmat(st.m,st.n);st.B=rmat(st.n2,st.p);st.sel=null;st.done={};draw()}
+    function draw(){const ok=st.n===st.n2;const sel=st.sel;
+      let h=mxh(st.A,(i,j)=>sel&&i===sel[0]?'r':'')+'<span>×</span>'+mxh(st.B,(i,j)=>sel&&j===sel[1]?'c':'')+'<span>=</span>';
+      if(ok){h+=`<span class="mx" style="grid-template-columns:repeat(${st.p},auto)">`;for(let i=0;i<st.m;i++)for(let j=0;j<st.p;j++){const v=st.A[i].reduce((s,a,k)=>s+a*st.B[k][j],0);h+=`<button data-c="${i},${j}" class="${sel&&sel[0]===i&&sel[1]===j?'on':''}" aria-label="row ${i+1} column ${j+1}">${st.done[i+','+j]?v:'?'}</button>`}h+='</span>'}
+      else h+='<span style="color:var(--bad)">not defined</span>';
+      $('#mx',el).innerHTML=h;
+      let r=`<p class="eq">(${st.m} × <b style="color:${ok?'var(--good)':'var(--bad)'}">${st.n}</b>)(<b style="color:${ok?'var(--good)':'var(--bad)'}">${st.n2}</b> × ${st.p}) ${ok?`→ ${st.m} × ${st.p}`:''}</p>`;
+      if(!ok)r+=`<p class="say warn">The inner numbers don't match. Each row of A has ${st.n} number${st.n>1?'s':''}, but each column of B has ${st.n2}, so they can't be paired up.</p>`;
+      else if(sel){const[i,j]=sel;const parts=st.A[i].map((a,k)=>`${a}×${st.B[k][j]}`);const v=st.A[i].reduce((s,a,k)=>s+a*st.B[k][j],0);r+=`<p>Row ${i+1} of A × column ${j+1} of B:</p><p class="eq">${parts.join(' + ')} = ${v}</p><p>${st.n} pair${st.n>1?'s':''} to multiply because the inner number is ${st.n}. The answer goes in row ${i+1}, column ${j+1}.</p>`}
+      else r+=`<p>The answer is ${st.m} × ${st.p}. Tap a <b>?</b> to work it out.</p>`;
+      $('#mr',el).innerHTML=r;$$('#mx button',el).forEach(b=>b.addEventListener('click',()=>{const[i,j]=b.dataset.c.split(',').map(Number);st.sel=[i,j];st.done[i+','+j]=1;draw()}))}
+    $$('select',el).forEach(s=>s.addEventListener('change',()=>{st[s.dataset.o]=+s.value;fresh()}));$('#mnew',el).onclick=fresh;
+    $('#mall',el).onclick=()=>{for(let i=0;i<st.m;i++)for(let j=0;j<st.p;j++)st.done[i+','+j]=1;draw()};fresh()},
+  gen(i){if(i%2===0){let m,n,p;do{m=ri(1,3);n=ri(1,3);p=ri(1,3)}while(m===p);const und=i%4===2;const n2=und?(n%3)+1:n;const ord=(a,b)=>`${a} × ${b}`;
+      const ch=und?[{t:'Not defined',ok:true},{t:ord(m,p),why:`Check the inner numbers first: ${n} and ${n2} don't match.`},{t:ord(m,n),why:'Matrix multiplication doesn\'t keep the first matrix\'s order. And here the inner numbers don\'t match.'},{t:ord(n,n2),why:'The inner numbers never give the answer\'s order. Here they don\'t even match.'}]
+        :[{t:ord(m,p),ok:true},{t:ord(p,m),why:'Rows of the answer come from the first matrix; columns from the second.'},{t:ord(n,n),why:'The inner numbers must match, but they disappear. The outer numbers give the order.'},{t:'Not defined',why:`It is defined: the inner numbers (${n} and ${n}) match.`}];
+      return{prompt:`A is ${ord(m,n)} and B is ${ord(n2,p)}. What is the order of AB?`,choices:ch,explain:und?`(${ord(m,n)})(${ord(n2,p)}): the inner numbers ${n} and ${n2} differ, so AB does not exist.`:`(${m} × <b>${n}</b>)(<b>${n}</b> × ${p}): inner numbers match, outer numbers give ${ord(m,p)}.`}}
+    let A_,B,r,c,v,ew,sw,fp;do{A_=rmat(2,2);B=rmat(2,2);r=ri(0,1);c=ri(0,1);v=A_[r][0]*B[0][c]+A_[r][1]*B[1][c];ew=A_[r][c]*B[r][c];sw=A_[c][0]*B[0][r]+A_[c][1]*B[1][r];fp=A_[r][0]*B[0][c]}while(new Set([v,ew,sw,fp]).size<4);
+    return{prompt:`A = ${mxh(A_)} and B = ${mxh(B)}. Find the element in row ${r+1}, column ${c+1} of AB.`,choices:[{t:num(v),ok:true},{t:num(ew),why:'You multiplied the numbers in matching positions. Matrix multiplication is row × column, then add.'},{t:num(sw),why:`Use row ${r+1} of A with column ${c+1} of B. You used row ${c+1} and column ${r+1}.`},{t:num(fp),why:'Add every product: row × column here has 2 terms.'}],explain:`Row ${r+1} of A is (${A_[r].join(', ')}); column ${c+1} of B is (${B[0][c]}, ${B[1][c]}). ${A_[r][0]}×${B[0][c]} + ${A_[r][1]}×${B[1][c]} = ${v}.`}}});
+
+/* ---- A-Math: unit circle and solving ---- */
+const ucSolve=(f,k)=>{if(Math.abs(k)<1e-9)return f==='sin'?[0,180,360]:[90,270];if(Math.abs(k-1)<1e-9)return f==='sin'?[90]:[0,360];if(Math.abs(k+1)<1e-9)return f==='sin'?[270]:[180];
+  const al=deg(f==='sin'?Math.asin(Math.abs(k)):Math.acos(Math.abs(k)));const Q=[al,180-al,180+al,360-al];const pos=f==='sin'?[0,1]:[0,3],neg=f==='sin'?[2,3]:[1,2];return(k>0?pos:neg).map(q=>Q[q]).sort((a,b)=>a-b)};
+A.push({id:'unitcircle',lvl:'am',code:'A-Math G1 · Trig functions and equations',g:'sin',c:'var(--violet)',title:'Unit Circle to Graph',
+  blurb:'Spin the point round the circle, trace the graph, and find every solution.',
+  watch:['Giving one answer to sin x = ½ when there are two between 0° and 360°.','Using ASTC for boundary values like sin x = 0 or cos x = −1. Read those from the graph.','Mixing up which quadrants sin and cos are positive in.'],
+  explore(el){const st={t:40,f:'sin',k:.5,m:'trace'};let raf=0;
+    el.innerHTML=`<div class="row"><div class="seg" id="um"><button data-v="trace">Trace</button><button data-v="solve">Solve</button></div><div class="seg" id="uf"><button data-v="sin">sin</button><button data-v="cos">cos</button></div></div><div class="fig"><svg id="uc" viewBox="0 0 760 340" role="img" aria-label="Unit circle and graph"></svg></div><div class="two"><div class="ctl" id="ucc"></div><div class="read" id="ur"></div></div>`;
+    const svg=$('#uc',el),cx=150,cy=170,R=110,g0=300,kx=440/360;
+    const fn=(f,d)=>f==='sin'?Math.sin(rad(d)):Math.cos(rad(d));
+    function controls(){$('#ucc',el).innerHTML=st.m==='trace'?sl('t','Angle θ',0,360,1,st.t)+'<div class="row"><button class="btn primary" id="uplay">Play</button></div>':sl('k',`Solve ${st.f} x = k, k =`,-1,1,.05,st.k);sliders($('#ucc',el),st,draw,{t:v=>v+'°'});
+      const pl=$('#uplay',el);if(pl)pl.onclick=()=>{cancelAnimationFrame(raf);st.t=0;const go=()=>{st.t=Math.min(360,st.t+2);const i=$('input[data-k="t"]',el);if(i)i.value=st.t;const b=$('b[data-k="t"]',el);if(b)b.textContent=st.t+'°';draw();if(st.t<360&&document.body.contains(svg))raf=requestAnimationFrame(go)};raf=requestAnimationFrame(go)};draw()}
+    function draw(){const f=st.f,col=f==='sin'?'var(--tomato)':'var(--teal)';let s='';
+      const posQ=f==='sin'?[1,2]:[1,4];[[1,0,90],[2,90,180],[3,180,270],[4,270,360]].forEach(([q,a,b])=>{s+=sector(cx,cy,R,a,b,`fill:var(--${posQ.includes(q)?'good':'line'});fill-opacity:${posQ.includes(q)?.18:.25};stroke:none`)});
+      [['All',45],['Sin',135],['Tan',225],['Cos',315]].forEach(([t,a])=>s+=lbl(cx+R*.62*Math.cos(rad(a)),cy-R*.62*Math.sin(rad(a))+5,t,'var(--muted)',14));
+      s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" class="ink" stroke-width="2.5"/><line x1="${cx-R-14}" y1="${cy}" x2="${cx+R+14}" y2="${cy}" class="ax"/><line x1="${cx}" y1="${cy-R-14}" x2="${cx}" y2="${cy+R+14}" class="ax"/>`;
+      s+=`<line x1="${g0}" y1="${cy}" x2="${g0+440}" y2="${cy}" class="ax"/><line x1="${g0}" y1="${cy-R-14}" x2="${g0}" y2="${cy+R+14}" class="ax"/>`;
+      [90,180,270,360].forEach(d=>s+=`<line x1="${g0+d*kx}" y1="${cy-R}" x2="${g0+d*kx}" y2="${cy+R}" class="gl1"/><text class="tk" x="${g0+d*kx}" y="${cy+R+30}" text-anchor="middle">${d}°</text>`);
+      [1,-1].forEach(v=>s+=`<line x1="${g0}" y1="${cy-v*R}" x2="${g0+440}" y2="${cy-v*R}" class="gl1"/><text class="tk" x="${g0-6}" y="${cy-v*R+4}" text-anchor="end">${num(v)}</text>`);
+      let full='';for(let d=0;d<=360;d+=3)full+=`${g0+d*kx},${cy-R*fn(f,d)} `;s+=`<polyline points="${full}" fill="none" style="stroke:${col};stroke-opacity:.3" stroke-width="3"/>`;
+      if(st.m==='trace'){const t=st.t,px=cx+R*Math.cos(rad(t)),py=cy-R*Math.sin(rad(t));let tr='';for(let d=0;d<=t;d+=2)tr+=`${g0+d*kx},${cy-R*fn(f,d)} `;tr+=`${g0+t*kx},${cy-R*fn(f,t)}`;
+        s+=`<polyline points="${tr}" fill="none" style="stroke:${col}" stroke-width="4"/>`+sector(cx,cy,26,0,Math.min(359.5,Math.max(t,.5)),'fill:var(--sun);fill-opacity:.7;stroke:none')+`<line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" class="ink" stroke-width="2.5"/>`;
+        s+=f==='sin'?`<line x1="${px}" y1="${cy}" x2="${px}" y2="${py}" style="stroke:var(--tomato)" stroke-width="5"/><line x1="${px}" y1="${py}" x2="${g0+t*kx}" y2="${py}" style="stroke:var(--tomato)" stroke-width="1.5" stroke-dasharray="5 5"/>`:`<line x1="${cx}" y1="${py}" x2="${px}" y2="${py}" style="stroke:var(--teal)" stroke-width="5"/>`;
+        s+=`<circle cx="${px}" cy="${py}" r="8" style="fill:var(--violet)"/><circle cx="${g0+t*kx}" cy="${cy-R*fn(f,t)}" r="8" style="fill:var(--violet)"/>`;
+        const v=fn(f,t),q=t%90===0?0:Math.floor(t/90)%4+1,bas=q===1?t:q===2?180-t:q===3?t-180:q===4?360-t:null;
+        $('#ur',el).innerHTML=`<p class="eq">${f} ${t}° = ${num(v,3)}</p><p>${f==='sin'?'sin θ is the <b style="color:var(--tomato)">height</b> of the point on the unit circle.':'cos θ is how far <b style="color:var(--teal)">across</b> the point is on the unit circle.'}</p>${q?`<p>Quadrant ${q}: ${f} is ${v>0?'positive':'negative'} here. Basic angle α = ${num(bas)}°.</p>`:'<p>On an axis: no quadrant and no basic angle.</p>'}<p class="say">Green quadrants: where ${f} is positive.</p>`}
+      else{const k=st.k,sol=ucSolve(f,k);s+=`<line x1="${g0}" y1="${cy-k*R}" x2="${g0+440}" y2="${cy-k*R}" style="stroke:var(--violet)" stroke-width="2.5" stroke-dasharray="8 6"/>`+lbl(g0+446,cy-k*R+5,'k','var(--violet)',15,'start');
+        s+=f==='sin'?`<line x1="${cx-R}" y1="${cy-k*R}" x2="${cx+R}" y2="${cy-k*R}" style="stroke:var(--violet)" stroke-width="2" stroke-dasharray="6 5"/>`:`<line x1="${cx+k*R}" y1="${cy-R}" x2="${cx+k*R}" y2="${cy+R}" style="stroke:var(--violet)" stroke-width="2" stroke-dasharray="6 5"/>`;
+        sol.forEach(d=>{const px=cx+R*Math.cos(rad(d)),py=cy-R*Math.sin(rad(d));s+=`<line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" class="ink" stroke-width="2"/><circle cx="${px}" cy="${py}" r="7" style="fill:var(--violet)"/><circle cx="${g0+d*kx}" cy="${cy-k*R}" r="8" style="fill:var(--violet)"/>`+lbl(g0+d*kx,cy-k*R+(k>0?-14:26),num(d,1)+'°','var(--violet)',14)});
+        const bound=[0,1,-1].some(b=>Math.abs(k-b)<1e-9);const al=bound?0:deg(f==='sin'?Math.asin(Math.abs(k)):Math.acos(Math.abs(k)));
+        const qs=k>0?(f==='sin'?'1 and 2':'1 and 4'):(f==='sin'?'3 and 4':'2 and 3');
+        $('#ur',el).innerHTML=`<p class="eq">${f} x = ${num(k)}, 0° ≤ x ≤ 360°</p>`+(bound?`<p class="say warn">Boundary value. The solutions sit on the axes, so there's no basic angle between 0° and 90° to use. Read them straight from the graph.</p>`:`<p>Basic angle α = ${f}⁻¹(${num(Math.abs(k))}) = ${num(al,1)}°</p><p>${f} x is ${k>0?'positive':'negative'}, so x is in quadrants ${qs}.</p>`)+`<p class="eq" style="color:var(--violet)">x = ${sol.map(d=>num(d,1)+'°').join(', ')}</p><p>${sol.length} solution${sol.length>1?'s':''}: the line y = ${num(k)} meets the curve ${sol.length} time${sol.length>1?'s':''}.</p>`}
+      svg.innerHTML=s}
+    seg(el,'#um',st,'m',controls);seg(el,'#uf',st,'f',controls);controls()},
+  gen(){const f=pick(['sin','cos']),kk=pick([['½',.5,30],['√3⁄2',Math.sqrt(3)/2,60],['1⁄√2',Math.SQRT1_2,45]]),sg=pick([1,-1]);const al=kk[2],Q=[al,180-al,180+al,360-al];
+    const pos=f==='sin'?[0,1]:[0,3],neg=f==='sin'?[2,3]:[1,2],ok=(sg>0?pos:neg);const pairs=[[0,1],[0,3],[1,2],[2,3],[0,2],[1,3]];
+    const names=['1','2','3','4'],fmtp=p=>p.map(q=>Q[q]+'°').join(', ');const wrongs=shuffle(pairs.filter(p=>!(p[0]===ok[0]&&p[1]===ok[1]))).slice(0,2);
+    const qtext=sg>0?(f==='sin'?'quadrants 1 and 2':'quadrants 1 and 4'):(f==='sin'?'quadrants 3 and 4':'quadrants 2 and 3');
+    const ch=[{t:fmtp(ok),ok:true},...wrongs.map(p=>({t:fmtp(p),why:`Those angles are in quadrants ${names[p[0]]} and ${names[p[1]]}. ${f} x is ${sg>0?'positive':'negative'} only in ${qtext}.`}))];
+    const one=sg>0?al:(f==='sin'?-al:180-al);ch.push({t:one<0?`${num(one)}°`:`${one}°`,why:one<0?`The calculator gives ${num(one)}°, which is outside 0° to 360°. There are two solutions in range: use the basic angle and the quadrants.`:`There are two solutions between 0° and 360°. The calculator only gives one.`});
+    return{prompt:`Solve ${f} x = ${sg<0?M:''}${kk[0]} for 0° ≤ x ≤ 360°.`,choices:ch,explain:`Basic angle α = ${al}°. ${f} is ${sg>0?'positive':'negative'} in ${qtext}, so x = ${fmtp(ok)}.`}}});
+
+/* ---- A-Math: wave shaper ---- */
+const waveEq=(a,f,b,c)=>a===0?`y = ${num(c)}`:`y = ${a===1?'':a===-1?M:num(a)+' '}${f} ${b===1?'x':num(b)+'x'}${c?` ${c<0?M:'+'} ${num(Math.abs(c))}`:''}`;
+function waveSVG(a,f,b,c,W=600,H=320,ghost=true){const P=plane({x0:0,x1:360,y0:-5,y1:5,W,H});let s=P.grid(45,90,1,1);const F=d=>f==='sin'?Math.sin(rad(d)):Math.cos(rad(d));let g='',w='';
+  for(let d=0;d<=360;d+=2){g+=`${P.X(d)},${P.Y(F(d))} `;w+=`${P.X(d)},${P.Y(a*F(b*d)+c)} `}
+  if(ghost)s+=`<polyline points="${g}" fill="none" style="stroke:var(--muted);stroke-opacity:.5" stroke-width="2.5" stroke-dasharray="6 5"/>`;
+  return{P,s:s+`<polyline points="${w}" fill="none" style="stroke:var(--violet)" stroke-width="4"/>`}}
+A.push({id:'waves',lvl:'am',code:'A-Math G1 · Graphs of y = a sin bx + c',g:'∿',c:'var(--violet)',title:'Wave Shaper',
+  blurb:'Stretch, squeeze and lift a sine or cosine curve with a, b and c.',
+  watch:['Mixing up a (amplitude) and c (shift up or down).','Thinking the period of sin 2x is 720°. It is 360° ÷ 2 = 180°.','Forgetting that a negative a flips the curve upside down.'],
+  explore(el){const st={a:2,b:2,c:1,f:'sin'};
+    el.innerHTML=`<div class="two"><div class="fig"><svg id="ws" viewBox="0 0 600 320" role="img" aria-label="Wave graph"></svg></div><div class="ctl"><div class="seg" id="wf"><button data-v="sin">sin</button><button data-v="cos">cos</button></div>${sl('a','a (amplitude)',-3,3,.5,2)}${sl('b','b (waves in 360°)',.5,4,.5,2)}${sl('c','c (centre line)',-2,2,.5,1)}<div class="read" id="wr"></div></div></div>`;
+    const svg=$('#ws',el);
+    function draw(){const{a,b,c,f}=st;const{P,s}=waveSVG(a,f,b,c);let o=s+`<line x1="0" y1="${P.Y(c)}" x2="600" y2="${P.Y(c)}" style="stroke:var(--sun)" stroke-width="2.5" stroke-dasharray="8 6"/>`;
+      if(a){o+=`<line x1="0" y1="${P.Y(c+Math.abs(a))}" x2="600" y2="${P.Y(c+Math.abs(a))}" style="stroke:var(--tomato)" stroke-width="1.5" stroke-dasharray="3 4"/><line x1="0" y1="${P.Y(c-Math.abs(a))}" x2="600" y2="${P.Y(c-Math.abs(a))}" style="stroke:var(--tomato)" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+        const per=360/b;if(per<=360)o+=`<line x1="${P.X(0)}" y1="${P.Y(-4.3)}" x2="${P.X(per)}" y2="${P.Y(-4.3)}" style="stroke:var(--teal)" stroke-width="4"/>`+lbl(P.X(per/2),P.Y(-4.3)-8,'one period','var(--teal)',13)}
+      svg.innerHTML=o;$('#wr',el).innerHTML=`<p class="eq">${waveEq(a,f,b,c)}</p><p><b style="color:var(--tomato)">Amplitude</b> |a| = ${num(Math.abs(a))}: max ${num(c+Math.abs(a))}, min ${num(c-Math.abs(a))}</p><p><b style="color:var(--teal)">Period</b> 360° ÷ b = ${num(360/b,1)}°${b!==1?` (${num(b)} wave${b>1?'s':''} fit in 360°)`:''}</p><p><b style="color:var(--sun)">Centre line</b> y = c = ${num(c)}</p>${a<0?'<p class="say warn">a is negative, so the curve is reflected in its centre line.</p>':''}<p style="color:var(--muted)">Dashed grey: y = ${f} x, for comparison.</p>`}
+    sliders(el,st,draw);seg(el,'#wf',st,'f',draw);draw()},
+  gen(){let a,b,c,f;do{a=ri(1,3);b=ri(1,3);c=ri(-2,2);f=pick(['sin','cos'])}while(a===Math.abs(c)||!c&&Math.random()<.5);
+    const fig=`<svg viewBox="0 0 600 320">${waveSVG(a,f,b,c,600,320,false).s}</svg>`;const other=f==='sin'?'cos':'sin';const cand=[];
+    if(c&&c>0&&c<=3&&a!==c)cand.push({t:waveEq(c,f,b,a),why:'a and c are swapped. a is the amplitude (half the distance from max to min); c moves the centre line up or down.'});
+    cand.push({t:waveEq(a,f,b===1?2:b===2?3:1,c),why:`Count the waves: ${b} full wave${b>1?'s':''} fit in 360°, so the period is ${360/b}° and b = ${b}.`});
+    if(c)cand.push({t:waveEq(a,f,b,-c),why:`The centre line is at y = ${c}, ${c>0?'above':'below'} the x-axis.`});
+    cand.push({t:waveEq(a,other,b,c),why:`${f==='sin'?'sin starts on its centre line, going up; cos starts at its maximum.':'cos starts at its maximum; sin starts on its centre line, going up.'} Look at x = 0.`});
+    cand.push({t:waveEq(2*a,f,b,c),why:'The amplitude is half the height from max to min, not the full height.'});
+    return{fig,prompt:'Which equation matches this graph? (x from 0° to 360°)',choices:[{t:waveEq(a,f,b,c),ok:true},...cand.slice(0,3)],explain:`Max ${c+a}, min ${c-a}: amplitude ${a}, centre line y = ${c}. ${b} wave${b>1?'s':''} in 360°: b = ${b}. At x = 0 it ${f==='sin'?'starts on the centre line':'starts at the top'}: ${f}.`}}});
+
+/* ---- A-Math: quadratic inequalities ---- */
+function ineqAnswer(p,q,form,sym){/* form 'u': (x-p)(x-q), 'n': (x-p)(q-x) ; p<q */
+  const gt=sym==='>'||sym==='≥',eqI=sym==='≥'||sym==='≤';const posOutside=form==='u';const outside=gt===posOutside;
+  const lo=eqI?'≤':'<';return outside?`x ${lo} ${num(p)} or x ${eqI?'≥':'>'} ${num(q)}`:`${num(p)} ${lo} x ${lo} ${num(q)}`}
+A.push({id:'inequality',lvl:'am',code:'A-Math A2 · Quadratic inequalities',g:'><',c:'var(--violet)',title:'Inequality Shader',
+  blurb:'Shade where a quadratic is above or below the x-axis, and write the answer properly.',
+  watch:['Solving (x + 1)(x − 3) > 0 like an equation and writing x > −1 or x > 3.','Writing −1 > x > 3. That would need x to be both less than −1 and more than 3.','Drawing a ∪ shape for (x + 1)(3 − x). The x² term is negative, so it is ∩.'],
+  explore(el){const st={p:-1,q:3,form:'u',sym:'>'};const P=plane({x0:-8,x1:8,y0:-12,y1:12,W:560,H:380});
+    el.innerHTML=`<div class="seg" id="if"><button data-v="u">(x − p)(x − q)</button><button data-v="n">(x − p)(q − x)</button></div><div class="seg" id="is">${['>','≥','<','≤'].map(s=>`<button data-v="${s}">${s} 0</button>`).join('')}</div><div class="two"><div class="fig"><svg id="iq" viewBox="0 0 560 450" role="img" aria-label="Graph with shaded solution"></svg></div><div class="ctl">${sl('p','p',-6,5,1,-1)}${sl('q','q',-5,6,1,3)}<div class="read" id="ir"></div></div></div>`;
+    const svg=$('#iq',el);
+    function draw(){if(st.q<=st.p){st.q=st.p+1;const i=$('input[data-k="q"]',el);i.value=st.q;$('b[data-k="q"]',el).textContent=num(st.q)}
+      const{p,q,form,sym}=st,sg=form==='u'?1:-1,f=x=>sg*(x-p)*(x-q),gt=sym==='>'||sym==='≥',eqI=sym.length>1||sym==='≥'||sym==='≤';const ok=x=>gt?f(x)>0:f(x)<0;
+      let o=P.grid(1,2,2,4);let cur='',good='';
+      for(let x=-8;x<=8.001;x+=.05){const y=Math.max(-14,Math.min(14,f(x)));cur+=`${P.X(x).toFixed(1)},${P.Y(y).toFixed(1)} `}
+      o+=`<polyline points="${cur}" fill="none" style="stroke:var(--violet);stroke-opacity:.35" stroke-width="4"/>`;
+      let segs=[],start=null;for(let x=-8;x<=8.001;x+=.05){if(ok(x)){if(start===null)start=x}else if(start!==null){segs.push([start,x-.05]);start=null}}if(start!==null)segs.push([start,8]);
+      segs.forEach(([a,b])=>{let s='';for(let x=a;x<=b+.001;x+=.05)s+=`${P.X(x).toFixed(1)},${P.Y(Math.max(-14,Math.min(14,f(x)))).toFixed(1)} `;o+=`<polyline points="${s}" fill="none" style="stroke:var(--good)" stroke-width="6"/>`;
+        o+=`<line x1="${P.X(a)}" y1="410" x2="${P.X(b)}" y2="410" style="stroke:var(--good)" stroke-width="7" stroke-linecap="round"/>`});
+      o+=`<line x1="0" y1="410" x2="560" y2="410" class="ax"/>`;[p,q].forEach(r=>{o+=`<circle cx="${P.X(r)}" cy="${P.Y(0)}" r="7" style="fill:${eqI?'var(--ink)':'var(--surface)'};stroke:var(--ink)" stroke-width="3"/><circle cx="${P.X(r)}" cy="410" r="8" style="fill:${eqI?'var(--ink)':'var(--surface)'};stroke:var(--ink)" stroke-width="3"/>`+lbl(P.X(r),438,num(r),'var(--ink)',15)});
+      svg.innerHTML=o;const expr=form==='u'?`(x ${p<0?'+':M} ${Math.abs(p)})(x ${q<0?'+':M} ${Math.abs(q)})`:`(x ${p<0?'+':M} ${Math.abs(p)})(${num(q)} ${M} x)`;
+      const mid=(p+q)/2,wrong=`x ${sym==='≥'||sym==='≤'?'≥':'>'} ${num(p)} or x ${sym==='≥'||sym==='≤'?'≥':'>'} ${num(q)}`;
+      $('#ir',el).innerHTML=`<p class="eq">${expr} ${sym} 0</p><p>${form==='u'?'The x² coefficient is positive: a ∪ shape.':'Expand it: the x² coefficient is negative, so it is an ∩ shape.'} It crosses the x-axis at x = ${num(p)} and x = ${num(q)}.</p><p>We want the curve ${gt?'<b>above</b>':'<b>below</b>'} the x-axis${eqI?' (or on it)':''}: the green parts.</p><p class="eq" style="color:var(--good)">${ineqAnswer(p,q,form,sym)}</p><p>${eqI?'Filled dots: the roots are included (≥ or ≤).':'Open dots: the roots are not included (> or <).'}</p>`+(form==='u'&&gt?`<p class="say warn">Don't solve it like an equation. "${wrong}" fails: try x = ${num(mid)}, which it allows, and you get ${num(f(mid))}, which is not ${sym} 0.</p>`:form==='n'?`<p class="say warn">Multiplying by ${M}1 gives (x ${p<0?'+':M} ${Math.abs(p)})(x ${q<0?'+':M} ${Math.abs(q)}) ${{'>':'<','<':'>','≥':'≤','≤':'≥'}[sym]} 0. Flip the sign when you multiply by a negative.</p>`:'')}
+    seg(el,'#if',st,'form',draw);seg(el,'#is',st,'sym',draw);sliders(el,st,draw);draw()},
+  gen(i){let p,q;do{p=ri(-5,4);q=ri(p+1,6)}while(p===0||q===0);const form=i%3===2?'n':'u',sym=pick(['>','<','≥','≤']);const b=n=>n<0?`+ ${-n}`:`${M} ${n}`;
+    const expr=form==='u'?`(x ${b(p)})(x ${b(q)})`:`(x ${b(p)})(${num(q)} ${M} x)`;const right=ineqAnswer(p,q,form,sym);const flip=ineqAnswer(p,q,form==='u'?'n':'u',sym);const eqI=sym==='≥'||sym==='≤';
+    const lo=eqI?'≤':'<',hi=eqI?'≥':'>';const ch=[{t:right,ok:true},{t:flip,why:form==='u'?'Sketch it: a ∪ shape is above the x-axis outside the roots and below it between them.':'This one is an ∩ shape (the x² term is negative), so it is above the x-axis between the roots.'},
+      {t:`x ${hi} ${num(p)} or x ${hi} ${num(q)}`,why:'That treats the inequality like an equation. Test a value: the answer must come from the sketch.'},
+      {t:`${num(p)} ${hi} x ${hi} ${num(q)}`,why:`That says x is below ${num(p)} and above ${num(q)} at the same time, which is impossible. Use "or" for two separate regions.`}];
+    return{prompt:`Solve ${expr} ${sym} 0.`,choices:ch,explain:`Roots ${num(p)} and ${num(q)}. ${form==='u'?'∪ shape':'∩ shape (negative x²)'}; we want it ${sym==='>'||sym==='≥'?'above':'below'} the x-axis${eqI?', roots included':''}: ${right}.`}}});
+
+/* ---- A-Math: perpendicular gradients ---- */
+A.push({id:'perp',lvl:'am',code:'A-Math G2 · Perpendicular lines',g:'⊥',c:'var(--violet)',title:'Perpendicular Rotator',
+  blurb:'Rotate the gradient triangle 90° and see where −1 ÷ m comes from.',
+  watch:['Taking only half of "negative reciprocal": −m or 1/m.','Reading the gradient of 2x + 3y = 6 as 2. Make y the subject first.','Judging perpendicular by eye on axes with unequal scales.'],
+  explore(el){const st={rise:2,run:3,rot:0,squash:false};const P=plane({x0:-6,x1:6,y0:-6,y1:6});let raf=0;
+    el.innerHTML=`<div class="two"><div class="fig"><svg id="pp" viewBox="0 0 520 520" role="img" aria-label="Two lines and gradient triangles"></svg></div><div class="ctl">${sl('rise','Rise',-4,4,1,2)}${sl('run','Run',1,4,1,3)}<div class="row"><button class="btn primary" id="prot">Rotate 90°</button><button class="btn" id="pres">Reset</button></div><label class="chk"><input type="checkbox" id="psq"> Squash the y-axis</label><div class="read" id="prr"></div></div></div>`;
+    const svg=$('#pp',el);
+    function tri(rise,run,col,ang){const ox=P.X(0),oy=P.Y(0);const pts=[[0,0],[run,0],[run,rise]].map(([x,y])=>{const c=Math.cos(rad(ang)),s=Math.sin(rad(ang));return[x*c-y*s,x*s+y*c]});
+      return`<polygon points="${pts.map(([x,y])=>`${P.X(x)},${P.Y(y)}`).join(' ')}" style="fill:${col};fill-opacity:.18;stroke:${col}" stroke-width="3"/>`+(()=>{const[a,b]=pts[1],[c,d]=pts[2];return`<line x1="${ox}" y1="${oy}" x2="${P.X(a)}" y2="${P.Y(b)}" style="stroke:var(--teal)" stroke-width="5"/><line x1="${P.X(a)}" y1="${P.Y(b)}" x2="${P.X(c)}" y2="${P.Y(d)}" style="stroke:var(--tomato)" stroke-width="5"/>`})()}
+    function line(dx,dy,col){const L=12/Math.hypot(dx,dy);return`<line x1="${P.X(-dx*L)}" y1="${P.Y(-dy*L)}" x2="${P.X(dx*L)}" y2="${P.Y(dy*L)}" style="stroke:${col}" stroke-width="3.5"/>`}
+    function draw(){const{rise,run,rot}=st;let o=P.grid(1,2)+line(run,rise,'var(--violet)')+tri(rise,run,'var(--violet)',0);
+      if(rot>0){const c=Math.cos(rad(rot)),s=Math.sin(rad(rot));o+=line(run*c-rise*s,run*s+rise*c,'var(--tomato)')+tri(rise,run,'var(--tomato)',rot)}
+      if(st.squash)o=`<g transform="translate(0,${P.Y(0)}) scale(1,.5) translate(0,${-P.Y(0)})">${o}</g>`;svg.innerHTML=o;
+      const done=rot>=90;$('#prr',el).innerHTML=`<p class="eq">m₁ = rise ÷ run = ${frac(rise,run)}</p>`+(done?(rise===0?`<p>The flat line turned into a vertical line. Horizontal and vertical lines are perpendicular, but a vertical line has no gradient, so m₁m₂ = ${M}1 can't be used here.</p>`:`<p>After turning 90°: the run (${run}) now points <b>up</b>, and the rise (${num(rise)}) now points <b>${rise>0?'left':'right'}</b>.</p><p class="eq" style="color:var(--tomato)">m₂ = ${run} ÷ ${br(-rise)} = ${frac(-run,rise)}</p><p>Swap rise and run: <b>reciprocal</b>. One of them changes direction: <b>negative</b>.</p><p class="eq">m₁ × m₂ = ${frac(rise,run)} × ${frac(-run,rise)} = ${M}1</p>`):'<p>Press <b>Rotate 90°</b> to turn the triangle and the line together.</p>')+(st.squash?`<p class="say warn">Same lines, same gradients, but on unequal scales they don't <i>look</i> perpendicular. Use equal scales before judging by eye.</p>`:'');}
+    $('#prot',el).onclick=()=>{cancelAnimationFrame(raf);st.rot=0;const t0=performance.now();const go=t=>{st.rot=Math.min(90,(t-t0)/10);draw();if(st.rot<90&&document.body.contains(svg))raf=requestAnimationFrame(go)};raf=requestAnimationFrame(go)};
+    $('#pres',el).onclick=()=>{cancelAnimationFrame(raf);st.rot=0;draw()};$('#psq',el).onchange=e=>{st.squash=e.target.checked;draw()};sliders(el,st,()=>{st.rot=0;draw()});draw()},
+  gen(i){if(i%2===0){let n,d;do{n=ri(-5,5);d=ri(1,5)}while(!n||Math.abs(n)===d||gcd(n,d)>1);
+      return{prompt:`Line L has gradient ${frac(n,d)}. What is the gradient of a line perpendicular to L?`,choices:[{t:frac(-d,n),ok:true},{t:frac(-n,d),why:'You changed the sign but didn\'t flip the fraction. Negative reciprocal means both.'},{t:frac(d,n),why:'You flipped the fraction but didn\'t change the sign. Negative reciprocal means both.'},{t:frac(n,d),why:'That\'s the gradient of a parallel line.'}],explain:`m₂ = ${M}1 ÷ m₁ = ${frac(-d,n)}. Check: ${frac(n,d)} × ${frac(-d,n)} = ${M}1.`}}
+    let a,b,c;do{a=ri(1,5);b=ri(2,5);c=ri(1,12)}while(a===b||gcd(a,b)>1);
+    return{prompt:`Find the gradient of a line perpendicular to ${a}x + ${b}y = ${c}.`,choices:[{t:frac(b,a),ok:true},{t:frac(-1,a),why:`First make y the subject: y = ${frac(-a,b)}x + …, so the gradient is ${frac(-a,b)}, not ${a}.`},{t:frac(-a,b),why:'That\'s the gradient of the line itself. Now take the negative reciprocal.'},{t:frac(-b,a),why:`The line's gradient is ${frac(-a,b)}, which is negative, so the perpendicular gradient is positive.`}],explain:`${a}x + ${b}y = ${c} gives y = ${frac(-a,b)}x + ${frac(c,b)}. Perpendicular gradient = ${M}1 ÷ (${frac(-a,b)}) = ${frac(b,a)}.`}}});
+
+/* ================= SHELL ================= */
+const LV={s1:['Secondary 1','G3 Maths'],s2:['Secondary 2','G3 Maths'],s3:['Secondary 3/4','G3 Maths'],am:['Additional Maths','Sec 3/4']};
+let filter=store.get('vlab-filter')||'all';
+const app=$('#app');
+const top=`<div class="topbar"><a class="brand" href="index.html#secondary"><i>∑</i>Maths Arcade · Visual Lab</a><span class="pill">Sec 1–4 · E-Maths and A-Maths</span></div>`;
+function hub(){const lv=Object.keys(LV).filter(k=>filter==='all'||filter===k);
+  app.innerHTML=top+`<section class="hero"><h1>See the maths <span>move</span></h1><p>Drag, slide and spin each model, then take the challenge. Every wrong option in a challenge is a mistake real students make, and the feedback says why.</p></section>
+  <div class="levels" role="group" aria-label="Level">${[['all','All'],['s1','Sec 1'],['s2','Sec 2'],['s3','Sec 3/4'],['am','A-Maths']].map(([k,t])=>`<button data-f="${k}" aria-pressed="${filter===k}">${t}</button>`).join('')}</div>`+
+  lv.map(k=>`<section class="lvl"><h2>${LV[k][0]} <small>${LV[k][1]}</small></h2><div class="cards">${A.filter(a=>a.lvl===k).map(a=>{const b=store.get('vlab-'+a.id)||0;return`<a class="gcard" href="#${a.id}" style="--c:${a.c}"><span class="gl">${a.g}</span><span><b>${a.title}</b><small>${a.code}</small><span class="d">${a.blurb}</span>${b?`<span class="stars">${'★'.repeat(b)}</span>`:''}</span></a>`}).join('')}</div></section>`).join('');
+  $$('.levels button').forEach(b=>b.onclick=()=>{filter=b.dataset.f;store.set('vlab-filter',filter);hub()})}
+function screen(a){app.innerHTML=top+`<div style="--c:${a.c};display:grid;gap:18px"><div class="row between"><a class="back" href="index.html#secondary">← Secondary Maths</a></div>
+  <div class="ghead"><span class="tag">${LV[a.lvl][0]} · ${a.code}</span><h2>${a.title}</h2><p>${a.blurb}</p></div>
+  <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-t="x">Explore</button><button role="tab" aria-selected="false" data-t="c">${a.game?'Play':'Challenge'}</button></div>
+  <div class="stage" id="st"></div><div class="watch"><h3>Watch out for</h3><ul>${a.watch.map(w=>`<li>${w}</li>`).join('')}</ul></div></div>`;
+  const st=$('#st');const go=t=>{$$('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));if(t==='x')a.explore(st);else if(a.game)a.game(st);else quiz(st,a)};
+  $$('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.t));go('x');window.scrollTo(0,0)}
+function route(){const id=location.hash.slice(1);const a=A.find(x=>x.id===id);if(a)screen(a);else location.replace('index.html#secondary')}
+window.addEventListener('hashchange',route);route();
+}
+</script>
+</body>
+</html>

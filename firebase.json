@@ -57,5 +57,8 @@
         ]
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

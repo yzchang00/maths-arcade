@@ -1,0 +1,605 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Percentage Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column workbook — tab strip of four "stations", each a single focused activity on squared paper */
+:root{
+  --paper:#f3f6fb; --card:#ffffff; --ink:#1d2a44; --muted:#5b6a86; --line:#d6deeb;
+  --fill:#ff8a3d; --fill-soft:#ffe3cf; --blue:#2f6fe4; --blue-soft:#dde8fd; --good:#1f9d63; --bad:#d64545;
+  --p0:#ffd0ab; --p1:#bcd3fb; --p2:#bfe8cf; --p3:#f4cfe9; --pdim:#e9eef6;
+  --display:"Baloo 2",system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#121a2a; --card:#1b2639; --ink:#e8eefb; --muted:#9aa9c4; --line:#2e3b55;
+  --fill:#ff9a55; --fill-soft:#4a3020; --blue:#7aa6ff; --blue-soft:#22345a; --good:#4fd18f; --bad:#ff7a7a; --p0:#7a4a2a; --p1:#2f4c86; --p2:#255a43; --p3:#5e3557; --pdim:#243046; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#121a2a; --card:#1b2639; --ink:#e8eefb; --muted:#9aa9c4; --line:#2e3b55;
+  --fill:#ff9a55; --fill-soft:#4a3020; --blue:#7aa6ff; --blue-soft:#22345a; --good:#4fd18f; --bad:#ff7a7a; --p0:#7a4a2a; --p1:#2f4c86; --p2:#255a43; --p3:#5e3557; --pdim:#243046; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:28px 28px;background-attachment:fixed}
+.wrap{max-width:860px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+header h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,6vw,2.8rem);line-height:1;margin:0;text-wrap:balance}
+header h1 span{color:var(--fill)}
+header p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+nav{display:flex;flex-wrap:wrap;gap:8px}
+nav button{font:800 15px var(--body);border:2px solid var(--ink);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--ink);color:var(--card)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:20px;box-shadow:5px 5px 0 var(--ink);display:grid;gap:14px;min-width:0}
+h2{font-family:var(--display);font-size:1.6rem;margin:0;line-height:1.1}
+.hint{color:var(--muted);margin:0}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:640px){.split{grid-template-columns:1fr}}
+.grid100{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;aspect-ratio:1;max-width:340px;width:100%;touch-action:none;user-select:none}
+.grid100 div{border:1.5px solid var(--line);border-radius:4px;background:var(--card);transition:background .12s}
+.grid100 div.on{background:var(--fill);border-color:var(--fill)}
+.big{font-family:var(--display);font-weight:800;font-size:3.4rem;line-height:1;color:var(--fill)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.trio div{border:2px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+.trio small{display:block;color:var(--muted);font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.trio b{font-family:var(--mono);font-size:1.15rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:800 14px var(--body);border:2px solid var(--ink);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 12px;cursor:pointer}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+label{font-weight:800}
+input[type=number],input[type=text]{font:500 1rem var(--mono);border:2px solid var(--ink);border-radius:10px;padding:7px 10px;width:8em;background:var(--card);color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--fill)}
+.bar{position:relative;height:56px;border:2px solid var(--ink);border-radius:8px;overflow:hidden;background:var(--card)}
+.bar .f{position:absolute;inset:0 auto 0 0;background:var(--fill);transition:width .2s}
+.bar .f.b{background:var(--blue)}
+.ticks{position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,1fr)}
+.ticks i{border-right:1.5px dashed color-mix(in srgb,var(--ink) 35%,transparent)}
+.ticks i:last-child{border:0}
+.scale{display:flex;justify-content:space-between;font:500 12px var(--mono);color:var(--muted)}
+.steps{font-family:var(--mono);font-size:.95rem;background:var(--blue-soft);border-radius:12px;padding:12px 14px;display:grid;gap:4px;overflow-x:auto}
+.steps .ans{font-weight:500;color:var(--blue)}
+.q{font-size:1.25rem;font-weight:800}
+.fb{font-weight:800}
+.fb.ok{color:var(--good)} .fb.no{color:var(--bad)}
+.score{font:800 1rem var(--mono);background:var(--fill-soft);border-radius:999px;padding:4px 12px}
+.tag{font:800 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--blue)}
+.piesvg{width:100%;max-width:340px;display:block}
+.pl{font:800 12.5px var(--body);fill:var(--ink)} .ps{font:500 12px var(--mono);fill:var(--ink)}
+.clue{background:var(--fill-soft);border-radius:12px;padding:10px 12px;margin:0;font-weight:800}
+.part{border-top:2px dashed var(--line);padding-top:12px;display:grid;gap:8px}
+.opts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.opts .btn{font:800 1.4rem var(--display);padding:10px}
+.opts .btn.ok{background:var(--good);border-color:var(--good);color:#fff}
+.opts .btn.no{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+.btn:disabled{opacity:.5;cursor:default}
+.eqrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.eqbox{border:2px solid var(--ink);border-radius:14px;padding:10px 12px;display:grid;gap:6px;justify-items:center;background:var(--card)}
+.eqbox small{font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.eqbox input{width:6.5em;text-align:center;font-size:1.3rem}
+.stack{display:grid;justify-items:center;gap:4px}.stack input{width:4.5em}
+.stack hr{width:100%;border:0;border-top:3px solid var(--ink);margin:0}
+.eqsign{font:800 2rem var(--display)}
+.fbar{display:grid;gap:2px;height:44px;border:2px solid var(--ink);border-radius:8px;padding:2px;background:var(--card)}
+.fbar i{background:var(--card);border:1.5px solid var(--line);border-radius:3px}
+.fbar i.on{background:var(--fill);border-color:var(--fill)}
+.grid100.mini{max-width:230px;pointer-events:none;gap:2px}
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:480px){.tgrid{grid-template-columns:repeat(3,1fr)}}
+.tcard{font:800 1.35rem var(--display);min-height:70px;border:2px solid var(--ink);border-radius:12px;background:var(--card);color:var(--ink);cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.tcard.sel{background:var(--blue-soft);border-color:var(--blue);box-shadow:3px 3px 0 var(--blue)}
+.tcard.f0{background:var(--p0)}.tcard.f1{background:var(--p1)}.tcard.f2{background:var(--p2)}.tcard.f3{background:var(--p3)}
+.tcard:disabled{box-shadow:none;cursor:default}
+.tcard.wrong{background:var(--bad);border-color:var(--bad);color:#fff;animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Percentage <span>Lab</span></h1>
+  <p>Percent means "out of 100". Explore with the hundred square, then use bar models to solve problems.</p>
+</header>
+
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-t="grid">1 · Hundred square</button>
+  <button role="tab" aria-selected="false" data-t="eq">2 · Fraction, decimal, %</button>
+  <button role="tab" aria-selected="false" data-t="bar">3 · Percentage of a quantity</button>
+  <button role="tab" aria-selected="false" data-t="shop">4 · Discount &amp; GST</button>
+  <button role="tab" aria-selected="false" data-t="quiz">5 · Practice</button>
+  <button role="tab" aria-selected="false" data-t="pie">6 · Pie Chart Detective</button>
+</nav>
+
+<section class="card" id="grid">
+  <h2>Shade the hundred square</h2>
+  <p class="hint">Tap or drag over the squares. Each square is 1 out of 100, which is 1%.</p>
+  <div class="split">
+    <div class="grid100" id="g100"></div>
+    <div style="display:grid;gap:14px">
+      <div><div class="big" id="gPct">0%</div><div class="hint" id="gSent">0 out of 100 squares shaded</div></div>
+      <div class="trio">
+        <div><small>Fraction</small><b id="gFr">0</b></div>
+        <div><small>Decimal</small><b id="gDec">0</b></div>
+        <div><small>Percent</small><b id="gP2">0%</b></div>
+      </div>
+      <div class="row">
+        <button class="btn" data-set="25">25%</button><button class="btn" data-set="50">50%</button>
+        <button class="btn" data-set="75">75%</button><button class="btn" data-set="0">Clear</button>
+      </div>
+      <div style="border-top:2px dashed var(--line);padding-top:12px;display:grid;gap:8px">
+        <span class="tag">Challenge</span>
+        <div id="chText" style="font-weight:800">Press "New challenge" to start.</div>
+        <div class="row"><button class="btn primary" id="chNew">New challenge</button><button class="btn" id="chCheck">Check my shading</button></div>
+        <div class="fb" id="chFb"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="eq" hidden>
+  <div class="row" role="group" aria-label="Activity">
+    <button class="btn emode" aria-pressed="true" data-m="eqConv">See it three ways</button>
+    <button class="btn emode" aria-pressed="false" data-m="eqGame">Equal Trios game</button>
+  </div>
+
+  <div id="eqConv" style="display:grid;gap:14px">
+    <h2>One amount, three names</h2>
+    <p class="hint">Change any box. The other two change too, because they all name the same amount.</p>
+    <div class="eqrow">
+      <div class="eqbox"><small>Fraction</small>
+        <div class="stack"><input type="number" id="eN" value="3" min="0" aria-label="Numerator"><hr><input type="number" id="eD" value="20" min="1" aria-label="Denominator"></div></div>
+      <span class="eqsign">=</span>
+      <div class="eqbox"><small>Decimal</small><input type="text" inputmode="decimal" id="eDec" aria-label="Decimal"></div>
+      <span class="eqsign">=</span>
+      <div class="eqbox"><small>Percentage</small><div class="row" style="flex-wrap:nowrap;gap:4px"><input type="text" inputmode="decimal" id="ePct" aria-label="Percentage"><b>%</b></div></div>
+    </div>
+    <div class="row"><span class="hint">Try:</span>
+      <button class="btn" data-ef="1/2">1/2</button><button class="btn" data-ef="1/4">1/4</button><button class="btn" data-ef="3/4">3/4</button>
+      <button class="btn" data-ef="2/5">2/5</button><button class="btn" data-ef="7/10">7/10</button><button class="btn" data-ef="9/20">9/20</button>
+      <button class="btn" data-ef="1/8">1/8</button><button class="btn" data-ef="1/3">1/3</button></div>
+    <div class="fb no" id="eErr"></div>
+    <div class="split">
+      <div style="display:grid;gap:14px;min-width:0">
+        <div><span class="tag" id="eBarLbl">Fraction bar</span><div class="fbar" id="eBar"></div></div>
+        <div><span class="tag">Number line</span><div id="eLine"></div></div>
+      </div>
+      <div><span class="tag" id="eGridLbl">Hundred square</span><div class="grid100 mini" id="eGrid"></div></div>
+    </div>
+    <div class="steps" id="eSteps"></div>
+  </div>
+
+  <div id="eqGame" style="display:grid;gap:14px" hidden>
+    <div class="row" style="justify-content:space-between"><h2>Equal Trios</h2><span class="score" id="tStat">Trios 0/4 · Moves 0 · 0 s</span></div>
+    <p class="hint">Tap three cards that show the same amount: a fraction, a decimal and a percentage. Watch out for look-alikes like 0.4 and 4%.</p>
+    <div class="tgrid" id="tGrid"></div>
+    <div class="row"><button class="btn primary" id="tNew">New game</button><span class="fb" id="tMsg"></span></div>
+  </div>
+</section>
+
+<section class="card" id="bar" hidden>
+  <h2>Finding a percentage of a quantity</h2>
+  <p class="hint">The whole bar is 100%. Each dashed part is 10%. Change the numbers and watch the working.</p>
+  <div class="row">
+    <label for="bWhole">Whole</label><input type="number" id="bWhole" value="240" min="1">
+    <label for="bPct">Percent</label><input type="number" id="bPct" value="35" min="0" max="100">
+  </div>
+  <input type="range" id="bSlide" min="0" max="100" value="35" aria-label="Percent slider">
+  <div>
+    <div class="bar"><div class="f" id="bFill"></div><div class="ticks">%TICKS%</div></div>
+    <div class="scale"><span>0%</span><span>50%</span><span>100%</span></div>
+  </div>
+  <div class="steps" id="bSteps"></div>
+</section>
+
+<section class="card" id="shop" hidden>
+  <h2>Discount and GST</h2>
+  <p class="hint">Shops take the discount off first. Then 9% GST is added to the price after discount.</p>
+  <div class="row">
+    <label for="sPrice">Price $</label><input type="number" id="sPrice" value="80" min="0" step="0.01">
+    <label for="sDisc">Discount %</label><input type="number" id="sDisc" value="20" min="0" max="100">
+    <label><input type="checkbox" id="sGst" checked> Add 9% GST</label>
+  </div>
+  <div>
+    <div class="bar"><div class="f b" id="sPay"></div><div class="ticks">%TICKS%</div></div>
+    <div class="scale"><span>$0</span><span id="sHalf"></span><span id="sFull"></span></div>
+    <p class="hint" style="margin-top:6px">Blue part = what you pay before GST. The white part is the money you save.</p>
+  </div>
+  <div class="steps" id="sSteps"></div>
+</section>
+
+<section class="card" id="quiz" hidden>
+  <div class="row" style="justify-content:space-between"><h2>Practice</h2><span class="score" id="qScore">0 / 0</span></div>
+  <div class="row" role="group" aria-label="Level" id="qLv" style="margin:2px 0 8px"><button class="btn" type="button" data-lv="easy" aria-pressed="false">🌱 Easy</button><button class="btn" type="button" data-lv="mixed" aria-pressed="true">⚡ Medium</button><button class="btn" type="button" data-lv="hard" aria-pressed="false">🔥 Hard</button><span class="hint" id="qLvD" style="flex-basis:100%;margin:0">Medium: fractions, discount, GST and remainders.</span></div>
+  <span class="tag" id="qType"></span>
+  <div class="q" id="qText"></div>
+  <form class="row" id="qForm">
+    <span id="qPre"></span><input type="text" inputmode="decimal" id="qIn" autocomplete="off" aria-label="Your answer"><span id="qPost"></span>
+    <button class="btn primary" type="submit">Check</button>
+    <button class="btn" type="button" id="qNext">Next question</button>
+  </form>
+  <div class="fb" id="qFb"></div>
+  <div class="steps" id="qSteps" hidden></div>
+</section>
+
+<section class="card" id="pie" hidden>
+  <div class="row" style="justify-content:space-between"><h2>Pie Chart Detective</h2><span class="score" id="pPts">Points 0 · Streak 0</span></div>
+  <div class="row" role="group" aria-label="Game mode">
+    <button class="btn mode" aria-pressed="true" data-m="det">Detective cases</button>
+    <button class="btn mode" aria-pressed="false" data-m="spr">Missing Slice (60 s)</button>
+  </div>
+  <div id="det" style="display:grid;gap:14px">
+    <div class="split">
+      <div id="dPie"></div>
+      <div style="display:grid;gap:10px">
+        <p id="dCtx" style="margin:0;font-weight:600"></p>
+        <p class="clue" id="dClue"></p>
+        <div class="row"><button class="btn" id="dHintBtn">Detective tips</button><button class="btn primary" id="dNew">New case</button></div>
+        <div class="steps" id="dHint" hidden>
+          <div>Square mark at the centre = right angle = 1/4 of the circle = 25%</div>
+          <div>Straight line through the centre = half = 50%</div>
+          <div>Whole circle = 100%</div>
+        </div>
+      </div>
+    </div>
+    <div id="dParts" style="display:grid;gap:12px"></div>
+    <div class="fb ok" id="dDone"></div>
+  </div>
+  <div id="spr" style="display:grid;gap:14px" hidden>
+    <p class="hint">The slices are labelled as fractions, decimals or percentages. A square mark means a right angle (25%). Work out the missing slice "?" as a percentage. The clock stops while you read the working after a wrong answer.</p>
+    <div class="split">
+      <div id="sPie"></div>
+      <div style="display:grid;gap:12px">
+        <div class="row" style="justify-content:space-between"><span class="score" id="sClock">60 s</span><span class="score" id="sScore">Score 0 · Best 0</span></div>
+        <div class="opts" id="sOpts"></div>
+        <button class="btn primary" id="sStart">Start game</button>
+        <div class="fb" id="sMsg"></div>
+        <div class="steps" id="sWork" hidden></div>
+        <button class="btn primary" id="sNext" hidden>Next pie</button>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const fmt=n=>{const r=Math.round(n*100)/100;return Number.isInteger(r)?String(r):r.toFixed(2).replace(/0$/,'')};
+const money=n=>'$'+(Math.round(n*100)/100).toFixed(2);
+const frac=(a,b)=>{if(a===0)return'0';const g=gcd(a,b);return b/g===1?String(a/g):`${a/g}/${b/g}`};
+document.querySelectorAll('.ticks').forEach(t=>t.innerHTML='<i></i>'.repeat(10));
+
+/* tabs */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['grid','eq','bar','shop','quiz','pie'].forEach(id=>$(id).hidden=id!==b.dataset.t);
+});
+
+/* hundred square */
+const g=$('g100'),cells=[];
+for(let i=0;i<100;i++){const c=document.createElement('div');g.appendChild(c);cells.push(c)}
+let painting=null;
+const paint=c=>{if(c&&cells.includes(c)){c.classList.toggle('on',painting);updGrid()}};
+g.addEventListener('pointerdown',e=>{const c=e.target;if(!cells.includes(c))return;painting=!c.classList.contains('on');paint(c);e.preventDefault()});
+g.addEventListener('pointermove',e=>{if(painting===null)return;paint(document.elementFromPoint(e.clientX,e.clientY))});
+window.addEventListener('pointerup',()=>painting=null);
+function updGrid(){const n=cells.filter(c=>c.classList.contains('on')).length;
+  $('gPct').textContent=n+'%';$('gP2').textContent=n+'%';
+  $('gSent').textContent=`${n} out of 100 squares shaded`;
+  $('gFr').textContent=n?`${n}/100`+(gcd(n,100)>1&&n!==100?` = ${frac(n,100)}`:''):'0';
+  $('gDec').textContent=fmt(n/100);}
+document.querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{const n=+b.dataset.set;cells.forEach((c,i)=>c.classList.toggle('on',i<n));updGrid()});
+let target=null;
+$('chNew').onclick=()=>{
+  const opts=[[1,4],[1,2],[3,4],[1,5],[2,5],[3,5],[4,5],[1,10],[3,10],[7,10],[9,10],[1,20],[3,20],[7,25],[6,25],[11,20],[1,25],[13,50]];
+  const kind=Math.floor(Math.random()*3);const [a,b]=opts[Math.floor(Math.random()*opts.length)];
+  target=a*100/b;
+  $('chText').textContent=kind===0?`Shade ${target}% of the square.`:kind===1?`Shade ${a}/${b} of the square.`:`Shade ${fmt(target/100)} of the square.`;
+  $('chFb').textContent='';$('chFb').className='fb';
+};
+$('chCheck').onclick=()=>{if(target===null){$('chFb').textContent='Press "New challenge" first.';return}
+  const n=cells.filter(c=>c.classList.contains('on')).length,ok=n===target;
+  $('chFb').className='fb '+(ok?'ok':'no');
+  $('chFb').textContent=ok?`Correct! ${target} squares out of 100 is ${target}%.`:`You shaded ${n} squares. You need ${target} squares. ${n<target?'Shade more.':'Shade fewer.'}`;};
+
+/* bar model */
+function updBar(src){
+  if(src==='s')$('bPct').value=$('bSlide').value;else $('bSlide').value=$('bPct').value;
+  const W=+$('bWhole').value||0,p=Math.min(100,Math.max(0,+$('bPct').value||0));
+  $('bFill').style.width=p+'%';
+  $('bSteps').innerHTML=`<div>100% → ${fmt(W)}</div><div>1% → ${fmt(W)} ÷ 100 = ${fmt(W/100)}</div><div>${p}% → ${fmt(W/100)} × ${p} = <span class="ans">${fmt(W*p/100)}</span></div><div style="margin-top:6px;color:var(--muted)">Or in one step: ${p}/100 × ${fmt(W)} = ${fmt(W*p/100)}</div>`;}
+$('bWhole').oninput=()=>updBar();$('bPct').oninput=()=>updBar();$('bSlide').oninput=()=>updBar('s');
+
+/* shop */
+function updShop(){
+  const P=+$('sPrice').value||0,d=Math.min(100,Math.max(0,+$('sDisc').value||0)),gst=$('sGst').checked;
+  const disc=P*d/100,sale=P-disc,tax=sale*0.09;
+  $('sPay').style.width=(100-d)+'%';$('sHalf').textContent=money(P/2);$('sFull').textContent=money(P);
+  let h=`<div>Discount = ${d}% × ${money(P)} = ${money(disc)}</div><div>Price after discount = ${money(P)} − ${money(disc)} = ${gst?money(sale):`<span class="ans">${money(sale)}</span>`}</div>`;
+  if(gst)h+=`<div>GST = 9% × ${money(sale)} = ${money(tax)}</div><div>Price to pay = ${money(sale)} + ${money(tax)} = <span class="ans">${money(sale+tax)}</span></div>`;
+  h+=`<div style="margin-top:6px;color:var(--muted)">Shortcut: after ${d}% off you pay ${100-d}% of the price.</div>`;
+  $('sSteps').innerHTML=h;}
+['sPrice','sDisc','sGst'].forEach(id=>$(id).oninput=updShop);
+
+/* practice */
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),pick=a=>a[Math.floor(Math.random()*a.length)];
+const gens=[
+ ()=>{const [a,b]=pick([[1,4],[3,4],[2,5],[3,5],[4,5],[7,10],[3,20],[9,20],[7,25],[12,25],[1,8],[17,50]]);
+   return{type:'Fraction to percent',q:`Express ${a}/${b} as a percentage.`,post:'%',ans:a*100/b,
+   steps:[`${a}/${b} × 100%`,`= ${a*100}/${b}%`,`= ${fmt(a*100/b)}%`]}},
+ ()=>{const d=pick([0.3,0.45,0.08,0.6,0.125,0.72,0.05,1.2]);
+   return{type:'Decimal to percent',q:`Express ${d} as a percentage.`,post:'%',ans:d*100,steps:[`${d} × 100% = ${fmt(d*100)}%`]}},
+ ()=>{const p=pick([10,15,20,25,30,35,40,45,60,75,80]),W=pick([40,60,80,120,160,200,240,300,360,480,500]);
+   const unit=pick(['pupils','stamps','marbles','beads','books']);
+   return{type:'Percentage of a quantity',q:`There are ${W} ${unit}. ${p}% of them are blue. How many ${unit} are blue?`,post:unit,ans:W*p/100,
+   steps:[`100% → ${W}`,`1% → ${W} ÷ 100 = ${fmt(W/100)}`,`${p}% → ${fmt(W/100)} × ${p} = ${fmt(W*p/100)}`]}},
+ ()=>{const b=pick([20,25,40,50,80,200,250,400,500]);let a;do{a=R(1,b-1)}while((a*100/b)%1!==0);
+   return{type:'What percentage?',q:`Mei Ling scored ${a} out of ${b} marks in a quiz. What percentage of the marks did she score?`,post:'%',ans:a*100/b,
+   steps:[`${a}/${b} × 100%`,`= ${fmt(a*100/b)}%`]}},
+ ()=>{const P=pick([40,60,80,120,150,200,250,320]),d=pick([10,15,20,25,30,40]);
+   return{type:'Discount',q:`A bag costs $${P}. It is sold at a ${d}% discount. How much does it cost after the discount?`,pre:'$',ans:P*(100-d)/100,
+   steps:[`Discount = ${d}% × $${P} = $${fmt(P*d/100)}`,`Price after discount = $${P} − $${fmt(P*d/100)} = $${fmt(P*(100-d)/100)}`]}},
+ ()=>{const P=pick([100,200,300,400,500,600,50,800]);
+   return{type:'GST',q:`A watch costs $${P} before GST. GST is 9%. How much is paid for the watch including GST?`,pre:'$',ans:P*1.09,
+   steps:[`GST = 9% × $${P} = $${fmt(P*0.09)}`,`Price paid = $${P} + $${fmt(P*0.09)} = $${fmt(P*1.09)}`]}},
+ ()=>{const p=pick([20,25,40,60,75]),W=pick([200,400,600,800,1000]),rest=W*(100-p)/100;
+   return{type:'Remainder',q:`Ravi had $${W}. He spent ${p}% of it on a bicycle. How much money did he have left?`,pre:'$',ans:rest,
+   steps:[`He had 100% − ${p}% = ${100-p}% left`,`${100-p}% × $${W} = $${fmt(rest)}`]}},
+];
+const gensEasy=[
+ ()=>{const n=R(11,99);return{type:'Out of 100',q:`${n} out of 100 squares are shaded. What percentage is shaded?`,post:'%',ans:n,steps:[`${n} out of 100 = ${n}/100 = ${n}%`]}},
+ ()=>{const [a,b]=pick([[1,2],[1,4],[3,4],[1,5],[2,5],[1,10],[3,10],[7,10]]);return{type:'Fraction to percent',q:`Express ${a}/${b} as a percentage.`,post:'%',ans:a*100/b,steps:[`${a}/${b} × 100%`,`= ${fmt(a*100/b)}%`]}},
+ ()=>{const d=pick([0.1,0.2,0.5,0.7,0.25,0.75,0.4,0.9]);return{type:'Decimal to percent',q:`Express ${d} as a percentage.`,post:'%',ans:d*100,steps:[`${d} × 100% = ${fmt(d*100)}%`]}},
+ ()=>{const p=pick([10,20,25,50,75]),W=pick([20,40,60,80,100,200]),unit=pick(['pupils','stamps','marbles','beads','books']);return{type:'Percentage of a quantity',q:`There are ${W} ${unit}. ${p}% of them are blue. How many ${unit} are blue?`,post:unit,ans:W*p/100,
+   steps:[`${p}% = ${p}/100`,`${p}/100 × ${W} = ${fmt(W*p/100)}`]}},
+ ()=>{const s=R(21,89);return{type:'The rest',q:`${s}% of a class walk to school. What percentage do not walk to school?`,post:'%',ans:100-s,steps:[`The whole class is 100%.`,`100% − ${s}% = ${100-s}%`]}},
+ ()=>{const b=pick([10,20,25,50]),a=R(1,b-1);return{type:'What percentage?',q:`Mei Ling scored ${a} out of ${b} marks in a quiz. What percentage of the marks did she score?`,post:'%',ans:a*100/b,steps:[`${a}/${b} × 100%`,`= ${fmt(a*100/b)}%`]}},
+];
+const gensHard=[
+ ()=>{const P=pick([200,400,500,800]),d=pick([10,20,25]),s=P*(100-d)/100,ans=Math.round(s*109)/100;return{type:'Discount, then GST',q:`A watch costs $${P}. It is sold at a ${d}% discount. 9% GST is then charged on the sale price. How much is paid for the watch?`,pre:'$',ans,
+   steps:[`Sale price = ${100-d}% × $${P} = $${fmt(s)}`,`GST = 9% × $${fmt(s)} = $${fmt(s*.09)}`,`Price paid = $${fmt(s)} + $${fmt(s*.09)} = $${fmt(ans)}`]}},
+ ()=>{const M=pick([200,400,500,800,1000]),a=pick([20,25,40]),b=pick([10,20,50]),rem=M*(100-a)/100,ans=rem*(100-b)/100;return{type:'Percentage of the remainder',q:`Ali had $${M}. He spent ${a}% of it on a book. Then he spent ${b}% of the remainder on food. How much money did he have left?`,pre:'$',ans,
+   steps:[`After the book: ${100-a}% × $${M} = $${fmt(rem)}`,`Food: ${b}% × $${fmt(rem)} = $${fmt(rem*b/100)}`,`Left: $${fmt(rem)} − $${fmt(rem*b/100)} = $${fmt(ans)}`,`The ${b}% is of the remainder, not of the $${M}.`]}},
+ ()=>{const P=pick([2000,5000,8000]),r=pick([2,3,4]),n=pick([2,3]),I=P*r/100;return{type:'Interest',q:`Mdm Goh puts $${P} in a bank that pays ${r}% interest per year. The interest is the same each year. How much money will she have after ${n} years?`,pre:'$',ans:P+I*n,
+   steps:[`Interest for 1 year = ${r}% × $${P} = $${fmt(I)}`,`Interest for ${n} years = ${n} × $${fmt(I)} = $${fmt(I*n)}`,`Total = $${P} + $${fmt(I*n)} = $${fmt(P+I*n)}`]}},
+ ()=>{const T=pick([400,600,800,1200]),p=pick([25,40,50]),q=pick([10,20,30]),up=T*p/100;return{type:'Percentage of a percentage',q:`A school has ${T} pupils. ${p}% of them are in Primary 5 and 6. ${q}% of these Primary 5 and 6 pupils wear glasses. How many Primary 5 and 6 pupils wear glasses?`,post:'pupils',ans:up*q/100,
+   steps:[`Primary 5 and 6: ${p}% × ${T} = ${up}`,`Wear glasses: ${q}% × ${up} = ${fmt(up*q/100)}`]}},
+ ()=>{const P=pick([100,200,300,500]),a=pick([10,20]),up=P*(100+a)/100,ans=up*(100-a)/100;return{type:'Up, then down',q:`A shop raises the price of a $${P} bag by ${a}%. Later, it gives a ${a}% discount on the new price. What is the final price?`,pre:'$',ans,
+   steps:[`New price = ${100+a}% × $${P} = $${fmt(up)}`,`Discount = ${a}% × $${fmt(up)} = $${fmt(up*a/100)}`,`Final price = $${fmt(up)} − $${fmt(up*a/100)} = $${fmt(ans)}`,`It does not go back to $${P}: the discount is ${a}% of a bigger amount.`]}},
+ ()=>{const T=pick([40,80,120,200]),ans=T*.25;return{type:'Mixed forms',q:`In a survey of ${T} pupils, 1/4 chose art, 0.3 chose music and 20% chose sports. The rest chose drama. How many pupils chose drama?`,post:'pupils',ans,
+   steps:[`1/4 = 25%, 0.3 = 30%, and sports is 20%`,`Drama: 100% − 25% − 30% − 20% = 25%`,`25% × ${T} = ${fmt(ans)}`]}},
+ ()=>{const T=pick([40,60,80,120,200]),p=pick([35,40,45]),ans=T*(100-2*p)/100;return{type:'How many more?',q:`There are ${T} children at a party. ${p}% of them are boys. How many more girls than boys are there?`,post:'children',ans,
+   steps:[`Girls: 100% − ${p}% = ${100-p}%`,`Difference: ${100-p}% − ${p}% = ${100-2*p}%`,`${100-2*p}% × ${T} = ${fmt(ans)}`]}},
+ ()=>{const N=pick([80,160,240,400,640]);return{type:'Tricky percentage',q:`What is 12.5% of ${N}?`,ans:N/8,steps:[`12.5% = 12.5/100 = 1/8`,`1/8 × ${N} = ${N/8}`]}},
+];
+let qLv='mixed',lastGen=null;const POOL={easy:gensEasy,mixed:gens,hard:gensHard};
+let cur,answered=false,right=0,total=0;
+document.querySelectorAll('#qLv button').forEach(b=>b.onclick=()=>{qLv=b.dataset.lv;document.querySelectorAll('#qLv button').forEach(x=>{const on=x===b;x.setAttribute('aria-pressed',on);x.style.fontWeight=on?'800':''});
+  $('qLvD').textContent={easy:'Easy: what percent means, simple conversions and friendly numbers.',mixed:'Medium: fractions, discount, GST and remainders.',hard:'Hard: two-step problems, where the second percentage is of a new amount.'}[qLv];newQ()});
+(()=>{const b=document.querySelector('#qLv button[data-lv="mixed"]');if(b)b.style.fontWeight='800'})();
+
+function newQ(){let gf;do{gf=pick(POOL[qLv])}while(gf===lastGen);lastGen=gf;cur=gf();answered=false;
+  $('qType').textContent=cur.type;$('qText').textContent=cur.q;$('qPre').textContent=cur.pre||'';$('qPost').textContent=cur.post||'';
+  $('qIn').value='';$('qFb').textContent='';$('qFb').className='fb';$('qSteps').hidden=true;}
+$('qForm').onsubmit=e=>{e.preventDefault();
+  const v=parseFloat($('qIn').value.replace(/[$,%\s]/g,''));
+  if(isNaN(v)){$('qFb').className='fb no';$('qFb').textContent='Type a number first.';return}
+  const ok=Math.abs(v-cur.ans)<0.006;
+  if(!answered){total++;if(ok)right++;answered=true}
+  $('qScore').textContent=`${right} / ${total}`;
+  $('qFb').className='fb '+(ok?'ok':'no');
+  $('qFb').textContent=ok?'Correct! Well done.':`Not quite. The answer is ${cur.pre||''}${fmt(cur.ans)}${cur.post?' '+cur.post:''}.`;
+  $('qSteps').innerHTML='<span class="tag">Working</span>'+cur.steps.map(s=>`<div>${s}</div>`).join('');$('qSteps').hidden=false;};
+$('qNext').onclick=newQ;
+
+/* ---------- pie charts ---------- */
+const PC=['--p0','--p1','--p2','--p3'];
+function pieSVG(secs,aria){const cx=150,cy=150,r=122;let a=-90,body='',labels='';
+  const pt=(g,d)=>[+(cx+d*Math.cos(g*Math.PI/180)).toFixed(2),+(cy+d*Math.sin(g*Math.PI/180)).toFixed(2)];
+  secs.forEach((s,i)=>{const sw=s.pct*3.6,b=a+sw,p0=pt(a,r),p1=pt(b,r);
+    body+=`<path d="M${cx},${cy} L${p0} A${r},${r} 0 ${sw>180?1:0} 1 ${p1} Z" style="fill:var(${s.dim?'--pdim':PC[i%4]})" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>`;
+    if(s.right){const u=pt(a,18),v=pt(b,18),w=[+(u[0]+v[0]-cx).toFixed(2),+(u[1]+v[1]-cy).toFixed(2)];
+      body+=`<path d="M${u} L${w} L${v}" fill="none" stroke="var(--ink)" stroke-width="2"/>`}
+    const [lx,ly]=pt(a+sw/2,r*(s.pct<20?0.7:0.58));
+    if(s.label)labels+=`<text x="${lx}" y="${s.sub?ly-3:ly+4}" text-anchor="middle" class="pl">${s.label}</text>`;
+    if(s.sub)labels+=`<text x="${lx}" y="${ly+13}" text-anchor="middle" class="ps">${s.sub}</text>`;
+    a=b;});
+  return `<svg viewBox="0 0 300 300" class="piesvg" role="img" aria-label="${aria}">${body}<circle cx="${cx}" cy="${cy}" r="3" style="fill:var(--ink)"/>${labels}</svg>`;}
+
+const SETS=[
+ {ctx:'The pie chart shows the sales of four types of fruits by a fruit seller on a Monday.',unit:'fruits',verb:'were',names:['oranges','apples','guavas','mangoes'],qAll:'How many fruits did he sell in all?',diff:(n,c,d)=>`The fruit seller sold ${n} more ${c} than ${d} on that day.`,tot:T=>`The fruit seller sold ${T} fruits in all.`},
+ {ctx:'The pie chart shows the favourite sports of the P5 pupils in a school.',unit:'pupils',verb:'chose',names:['football','swimming','badminton','netball'],qAll:'How many P5 pupils were there in all?',diff:(n,c,d)=>`${n} more pupils chose ${c} than ${d}.`,tot:T=>`There were ${T} P5 pupils in all.`},
+ {ctx:'The pie chart shows the drinks sold at a school canteen in one week.',unit:'drinks',verb:'were',names:['water','juice','Milo','soya milk'],qAll:'How many drinks were sold in all?',diff:(n,c,d)=>`The canteen sold ${n} more cups of ${c} than ${d}.`,tot:T=>`The canteen sold ${T} drinks in all.`},
+ {ctx:'The pie chart shows the books borrowed from a library in one month.',unit:'books',verb:'were',names:['story books','science books','comics','atlases'],qAll:'How many books were borrowed in all?',diff:(n,c,d)=>`${n} more ${c} than ${d} were borrowed.`,tot:T=>`${T} books were borrowed in all.`},
+];
+function caseA(){const s=pick(SETS),[N0,N1,C,D]=s.names;let T,cp,dp,secs,stepsA,remain;
+  if(Math.random()<.5){T=pick([200,400,600,800,1000,1200]);cp=pick([14,15]);dp=25-cp;const half=Math.random()<.5;
+    secs=[{pct:50,label:N0,sub:half?String(T/2):''},{pct:cp,label:C},{pct:dp,label:D},{pct:25,label:N1,sub:half?'':String(T/4),right:true}];
+    stepsA=half?[`The line through the centre cuts the circle in half, so ${N0} = 50%.`,`50% → ${T/2}`,`100% → ${T/2} × 2 = ${T}`]
+               :[`The square mark is a right angle, so ${N1} = 1/4 of the circle = 25%.`,`25% → ${T/4}`,`100% → ${T/4} × 4 = ${T}`];
+    remain={n:T/4,why:`${N0} is 50% and ${N1} is 25%, so ${C} and ${D} share the last 25%: ${T} ÷ 4 = ${T/4}`};
+  }else{T=pick([200,400,600,800,1000]);cp=pick([28,30,32,35]);dp=50-cp;
+    secs=[{pct:25,label:N0,sub:String(T/4),right:true},{pct:25,label:N1,right:true},{pct:cp,label:C},{pct:dp,label:D}];
+    stepsA=[`The square mark is a right angle, so ${N0} = 1/4 of the circle = 25%.`,`25% → ${T/4}`,`100% → ${T/4} × 4 = ${T}`];
+    remain={n:T/2,why:`${N0} and ${N1} are right angles (25% each), so ${C} and ${D} share the other half: ${T} ÷ 2 = ${T/2}`};}
+  const Cn=T*cp/100,Dn=T*dp/100,diff=Cn-Dn;
+  return{ctx:s.ctx,clue:s.diff(diff,C,D),secs,parts:[
+    {q:s.qAll,kind:'num',ans:T,post:s.unit,steps:stepsA},
+    {q:`What percentage of the ${s.unit} ${s.verb} ${C}?`,kind:'pct',ans:cp,steps:[remain.why,`${C} has ${diff} more: (${remain.n} + ${diff}) ÷ 2 = ${Cn}`,`${Cn}/${T} × 100% = ${cp}%`]},
+    {q:`What fraction of the ${s.unit} ${s.verb} ${D}? Give your answer in its simplest form.`,kind:'frac',ans:[Dn,T],steps:[`${D} = ${Cn} − ${diff} = ${Dn}`,`${Dn}/${T} = ${frac(Dn,T)}`]}]};}
+function caseB(){const s=pick(SETS);let p;
+  do{p=[R(3,8)*5,R(3,8)*5,R(3,8)*5];}while(100-p[0]-p[1]-p[2]<15);p.push(100-p[0]-p[1]-p[2]);
+  const T=pick([120,160,200,240,300,400,480]),k=R(0,3),Y=Math.random()<.5?k:pick([0,1,2,3].filter(i=>i!==k)),Z=pick([0,1,2,3].filter(i=>i!==Y));
+  const others=p.filter((_,i)=>i!==k);
+  return{ctx:s.ctx,clue:s.tot(T),secs:s.names.map((n,i)=>({pct:p[i],label:n,sub:i===k?'?':p[i]+'%',right:p[i]===25})),parts:[
+    {q:`What percentage of the ${s.unit} ${s.verb} ${s.names[k]}?`,kind:'pct',ans:p[k],steps:['The whole circle is 100%.',`100% − ${others.join('% − ')}% = ${p[k]}%`]},
+    {q:`How many ${s.unit} ${s.verb} ${s.names[Y]}?`,kind:'num',ans:T*p[Y]/100,post:s.unit,steps:[`${s.names[Y]} is ${p[Y]}% of ${T}`,`${p[Y]}/100 × ${T} = ${T*p[Y]/100}`]},
+    {q:`What fraction of the ${s.unit} ${s.verb} ${s.names[Z]}? Give your answer in its simplest form.`,kind:'frac',ans:[p[Z],100],steps:[`${p[Z]}% = ${p[Z]}/100 = ${frac(p[Z],100)}`]}]};}
+
+let cs,pts=0,streak=0;
+const showPts=()=>$('pPts').textContent=`Points ${pts} · Streak ${streak}`;
+function newCase(){cs=Math.random()<.55?caseA():caseB();
+  $('dPie').innerHTML=pieSVG(cs.secs,'Pie chart for the case');$('dCtx').textContent=cs.ctx;$('dClue').textContent=cs.clue;
+  $('dDone').textContent='';$('dParts').innerHTML='';
+  cs.parts.forEach((p,i)=>{p.tries=0;p.done=false;p.helped=false;
+    const el=document.createElement('div');el.className='part';
+    el.innerHTML=`<div><b>(${'abc'[i]})</b> ${p.q}</div>
+      <form class="row"><input type="text" inputmode="${p.kind==='frac'?'text':'decimal'}" id="dIn${i}" autocomplete="off" aria-label="Answer to part ${'abc'[i]}" placeholder="${p.kind==='frac'?'e.g. 2/5':''}"><span>${p.kind==='pct'?'%':p.post||''}</span>
+      <button class="btn primary" type="submit">Check</button><button class="btn" type="button">Show working</button></form>
+      <div class="fb"></div><div class="steps" hidden></div>`;
+    const fb=el.querySelector('.fb'),st=el.querySelector('.steps'),inp=el.querySelector('input');
+    st.innerHTML='<span class="tag">Working</span>'+p.steps.map(x=>`<div>${x}</div>`).join('');
+    el.querySelector('button[type=button]').onclick=()=>{st.hidden=false;p.helped=true};
+    el.querySelector('form').onsubmit=e=>{e.preventDefault();if(p.done)return;
+      let ok=false,msg='';const raw=inp.value.trim();
+      if(p.kind==='frac'){const m=raw.match(/^(\d+)\s*\/\s*(\d+)$/);
+        if(!m){fb.className='fb no';fb.textContent='Type a fraction like 2/5.';return}
+        const a=+m[1],b=+m[2];
+        if(b&&a*p.ans[1]===b*p.ans[0]){if(gcd(a,b)!==1){fb.className='fb no';fb.textContent='Right value! Now write it in its simplest form.';return}ok=true}
+      }else{const v=parseFloat(raw.replace(/[$,%\s]/g,''));
+        if(isNaN(v)){fb.className='fb no';fb.textContent='Type a number first.';return}ok=Math.abs(v-p.ans)<0.006;}
+      if(ok){p.done=true;inp.disabled=true;
+        if(p.tries===0&&!p.helped){streak++;pts+=10+(streak>1?5:0);msg=streak>1?`Correct! +15 (streak ${streak})`:'Correct! +10'}
+        else msg='Correct!';
+        fb.className='fb ok';fb.textContent=msg;st.hidden=false;
+        if(cs.parts.every(x=>x.done))$('dDone').textContent='Case solved! Press "New case" for the next one.';
+      }else{p.tries++;streak=0;fb.className='fb no';fb.textContent=p.tries>=2?'Not yet. Press "Show working" to see how.':'Not yet. Look at the clues again and try once more.'}
+      showPts();};
+    $('dParts').appendChild(el);});}
+$('dNew').onclick=newCase;
+$('dHintBtn').onclick=()=>$('dHint').hidden=!$('dHint').hidden;
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.mode').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  $('det').hidden=b.dataset.m!=='det';$('spr').hidden=b.dataset.m!=='spr';});
+
+/* slice sprint */
+let best=0;try{best=+localStorage.getItem('pctBest')||0}catch(e){}
+const sp={on:false,score:0,t:60,timer:null,ans:0,lock:false};
+const showSp=()=>{$('sScore').textContent=`Score ${sp.score} · Best ${best}`;$('sClock').textContent=sp.t+' s'};
+function sprintRound(){sp.lock=false;sp.paused=false;$('sWork').hidden=true;$('sNext').hidden=true;$('sMsg').textContent='';
+  const n=R(3,4);let p;
+  do{p=Array.from({length:n-1},()=>pick([10,15,20,25,30,35,40,45,50]));}while(100-p.reduce((a,b)=>a+b,0)<10);
+  p.push(100-p.reduce((a,b)=>a+b,0));
+  const hi=R(0,n-1);sp.ans=p[hi];
+  // label each known slice as a fraction, decimal or percentage (25% may be shown only by its right-angle mark)
+  const forms=p.map((x,i)=>{if(i===hi)return{lab:'?'};
+    if(x===25&&Math.random()<.5)return{lab:'',mark:true,say:'square mark = right angle = 25%'};
+    const f=pick(['frac','dec','pct']);
+    if(f==='frac')return{lab:frac(x,100),say:`${frac(x,100)} = ${x}/100 = ${x}%`};
+    if(f==='dec')return{lab:n6(x/100),say:`${n6(x/100)} × 100% = ${x}%`,dec:true};
+    return{lab:x+'%',say:`${x}%`};});
+  $('sPie').innerHTML=pieSVG(p.map((x,i)=>({pct:x,label:forms[i].lab,right:x===25&&i!==hi,dim:false})),'Pie chart with one missing slice');
+  const known=p.filter((_,i)=>i!==hi),sum=known.reduce((a,b)=>a+b,0);
+  sp.work=`<span class="tag">Working</span><div>1. Change every slice to a percentage:</div>`+
+    forms.filter((_,i)=>i!==hi).map(f=>`<div>&nbsp;&nbsp;${f.say}</div>`).join('')+
+    `<div>2. Add them: ${known.join('% + ')}% = ${sum}%</div><div>3. Missing slice: 100% − ${sum}% = <span class="ans">${sp.ans}%</span></div>`;
+  // distractors: common mistakes first (reading 0.3 as 3%, forgetting to subtract), then near misses
+  const mist=[];const di=p.findIndex((x,i)=>i!==hi&&forms[i].dec);
+  if(di>=0)mist.push(100-(sum-p[di]+p[di]/10));
+  mist.push(sum);
+  const c=[...new Set([...mist,sp.ans+5,sp.ans-5,sp.ans+10,sp.ans-10])].filter(x=>Number.isInteger(x)&&x>=5&&x<=95&&x!==sp.ans).slice(0,3);
+  const opts=shuffle([sp.ans,...c]);
+  $('sOpts').innerHTML='';
+  opts.forEach(o=>{const b=document.createElement('button');b.className='btn';b.textContent=o+'%';b.disabled=!sp.on;
+    b.onclick=()=>{if(!sp.on||sp.lock)return;sp.lock=true;
+      if(o===sp.ans){sp.score++;b.classList.add('ok');showSp();$('sMsg').className='fb ok';$('sMsg').textContent='Correct!';
+        $('sWork').innerHTML=sp.work;$('sWork').hidden=false;setTimeout(()=>sp.on&&sprintRound(),1600)}
+      else{b.classList.add('no');[...$('sOpts').children].find(x=>x.textContent===sp.ans+'%').classList.add('ok');
+        sp.paused=true;$('sMsg').className='fb no';$('sMsg').textContent=`Not quite. The missing slice is ${sp.ans}%. Read the working (the clock is paused).`;
+        $('sWork').innerHTML=sp.work;$('sWork').hidden=false;$('sNext').hidden=false;}};
+    $('sOpts').appendChild(b);});}
+$('sNext').onclick=()=>{$('sMsg').textContent='';sprintRound()};
+$('sStart').onclick=()=>{clearInterval(sp.timer);Object.assign(sp,{on:true,score:0,t:60});$('sMsg').textContent='';$('sStart').disabled=true;showSp();sprintRound();
+  sp.timer=setInterval(()=>{if(sp.paused)return;sp.t--;showSp();if(sp.t<=0){clearInterval(sp.timer);sp.on=false;$('sNext').hidden=true;
+    [...$('sOpts').children].forEach(b=>b.disabled=true);$('sStart').disabled=false;$('sStart').textContent='Play again';
+    const nb=sp.score>best;if(nb){best=sp.score;try{localStorage.setItem('pctBest',best)}catch(e){}}
+    showSp();$('sMsg').className='fb ok';$('sMsg').textContent=`Time's up! You scored ${sp.score}.`+(nb?' New best score!':'');}},1000);};
+
+/* ---------- equivalence ---------- */
+const n6=x=>String(+x.toFixed(6));
+const isExact=d=>{while(d%2===0)d/=2;while(d%5===0)d/=5;return d===1};
+const eGridCells=[];for(let i=0;i<100;i++){const c=document.createElement('div');$('eGrid').appendChild(c);eGridCells.push(c)}
+function toFrac(str,scale){ // decimal string -> [n,d] over scale
+  const [ip,fp='']=str.split('.');const k=fp.length,den=scale*10**k,num=+(ip||0)*10**k+(+fp||0);const g=gcd(num,den)||1;return[num/g,den/g,num,den];}
+function lineSVG(v,label){const x0=30,x1=570,x=x0+(x1-x0)*v;let t='';
+  for(let i=0;i<=10;i++){const xi=x0+(x1-x0)*i/10,big=i%5===0;
+    t+=`<line x1="${xi}" y1="${big?38:43}" x2="${xi}" y2="${big?62:57}" stroke="var(--ink)" stroke-width="2"/>`;
+    if(i%2===0)t+=`<text x="${xi}" y="28" text-anchor="middle" class="nl">${n6(i/10)}</text><text x="${xi}" y="86" text-anchor="middle" class="nl">${i*10}%</text>`;}
+  return `<svg viewBox="0 0 600 130" class="piesvg" style="max-width:100%" role="img" aria-label="Number line from 0 to 1 and 0% to 100%">
+    <style>.nl{font:500 17px var(--mono);fill:var(--muted)}.nv{font:800 20px var(--body);fill:var(--fill)}</style>
+    <line x1="${x0}" y1="50" x2="${x1}" y2="50" stroke="var(--ink)" stroke-width="3"/>${t}
+    <line x1="${x0}" y1="50" x2="${x}" y2="50" stroke="var(--fill)" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="${x}" cy="50" r="9" style="fill:var(--fill)" stroke="var(--ink)" stroke-width="2"/>
+    <text x="${Math.min(Math.max(x,70),530)}" y="118" text-anchor="middle" class="nv">${label}</text></svg>`;}
+function eqRender(n,d,src,raw){$('eErr').textContent='';
+  const v=n/d,exact=isExact(d),pct=v*100,dec=exact?n6(v):'≈ '+v.toFixed(3),pctS=exact?n6(pct):'≈ '+pct.toFixed(2),fS=frac(n,d);
+  if(src!=='f'){$('eN').value=n;$('eD').value=d}
+  if(src!=='d')$('eDec').value=exact?n6(v):v.toFixed(3);
+  if(src!=='p')$('ePct').value=exact?n6(pct):pct.toFixed(2);
+  // fraction bar
+  if(d<=24){$('eBar').style.gridTemplateColumns=`repeat(${d},1fr)`;$('eBar').innerHTML=Array.from({length:d},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('');$('eBarLbl').textContent=`Fraction bar: ${n} of ${d} equal parts`}
+  else{$('eBar').style.gridTemplateColumns='1fr';$('eBar').innerHTML=`<i class="on" style="width:${v*100}%"></i>`;$('eBarLbl').textContent=`Fraction bar (${d} parts is too many to draw)`}
+  const sq=Math.round(pct);eGridCells.forEach((c,i)=>c.classList.toggle('on',i<sq));
+  $('eGridLbl').textContent=exact&&Number.isInteger(pct)?`Hundred square: ${sq} of 100 shaded`:`Hundred square: about ${sq} of 100 shaded`;
+  $('eLine').innerHTML=lineSVG(v,`${fS} = ${exact?n6(v):'≈'+v.toFixed(3)} = ${exact?n6(pct):'≈'+pct.toFixed(1)}%`);
+  let s=[];
+  if(src==='f'){const k=100/d;
+    s.push(['Fraction → percentage', Number.isInteger(k)&&k>1?`${n}/${d} = (${n} × ${k})/(${d} × ${k}) = ${n*k}/100 = ${n*k}%`: d===100?`${n}/100 = ${n}%`:`${n}/${d} × 100% = ${n*100}/${d}% = ${pctS}%`]);
+    s.push(['Percentage → decimal',`${pctS}% = ${pctS.replace('≈ ','')} ÷ 100 = ${dec}   (move the decimal point 2 places left)`]);
+    if(gcd(n,d)>1)s.push(['Note',`${n}/${d} can be simplified to ${fS}.`]);}
+  if(src==='d'){const [,,rn,rd]=toFrac(raw,1);
+    s.push(['Decimal → percentage',`${raw} × 100% = ${pctS}%   (move the decimal point 2 places right)`]);
+    s.push(['Decimal → fraction',`${raw} = ${rn}/${rd}`+(fS!==`${rn}/${rd}`?` = ${fS}`:'')]);}
+  if(src==='p'){const [,,rn,rd]=toFrac(raw,100);
+    s.push(['Percentage → fraction',`${raw}% = ${raw}/100`+(rd!==100?` = ${rn}/${rd}`:'')+(fS!==`${rn}/${rd}`?` = ${fS}`:'')]);
+    s.push(['Percentage → decimal',`${raw} ÷ 100 = ${dec}   (move the decimal point 2 places left)`]);}
+  if(!exact)s.push(['Note',`${fS} cannot be made into hundredths exactly, so the decimal and percentage go on forever. We round them.`]);
+  $('eSteps').innerHTML=`<div style="font-weight:500;color:var(--fill);font-size:1.1rem">${fS} = ${dec} = ${pctS}%</div>`+s.map(([a,b])=>`<div><span class="tag">${a}</span><br>${b}</div>`).join('');}
+const eBad=m=>{$('eErr').textContent=m};
+function fromFrac(){const n=+$('eN').value,d=+$('eD').value;
+  if(!Number.isInteger(n)||!Number.isInteger(d)||d<1||n<0)return eBad('Use whole numbers, and the bottom number must be at least 1.');
+  if(n>d)return eBad('Keep the top number no bigger than the bottom number (0 to 1 whole).');eqRender(n,d,'f');}
+function fromDec(){const r=$('eDec').value.trim().replace(/^\./,'0.');
+  if(!/^\d+(\.\d{1,6})?$/.test(r))return eBad('Type a decimal like 0.35.');if(+r>1)return eBad('Use a decimal from 0 to 1.');
+  const [n,d]=toFrac(r,1);eqRender(n,d,'d',r);}
+function fromPct(){const r=$('ePct').value.trim().replace('%','').replace(/^\./,'0.');
+  if(!/^\d+(\.\d{1,4})?$/.test(r))return eBad('Type a percentage like 35.');if(+r>100)return eBad('Use a percentage from 0 to 100.');
+  const [n,d]=toFrac(r,100);eqRender(n,d,'p',r);}
+$('eN').oninput=fromFrac;$('eD').oninput=fromFrac;$('eDec').oninput=fromDec;$('ePct').oninput=fromPct;
+document.querySelectorAll('[data-ef]').forEach(b=>b.onclick=()=>{const [n,d]=b.dataset.ef.split('/');$('eN').value=n;$('eD').value=d;fromFrac()});
+document.querySelectorAll('.emode').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.emode').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  $('eqConv').hidden=b.dataset.m!=='eqConv';$('eqGame').hidden=b.dataset.m!=='eqGame';});
+
+/* Equal Trios */
+const TPOOL=[[1,2],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,10],[3,10],[7,10],[9,10],[1,20],[3,20],[7,20],[1,25],[3,25],[6,25],[1,8],[3,8],[1,50]];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const tg={sel:[],found:0,moves:0,t0:0,timer:null,lock:false};
+let tBest=0;try{tBest=+localStorage.getItem('trioBest')||0}catch(e){}
+const tSecs=()=>tg.t0?Math.floor((Date.now()-tg.t0)/1000):0;
+const tShow=()=>$('tStat').textContent=`Trios ${tg.found}/4 · Moves ${tg.moves} · ${tSecs()} s`;
+function newTrios(){clearInterval(tg.timer);Object.assign(tg,{sel:[],found:0,moves:0,t0:0,lock:false});$('tMsg').textContent='';
+  // include a look-alike pair when possible (e.g. 2/5 = 40% and 1/25 = 4%)
+  const looks=[[[2,5],[1,25]],[[1,4],[1,25]],[[1,2],[1,20]],[[1,5],[1,50]],[[3,10],[3,25]]];
+  const pickT=[...pick(looks)];shuffle(TPOOL.filter(t=>!pickT.some(p=>p[0]===t[0]&&p[1]===t[1]))).slice(0,2).forEach(t=>pickT.push(t));
+  const cards=[];pickT.forEach(([n,d],i)=>{cards.push({t:i,txt:`${n}/${d}`},{t:i,txt:n6(n/d)},{t:i,txt:n6(n/d*100)+'%'})});
+  $('tGrid').innerHTML='';
+  shuffle(cards).forEach(c=>{const b=document.createElement('button');b.className='tcard';b.textContent=c.txt;b.dataset.t=c.t;
+    b.onclick=()=>{if(tg.lock||b.disabled)return;
+      if(!tg.t0){tg.t0=Date.now();tg.timer=setInterval(tShow,1000)}
+      if(b.classList.toggle('sel'))tg.sel.push(b);else tg.sel=tg.sel.filter(x=>x!==b);
+      if(tg.sel.length===3){tg.moves++;const ok=tg.sel.every(x=>x.dataset.t===tg.sel[0].dataset.t);
+        if(ok){const col='f'+tg.found;tg.sel.forEach(x=>{x.classList.remove('sel');x.classList.add(col);x.disabled=true});tg.sel=[];tg.found++;
+          $('tMsg').className='fb ok';$('tMsg').textContent='Trio found!';
+          if(tg.found===4){clearInterval(tg.timer);const s=tSecs(),nb=!tBest||s<tBest;if(nb){tBest=s;try{localStorage.setItem('trioBest',s)}catch(e){}}
+            $('tMsg').textContent=`All trios found in ${s} s and ${tg.moves} moves!`+(nb?' New best time!':` Best time: ${tBest} s.`)}}
+        else{tg.lock=true;tg.sel.forEach(x=>x.classList.add('wrong'));$('tMsg').className='fb no';$('tMsg').textContent='Those three are not equal. Try again.';
+          setTimeout(()=>{tg.sel.forEach(x=>x.classList.remove('wrong','sel'));tg.sel=[];tg.lock=false},700)}}
+      tShow();};
+    $('tGrid').appendChild(b);});
+  tShow();}
+$('tNew').onclick=newTrios;
+
+/* start in a working state */
+fromFrac();newTrios();
+cells.forEach((c,i)=>c.classList.toggle('on',i<35));updGrid();updBar();updShop();newQ();newCase();sprintRound();showSp();
+</script>
+
+<div style="height:60px"></div><a href="index.html" style="position:fixed;left:10px;bottom:10px;z-index:9999;font:800 14px Nunito,system-ui,sans-serif;background:#16233a;color:#fff;padding:8px 14px;border-radius:999px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.35);opacity:.92">← Maths Arcade</a></body></html>

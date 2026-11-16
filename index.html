@@ -335,6 +335,29 @@ body.ingame #bgfx{opacity:.4}
 .hero .qubi{width:130px}
 .hero h1 .hl{display:inline-block;animation:ltin .7s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i)*55ms)}
 .hero h1 .hl:hover{animation:ltjump .5s ease}
+
+.start{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;padding:6px 0 30px}
+.st-top{display:grid;justify-items:center;gap:6px}
+.st-top .mbox{animation:stdrop .8s cubic-bezier(.3,1.5,.5,1) both}.st-top .qubi{width:150px}
+.st-title{font:700 clamp(2.8rem,11vw,5.4rem)/1 var(--display);margin:0;letter-spacing:-.01em}.st-title>span{color:var(--tomato)}
+.st-title .hl{display:inline-block;animation:ltin .7s cubic-bezier(.3,1.6,.5,1) both,stfade .4s both;animation-delay:calc(.5s + var(--i)*70ms)}
+.st-sub{margin:6px 0 0;color:var(--muted);font-weight:700;font-size:1.1rem;animation:stfade .6s 1.5s both}
+.st-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:128px 24px;width:100%;max-width:840px;margin-top:128px;animation:stfade .7s 1.7s both}
+.st-opt{position:relative;display:grid;gap:8px;padding:34px 20px 28px;border:3.5px solid var(--ink);border-radius:26px;background:var(--surface);color:var(--ink);font:inherit;text-align:center;cursor:pointer;text-decoration:none;box-shadow:0 8px 0 var(--c);transition:transform .18s,box-shadow .18s}
+.st-opt.pri{--c:var(--teal)}.st-opt.sec{--c:var(--violet)}
+.st-opt b{font:700 clamp(1.5rem,4.5vw,2rem)/1.1 var(--display)}.st-opt small{color:var(--muted);font-weight:700;font-size:1rem}
+.st-opt .st-go{justify-self:center;margin-top:6px;background:var(--c);color:#fff;font-weight:800;border-radius:999px;padding:6px 16px}
+.st-opt:hover,.st-opt:focus-visible{transform:translateY(-6px);box-shadow:0 14px 0 var(--c);outline:none}
+.st-pop{position:absolute;left:0;right:0;bottom:100%;height:124px;overflow:hidden;display:flex;justify-content:center;align-items:flex-end;gap:6px;pointer-events:none}
+.st-pop .qubi{width:60px;transform:translateY(115%);transition:transform .38s cubic-bezier(.3,1.6,.5,1)}
+.st-pop .k2{transition-delay:.07s;width:52px}.st-pop .k3{transition-delay:.14s}.st-pop .teen{width:84px}
+.st-opt:hover .st-pop .qubi,.st-opt:focus-visible .st-pop .qubi{transform:translateY(14%)}
+@media (hover:none){.st-pop .qubi{transform:translateY(14%)}}
+.qubi .q-teen{display:none}.qubi.teen .q-teen{display:block}
+#volPanel[hidden]{display:none!important}
+@media (max-width:430px){#theme,#music,#mute,#vol{padding-inline:8px;min-width:0}#theme{margin-left:-4px}}
+@keyframes stdrop{from{transform:translateY(-60px) scale(.6);opacity:0}}@keyframes stfade{from{opacity:0}}
+@media (max-width:520px){.st-top .qubi{width:120px}}
 @keyframes ltin{from{transform:translateY(-26px) rotate(-8deg)}}
 @keyframes ltjump{40%{transform:translateY(-14px) rotate(6deg)}}
 .gcard{animation:cardin .55s cubic-bezier(.3,1.5,.5,1) both;animation-delay:calc(var(--i)*35ms)}
@@ -728,8 +751,12 @@ body.playing .gbtn{display:none}
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="app">
   <div class="topbar">
-    <a class="brand" href="#"><i>+</i>Maths Arcade</a>
-    <div class="row" style="gap:8px"><button class="btn" id="theme">🌓 Theme: auto</button><button class="btn" id="music" aria-pressed="true">♪ Music: on</button><button class="btn" id="mute" aria-pressed="true">🔊 Sound effects: on</button></div>
+    <a class="brand" href="#start" title="Back to the start screen"><i>+</i>Maths Arcade</a>
+    <div class="row" style="gap:8px"><button class="btn" id="theme">🌓 Theme: auto</button><button class="btn" id="music" aria-pressed="true" hidden style="display:none">♪ Music: on</button><button class="btn" id="mute" aria-pressed="true" hidden style="display:none">🔊 Sound effects: on</button><span style="position:relative"><button class="btn" id="vol" aria-expanded="false" aria-controls="volPanel" title="Set how loud the music and sound effects are, or turn them off">🔊<span class="tl"> Sound</span></button>
+      <div id="volPanel" hidden style="position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(280px,86vw);background:var(--surface);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:14px 16px;box-shadow:0 6px 0 var(--ink);display:grid;gap:10px;text-align:left">
+        <label style="display:grid;gap:4px;font-weight:800"><span>♪ Music <span id="vol_mv" style="float:right;font-weight:700"></span></span><input type="range" id="vol_m" min="0" max="150" step="5" style="width:100%"></label>
+        <label style="display:grid;gap:4px;font-weight:800"><span>🔊 Sound effects <span id="vol_sv" style="float:right;font-weight:700"></span></span><input type="range" id="vol_s" min="0" max="150" step="5" style="width:100%"></label>
+        <small style="color:var(--muted)">Slide to 0 to turn it off. 100% is the normal loudness.</small></div></span></div>
   </div>
   <main id="view"></main>
 </div>
@@ -751,17 +778,22 @@ function addGame(id,g){GAMES[id]=g;ORDER.push(id)}
 /* sound: generated live, no files */
 let AC=null,muted=false;try{muted=localStorage.getItem('arcMute')==='1'}catch(e){}
 const ac=()=>{if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC};
-function tone(f,t0,dur,{type='triangle',vol=.16,to=null}={}){const c=ac();if(!c||muted)return;
+/* volume chosen by the player: 1 = normal, 0 = silent, up to 1.5 */
+const VOL={m:1,s:1};try{['m','s'].forEach(k=>{const v=parseFloat(localStorage.getItem('arcVol_'+k));if(v>=0&&v<=1.5)VOL[k]=v})}catch(e){}
+let SFXBUS=null;const sfxBus=c=>{if(!SFXBUS||SFXBUS.context!==c){SFXBUS=c.createGain();SFXBUS.connect(c.destination)}SFXBUS.gain.value=VOL.s;return SFXBUS};
+function tone(f,t0,dur,{type='triangle',vol=.16,to=null}={}){const c=ac();if(!c||muted||VOL.s<=0)return;
   const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+t0;o.type=type;o.frequency.setValueAtTime(f,t);
   if(to)o.frequency.exponentialRampToValueAtTime(to,t+dur);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-  o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.05)}
+  o.connect(g).connect(sfxBus(c));o.start(t);o.stop(t+dur+.05)}
 const sfx={
   tap(){tone(700,0,.05,{type:'square',vol:.04})},
   pop(){tone(480,0,.1,{type:'sine',vol:.14,to:960})},
   soft(){tone(260,0,.18,{type:'sine',vol:.12,to:180})},
   ok(){[523,659,784,1047].forEach((f,i)=>tone(f,i*.08,.28,{vol:.17}))},
   no(){tone(200,0,.45,{type:'sawtooth',vol:.15,to:100})},
+  /* the secret-round fanfare: a rising sparkle, then a held chord */
+  secret(){[392,494,587,784,988,1175,1568].forEach((f,i)=>tone(f,i*.07,.2,{type:'square',vol:.07}));[784,988,1175,1568].forEach(f=>tone(f,.56,1.1,{type:'triangle',vol:.09}));[2093,2637,3136].forEach((f,i)=>tone(f,.62+i*.12,.25,{type:'sine',vol:.05}))},
   win(){[523,523,523,784,659,784,1047].forEach((f,i)=>tone(f,[0,.14,.28,.42,.7,.84,.98][i],i===6?1.2:.22,{type:'square',vol:.1}))}
 };
 function setMute(m){muted=m;try{localStorage.setItem('arcMute',m?'1':'0')}catch(e){}const b=$('mute');b.innerHTML=(m?'🔇':'🔊')+'<span class="tl"> Sound effects: '+(m?'off':'on')+'</span>';b.setAttribute('aria-label','Sound effects '+(m?'off':'on'));b.setAttribute('aria-pressed',String(!m));b.classList.toggle('off',m);b.title=m?'Turn on the beeps, dings and cheers':'Turn off the beeps, dings and cheers (music is separate)'}
@@ -834,7 +866,7 @@ const api={
       ${c.streak>=3&&c.mode!=='pass'?`<p class="streak">Streak ×${c.streak}</p>`:''}
       ${work.length?`<div class="work"><span class="tag">Working</span>${work.map(w=>`<div>${w}</div>`).join('')}</div>`:''}
       <div><button class="btn primary" id="gNext">${bonusNext?'🎁 Something is unlocked… open it!':last?(c.mode==='solo'?'See my stars':'See the results'):nextName?`Pass to ${esc(nextName)} →`:'Next round →'}</button></div></div>`;
-    $('gNext').onclick=()=>{sfx.tap();if(bonusNext){c.inBonus=true;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}else if(last)finish();else{c.r++;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}};
+    $('gNext').onclick=()=>{sfx.tap();if(bonusNext){c.inBonus=true;sfx.secret();if(window.MUSICREADY)playMusic(musicKey());startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}else if(last)finish();else{c.r++;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}};
     $('gf').scrollIntoView({behavior:calm?'auto':'smooth',block:'nearest'})}
 };
 /* Levels: Easy replays the first half of a game's round types, Hard the second half, Mixed runs the full warm-up-to-hard sequence. */
@@ -849,12 +881,12 @@ function renderScore(){const c=ctx;if(!c||!$('gVs'))return;
   else if(c.G.custom){$('gVs').innerHTML='';return} /* online party games draw their own scoreboard */
   else rows=onlineRows();
   $('gVs').innerHTML=`<div class="vs">${rows.map(x=>`<span class="vsp ${x.me?'me':''}"><b>${esc(x.n)}</b> ${x.s}${x.sub?`<small>${x.sub}</small>`:''}</span>`).join('')}</div>`}
-const LVNAME={easy:'Easy',mixed:'Medium',hard:'Hard'},MODENAME={solo:'Solo',bot:'vs Robot',pass:'Pass & play',online:'Online room',class:'Whole class'};
+const LVNAME={easy:'Easy',mixed:'Medium',hard:'Hard'},SECLVNAME={easy:'Core',mixed:'Stretch',hard:'Challenge'},secG=()=>{const g=GAMES[location.hash.slice(1)];return !!(g&&g.sec)},lvn=l=>(secG()?SECLVNAME:LVNAME)[l],homeHref=()=>secG()?'#secondary':'#',MODENAME={solo:'Solo',bot:'vs Robot',pass:'Pass & play',online:'Online room',class:'Whole class'};
 function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id);document.body.classList.remove('playing');const G=GAMES[id];
   ctx={id,G,r:0,score:0,botScore:0,streak:0,timers:[],answered:false,dead:false,level:opts.level||getLvl(id),mode:MODE,seedBase:opts.seedBase,go:!!opts.go};
   const s=STRANDS[G.strand];
   $('view').innerHTML=`<div style="display:grid;gap:14px;--c:${s.c}">
-    <div class="gbar"><a class="back" href="#">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
+    <div class="gbar"><a class="back" href="${homeHref()}">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
     <div class="gtop"><div class="ghead"><span class="tag">${G.level} · ${G.topic}</span><h2>${G.title}</h2></div>${qubiBox('gQ',pick(['Let’s go!','You can do this!','I believe in you!']))}</div>
     <div id="gSet" class="row"></div><div id="gVs"></div>
     <div class="stagewrap"><button class="stagemenu" id="gMenu" hidden title="Leave this round and go back to this game's start screen">↩ Back to game menu</button><section class="stage" id="gStage"><div id="gq"></div><div id="gb" style="display:grid;gap:14px;min-width:0"></div><div id="gf"></div></section></div></div>`;
@@ -862,7 +894,7 @@ function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id
   $('gMenu').onclick=()=>{sfx.tap();playGame(id)};if($('gLb'))$('gLb').onclick=()=>{sfx.tap();lbPopup(id)};
   if(G.ownStart){$('gSet').hidden=true;G.custom($('gStage'),'solo');return}
   if(!opts.go&&!opts.setup)return startWizard(id);
-  $('gSet').innerHTML=`<span class="setchip">${MODENAME[MODE]||''}${G.custom||(MODE==='online'&&!opts.go)?'':' · '+LVNAME[ctx.level]}</span><button class="btn" id="gChange">Change settings</button>`;
+  $('gSet').innerHTML=`<span class="setchip">${MODENAME[MODE]||''}${G.custom||(MODE==='online'&&!opts.go)?'':' · '+lvn(ctx.level)}</span><button class="btn" id="gChange">Change settings</button>`;
   $('gChange').onclick=()=>{sfx.tap();playGame(id)};
   if(G.custom){$('gStage').innerHTML='';G.custom($('gStage'),MODE);return}
   if(MODE==='pass'&&!opts.go)return passSetup(id);
@@ -884,7 +916,7 @@ function startWizard(id){const G=GAMES[id],modes=G.custom?G.modes.map(m=>m[0]):[
   const draw=()=>{let body='',title='';
     if(st.step===1){title='How do you want to play?';body=tile('solo','🎯','Solo','Play on your own and beat your best.',st.mode==='solo')+tile('multi','👥','Multiplayer',G.custom?'Race a friend or Robo.':'Play against Robo or with friends.',st.mode!=='solo')}
     else if(st.step===2){title='Who are you playing with?';body=multi.map(m=>m==='bot'?tile('bot','🤖','vs Robot','Race Robo, the computer player.',st.mode==='bot'):m==='pass'?tile('pass','📱',G.custom?'2 players':'Pass & play',G.custom?'Two players take turns on this device.':'2 to 4 players take turns on this device.',st.mode==='pass'):m==='online'?tile('online','🌐','Online room','Friends join with a room code on their own devices.',st.mode==='online'):(e=>tile(m,e[3]||'👥',e[1],e[2]||'',st.mode===m))(G.modes.find(x=>x[0]===m))).join('')}
-    else{title='Choose your level';body=tile('easy','🌱','Easy','Easier question types to warm up.',st.level==='easy')+tile('mixed','⚡','Medium','Starts easy and gets harder each round.',st.level==='mixed')+tile('hard','🔥','Hard','Only the toughest question types.',st.level==='hard')}
+    else{title='Choose your level';body=secG()?tile('easy','🌱','Core','The key skills, with friendly numbers.',st.level==='easy')+tile('mixed','⚡','Stretch','The same skills with tougher numbers.',st.level==='mixed')+tile('hard','🔥','Challenge','The hardest numbers and exam-style twists.',st.level==='hard'):tile('easy','🌱','Easy','Easier question types to warm up.',st.level==='easy')+tile('mixed','⚡','Medium','Starts easy and gets harder each round.',st.level==='mixed')+tile('hard','🔥','Hard','Only the toughest question types.',st.level==='hard')}
     const n=st.step===1?1:st.step===2?2:(st.mode==='solo'?2:3),of=st.mode==='solo'?(G.custom?1:2):steps;
     $('gStage').innerHTML=`<div class="wiz"><div class="row" style="justify-content:space-between"><span class="tag">Game start · step ${n}</span>${st.step>1?'<button class="btn" id="wBack">← Back</button>':''}</div>
       <h3>${title}</h3><div class="wtiles">${body}</div></div>`;
@@ -903,17 +935,17 @@ function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
   $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
-  const rr=c.mode==='pass'?effR(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds),c.G.rounds,c.level):effR(c.r,c.G.rounds,c.level);
+  const eff=(r)=>c.G.sec?r:effR(r,c.G.rounds,c.level),rr=c.mode==='pass'?eff(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds)):eff(c.r);
   const real=Math.random;Math.random=mulberry(c.seed);try{if(c.inBonus)c.G.bonus(api);else c.G.round(api,rr)}finally{Math.random=real}
   if(c.mode==='pass')$('gq').insertAdjacentHTML('afterbegin',`<p class="turn">${esc(c.players[c.r%c.players.length].name)}, it's your turn!</p>`);
   if(retry)$('gq').insertAdjacentHTML('afterbegin','<p class="retry" role="status">Not quite. Look carefully and have one more try!</p>');
   renderScore();document.body.classList.add('playing');if(!retry)fitView()}
 function fitView(){requestAnimationFrame(()=>{const st=$('gStage');if(!st)return;const r=st.getBoundingClientRect();if(r.bottom>innerHeight||r.top<0)window.scrollTo({top:Math.max(0,r.top+scrollY-(innerWidth<600?44:24)),behavior:calm?'auto':'smooth'})})}
-function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ','party','Game over! Great playing!',true);
+function finish(){document.body.classList.remove('playing');const c=ctx;if(c.inBonus&&window.MUSICREADY)playMusic(musicKey());qubi('gQ','party','Game over! Great playing!',true);
   if(c.mode==='solo'){const max=c.G.rounds*10,p=c.score/max,st=p>=.9?3:p>=.6?2:p>=.3?1:0;setBest(c.id,st);if(st>=2){sfx.win();confetti(180,true)}setTimeout(()=>arcReport(c.id,c.score,{stars:st,mode:'solo'}),60);
     $('gStage').innerHTML=`<div class="end"><span class="tag">Game complete</span><div class="stars" aria-label="${st} out of 3 stars">${starStr(st)}</div>
       <h3>You scored ${c.score} out of ${max}</h3>${c.inBonus?`<p style="margin:0;font-weight:800">🎁 ${c.bonusOk?'You found the secret bonus round and solved it. Legend!':'You found the secret bonus round! Read the working and try to unlock it again.'}</p>`:''}${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
-      <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
+      <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="${homeHref()}" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
     $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id);return}
   if(c.mode==='online'){c.finished=true;try{localStorage.removeItem(OLRES)}catch(e){}onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
   let title,rows;
@@ -921,7 +953,7 @@ function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ
   else{rows=c.players.map(p=>[p.name,p.score]).sort((a,b)=>b[1]-a[1]);const top=rows.filter(r=>r[1]===rows[0][1]);title=top.length>1?'It’s a tie between '+top.map(t=>esc(t[0])).join(' and ')+'!':esc(rows[0][0])+' wins!'}
   if(c.mode==='pass'||c.score>=c.botScore){sfx.win();confetti(180,true)}if(c.mode==='bot')setTimeout(()=>arcReport(c.id,c.score,{mode:'bot'}),60);
   $('gStage').innerHTML=`<div class="end"><span class="tag">Final scores</span><h3>${title}</h3><ol class="board">${rows.map(r=>`<li><b>${esc(r[0])}</b><span>${r[1]}</span></li>`).join('')}</ol>${c.mode==='pass'&&c.log?`<div class="glogs">${c.players.map((p,i)=>c.log[i]?`<div class="glog"><b>${esc(p.name)}</b><ul>${c.log[i].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:'').join('')}</div>`:''}
-    <div class="row"><button class="btn primary" id="again">Rematch</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
+    <div class="row"><button class="btn primary" id="again">Rematch</button><button class="btn" id="again2">Change settings</button><a class="btn" href="${homeHref()}" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
   $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id)}
 function passSetup(id){const names=PASS||['Player 1','Player 2'];
   $('gStage').innerHTML=`<div class="end"><span class="tag">Pass & play</span><h3>Who is playing?</h3><p style="margin:0;color:var(--muted)">Take turns on this device. Each player gets the same kinds of questions with different numbers.</p>
@@ -1054,7 +1086,7 @@ function onlineEnd(){const list=onlineRows(),all=ONLINE.timeUp||list.every(x=>x.
   if(!$('olEnd')){$('gStage').innerHTML=`<div class="end" id="olEnd"></div>`;sfx.win();confetti(120,true)}
   $('olEnd').innerHTML=`<span class="tag">${all?'Final leaderboard':'Waiting for others to finish…'}</span><h3>${all&&list[0]?esc(list[0].n.replace(/^★ /,'').replace(' (you)',''))+' wins!':ONLINE.timeUp?'Time\'s up!':'You finished!'}</h3>${all?'':'<p id="olWait" class="olwait"></p>'}
     <ol class="board">${list.map(x=>`<li class="${x.me?'me':''}${x.left?' olleft':''}"><b>${esc(x.n)}</b><span>${x.s}${x.done?'':x.sub}</span></li>`).join('')}</ol>
-    <div class="row">${ONLINE.host?'<button class="btn primary" id="olAgain">Rematch for everyone</button>':'<span style="color:var(--muted)">The host can start a rematch.</span>'}<a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div>`;
+    <div class="row">${ONLINE.host?'<button class="btn primary" id="olAgain">Rematch for everyone</button>':'<span style="color:var(--muted)">The host can start a rematch.</span>'}<a class="btn" href="${homeHref()}" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div>`;
   if($('olAgain'))$('olAgain').onclick=()=>{ctx.finished=false;olHostStart()};
   olEndExtras()}
 /* ---------- tap-to-zoom for graphs and figures ---------- */
@@ -2515,7 +2547,7 @@ function askBox(api,o){
   /* a step already solved before this round's second try stays solved */
   const KB=ctx&&ctx.keep,kk='ab:'+id;if(KB&&KB[kk]){const sv=KB[kk];ins.forEach(i=>{i.value=sv.raw[i.dataset.k]||'';i.disabled=true;i.classList.add('ok')});go.disabled=true;Promise.resolve().then(()=>{if(!api.answered)o.onRight(sv.v,sv.used)});return {focus(){}}}
   const keepIt=(v,u)=>{if(KB)KB[kk]={v,used:u,raw:Object.fromEntries(ins.map(i=>[i.dataset.k,i.value]))}};
-  const vals=()=>{const v={};ins.forEach(i=>{const s=i.value.trim().replace(/[$,\s]/g,'');v[i.dataset.k]=s===''?NaN:+s;v['_'+i.dataset.k]=i.value.trim()});return v};
+  const vals=()=>{const v={};ins.forEach(i=>{const s=i.value.trim().replace(/[$,\s]/g,'').replace(/[−–]/g,'-');v[i.dataset.k]=s===''?NaN:+s;v['_'+i.dataset.k]=i.value.trim()});return v};
   const chk=()=>{if(api.answered||go.disabled)return;const v=vals();
     if(o.zero){if(o.zero.every(k=>v['_'+k]==='')){const f=ins.find(i=>o.zero.includes(i.dataset.k));if(f)f.focus();$(id+'M').innerHTML='<p class="askneed">Type your answer first. You can leave a box empty if it is 0.</p>';return}o.zero.forEach(k=>{if(v['_'+k]===''){v[k]=0;v['_'+k]='0'}})}
     const need=o.need||ins.map(i=>i.dataset.k);if(need.some(k=>v['_'+k]==='')){const f=ins.find(i=>need.includes(i.dataset.k)&&v['_'+i.dataset.k]==='');if(f)f.focus();$(id+'M').innerHTML=`<p class="askneed">Fill in ${need.length>1?'every box':'the box'} first.</p>`;return}
@@ -3194,6 +3226,176 @@ addGame('world-journeys',{level:'P6',strand:'geo',glyph:'🌏',title:'Beat the C
   api.body.innerHTML=board([['Leaves Singapore (Singapore time)',ttm(a)],['Flight',tdur(f)],['Lands (Singapore time)','??  ??'],[`Lands (${Z[0]} time)`,'??  ??']],'Flight board','✈️');
   askTime(api,'wjZ',loc,[[a+f,`${ttm(a+f)} is the time in <b>Singapore</b> when the plane lands. ${Z[0]}'s clocks are ${z} h ${dir} Singapore's, so ${Z[2]>0?'add':'take away'} ${z} h.`],[a+f-Z[2]*60,`Check the direction: ${Z[0]} is ${z} h <b>${dir}</b> Singapore, so ${Z[2]>0?'add':'take away'} ${z} h.`]],
     `It is ${ttm(loc)} in ${Z[0]}.`,[`Landing time in Singapore time: ${ttm(a)} + ${tdur(f)} = ${ttm(a+f)}`,`${Z[0]} is ${z} h ${dir} Singapore: ${ttm(a+f)} ${Z[2]>0?'+':'−'} ${z} h = <b>${ttm(loc)}</b>`])}});
+/* ================= SECONDARY 1 · NUMBER GAMES =================
+   One game per topic. Every level plays all 8 question types; the level changes how hard the numbers are:
+   Core (easy) → Stretch (mixed) → Challenge (hard). */
+const TIER=()=>({easy:0,mixed:1,hard:2}[ctx.level]??1);
+const mns=n=>n<0?'−'+String(Math.abs(n)):String(n),br=n=>n<0?`(${mns(n)})`:String(n);
+const isPrime=n=>{if(n<2)return false;for(let i=2;i*i<=n;i++)if(n%i===0)return false;return true};
+const PF=n=>{const f={};for(let p=2;n>1;p++)while(n%p===0){f[p]=(f[p]||0)+1;n/=p}return f};
+const sup=e=>e===1?'':`<sup>${e}</sup>`,pfs=f=>Object.keys(f).sort((a,b)=>a-b).map(p=>`${p}${sup(f[p])}`).join(' × ');
+const fromF=f=>Object.entries(f).reduce((a,[p,e])=>a*Math.pow(+p,e),1),lcm2=(a,b)=>a/gcdN(a,b)*b;
+const divSteps=n=>{const s=[String(n)];for(let p=2;n>1;p++)while(n%p===0){n/=p;s.push(`÷ ${p} = ${n}`)}return s.join(' ')};
+/* multiple choice with a reason for every wrong option. opts: [{t, ok, why}] */
+function secChoice(api,id,opts,work,okMsg){const seen=new Set();opts=opts.filter(o=>!seen.has(o.t)&&seen.add(o.t));
+  api.body.insertAdjacentHTML('beforeend',`<div class="choices" id="${id}" style="grid-template-columns:${opts.some(o=>o.t.replace(/<[^>]+>/g,'').length>16)?'1fr':'repeat(2,minmax(0,1fr))'}"></div>`);
+  shuffle(opts).forEach(o=>{const b=document.createElement('button');b.className='btn';b.style.fontSize='1.1rem';b.innerHTML=o.t;
+    b.onclick=()=>{if(api.answered)return;[...$(id).children].forEach(x=>x.disabled=true);b.classList.add(o.ok?'ok':'no');api.done(!!o.ok,o.ok?okMsg:(o.why||'Not quite.'),work)};$(id).appendChild(b)})}
+/* a number answer that may be negative: text keyboard plus a ± button for phones */
+function askInt(api,o){const t=o.traps||[];
+  const r=askBox(api,{id:o.id,html:(o.pre||'')+inBox(o.id,'x','Answer',o.w||5,'text')+`<button class="btn" type="button" id="${o.id}Pm" title="Switch between + and −" aria-label="Switch sign">±</button>`+(o.unit?`<span class="askunit">${o.unit}</span>`:''),
+    judge:v=>{if(near(v.x,o.right))return true;const m=t.find(([x])=>near(v.x,x));return m?m[1]:false},
+    onRight:(v,u)=>api.done(true,o.ok,o.work||[],ptsUsed(u)),onWrong:msg=>api.done(false,(msg?msg+' ':'')+(o.bad||''),o.work||[])});
+  const i=api.body.querySelector(`[data-ask="${o.id}"]`),pm=$(o.id+'Pm');if(pm&&i)pm.onclick=()=>{const s=i.value.trim();i.value=/^[-−]/.test(s)?s.slice(1):'−'+s;i.focus()};return r}
+/* number line with an optional hop from a to b */
+function nLine(lo,hi,a,b){const nar=innerWidth<600,W=nar?400:660,H=110,x0=26,x1=W-26,y=64,sx=v=>x0+(v-lo)/(hi-lo)*(x1-x0),span=hi-lo,step=nar?(span>40?10:span>16?5:span>8?2:1):(span>24?5:span>12?2:1);let s=`<rect width="${W}" height="${H}" fill="#eef6ff"/><line x1="${x0-14}" y1="${y}" x2="${x1+14}" y2="${y}" stroke="#2c3446" stroke-width="3"/>`;
+  for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step)s+=`<line x1="${sx(v)}" y1="${y-6}" x2="${sx(v)}" y2="${y+6}" stroke="#2c3446" stroke-width="${v===0?3:1.5}"/><text x="${sx(v)}" y="${y+26}" text-anchor="middle" font-size="14" font-weight="${v===0?900:700}" fill="${v<0?'#c2410c':'#16233a'}">${mns(v)}</text>`;
+  if(a!=null){s+=`<circle cx="${sx(a)}" cy="${y}" r="7" fill="#5f50ec" stroke="#16233a" stroke-width="2"/><text x="${sx(a)}" y="${y-14}" text-anchor="middle" font-size="13" font-weight="800" fill="#5f50ec">start</text>`;
+    if(b!=null&&b!==a){const m=(sx(a)+sx(b))/2;s+=`<path d="M${sx(a)} ${y-8} Q${m} ${y-52} ${sx(b)} ${y-8}" fill="none" stroke="#ef5240" stroke-width="3" stroke-dasharray="6 5"/><text x="${m}" y="${y-36}" text-anchor="middle" font-size="14" font-weight="800" fill="#ef5240">${b>a?'→ right':'← left'}</text><text x="${sx(b)}" y="${y-14}" text-anchor="middle" font-size="16" font-weight="900" fill="#c2410c">?</text>`}}
+  return `<div class="jmwrap" style="max-width:720px;border:3px solid #2c3446;border-radius:14px;overflow:hidden"><svg class="tmap-nozoom" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" aria-hidden="true">${s}</svg></div>`}
+
+/* ---------- Sec 1 · Prime Factory: primes, prime factorisation, HCF and LCM, roots ---------- */
+function pfGen(T){const lim=[[20,150],[100,600],[400,3000]][T],P=T===2?[2,3,5,7,11]:[2,3,5,7];for(let k=0;k<500;k++){const f={};shuffle(P).slice(0,R(2,3)).forEach(p=>f[p]=R(1,p===2?(T?4:3):p===3?(T?3:2):1+(T===2&&p===5?1:0)));const n=fromF(f);if(n>=lim[0]&&n<=lim[1]&&Object.values(f).some(e=>e>1))return f}return {2:2,3:1,5:1}}
+function hlGen(T,three){for(let k=0;k<500;k++){const g=T===0?pick([2,3,4,5,6,8,10,12]):T===1?pick([6,8,9,10,12,14,15,18]):pick([12,15,18,20,24,28,30,36]),xs=shuffle([1,2,3,4,5,7,9]).slice(0,three?3:2);
+  if(xs.includes(1)&&T)continue;let ok=true;for(let i=0;i<xs.length;i++)for(let j=i+1;j<xs.length;j++)if(gcdN(xs[i],xs[j])>1)ok=false;if(!ok)continue;const ns=xs.map(x=>g*x).sort((a,b)=>a-b),l=ns.reduce(lcm2);if(ns[ns.length-1]>[72,180,300][T]||l>[200,900,2400][T]||l===ns[ns.length-1])continue;return{ns,g,l}}return{ns:[12,18],g:6,l:36}}
+addGame('s1-primes',{level:'Sec 1',sec:'s1',strand:'num',glyph:'2·3',title:'Prime Factory',topic:'Primes, prime factorisation, HCF and LCM',
+ how:'Break numbers into prime factors, then use them to find the HCF, the LCM, square roots and cube roots.',rounds:8,
+ round(api,r){const T=TIER(),type=['prime','missing','form','hcf','lcm','word','root','square'][r];
+  if(type==='prime'){const rg=[[10,40],[40,80],[80,130]][T],ps=[],cs=[];for(let n=rg[0];n<=rg[1];n++){if(isPrime(n))ps.push(n);else if(n%2&&n%5)cs.push(n)}
+    const p=pick(ps),c=shuffle(cs).slice(0,3);api.q(`<p class="qt">Which of these is a <b>prime number</b>?</p><p class="qs">A prime number has exactly two factors: 1 and itself.</p>`);
+    secChoice(api,'pfP',[{t:String(p),ok:1},...c.map(n=>{const d=Object.keys(PF(n))[0];return{t:String(n),why:`${n} = ${d} × ${n/d}, so it has more than two factors. It is not prime.`}})],[`${p} cannot be divided exactly by 2, 3, 5 or 7${p>121?' or 11':''}, so it is prime.`,...c.map(n=>{const d=Object.keys(PF(n))[0];return `${n} = ${d} × ${n/d}`})],`${p} is prime.`);return}
+  if(type==='missing'){const f=pfGen(T),N=fromF(f),ks=Object.keys(f).sort((a,b)=>a-b),big=ks[ks.length-1],useIdx=T>0&&f[2]>1;
+    const shown=ks.map(p=>useIdx&&p==='2'?'2<sup>▢</sup>':!useIdx&&p===big?'▢'+sup(f[p]):`${p}${sup(f[p])}`).join(' × '),ans=useIdx?f[2]:+big;
+    api.q(`<p class="qt">Complete the prime factorisation: <b>${fmt(N)} = ${shown}</b>. What number goes in the box?</p>`);
+    askOne(api,{id:'pfM',w:4,right:ans,traps:useIdx?[[f[2]+1,`2<sup>${f[2]+1}</sup> is too many 2s. Keep dividing ${fmt(N)} by 2 and count how many times it works.`],[2,'The box is the <b>index</b>: how many 2s are multiplied together.']].filter(([x])=>x!==ans):[[N,'Divide by the prime factors you already know. What is left?']],
+      hint:`Divide ${fmt(N)} by the prime factors you can see. Keep going until you reach 1.`,ok:`${fmt(N)} = ${pfs(f)}.`,bad:`${fmt(N)} = ${pfs(f)}.`,work:[divSteps(N),`So ${fmt(N)} = ${pfs(f)}`]});return}
+  if(type==='form'){const f=pfGen(T),N=fromF(f),ks=Object.keys(f).sort((a,b)=>a-b),opts=[{t:pfs(f),ok:1}];
+    if(f[2]>=2){const g={...f};g[2]-=2;if(!g[2])delete g[2];opts.push({t:`4 × ${pfs(g)}`.replace(/ × $/,''),why:'That multiplies to the right number, but 4 is not prime (4 = 2 × 2). Every factor must be prime.'})}
+    else{const g={...f},a=ks[0],b=ks[1];[a,b].forEach(p=>{g[p]--;if(!g[p])delete g[p]});opts.push({t:`${a*b}${Object.keys(g).length?' × '+pfs(g):''}`,why:`That multiplies to the right number, but ${a*b} is not prime (${a*b} = ${a} × ${b}). Every factor must be prime.`})}
+    const h={...f};h[ks[0]]++;opts.push({t:pfs(h),why:`That multiplies to ${fmt(fromF(h))}, not ${fmt(N)}. Check the index of ${ks[0]}.`});
+    const e={};ks.forEach(p=>e[p]=1);opts.push(fromF(e)!==N?{t:pfs(e),why:`That multiplies to ${fmt(fromF(e))}, not ${fmt(N)}. Some primes are used more than once.`}:{t:`1 × ${pfs(f)}`,why:'1 is not a prime number, so it does not belong in a prime factorisation.'});
+    api.q(`<p class="qt">Which is the <b>prime factorisation</b> of <b>${fmt(N)}</b>?</p>`);secChoice(api,'pfF',opts,[divSteps(N),`So ${fmt(N)} = ${pfs(f)}`],`${fmt(N)} = ${pfs(f)}.`);return}
+  if(type==='hcf'||type==='lcm'){const{ns,g,l}=hlGen(T,T===2&&Math.random()<.5),isH=type==='hcf',ans=isH?g:l,list=ns.map(fmt).join(', ').replace(/, ([^,]*)$/,' and $1');
+    api.q(`<p class="qt">Find the <b>${isH?'highest common factor (HCF)':'lowest common multiple (LCM)'}</b> of <b>${list}</b>.</p>`);
+    api.body.innerHTML=board(ns.map(n=>[fmt(n),pfs(PF(n))]),'Prime factorisations','🏭');
+    askOne(api,{id:'pfH',w:6,right:ans,traps:[[isH?l:g,isH?`${fmt(l)} is the <b>LCM</b> (a multiple of them all). The HCF is the biggest number that <b>divides</b> them all.`:`${fmt(g)} is the <b>HCF</b> (it divides them all). The LCM is the smallest number that they <b>all divide into</b>.`],...(!isH&&ns.length===2&&ns[0]*ns[1]!==l?[[ns[0]*ns[1],`${fmt(ns[0])} × ${fmt(ns[1])} is a common multiple, but not the <b>lowest</b> one.`]]:[])],
+      hint:isH?'For the HCF, take each prime that appears in <b>every</b> number, with its <b>lowest</b> index.':'For the LCM, take <b>every</b> prime that appears, with its <b>highest</b> index.',ok:`The ${isH?'HCF':'LCM'} is ${fmt(ans)}.`,bad:`The ${isH?'HCF':'LCM'} is ${fmt(ans)}.`,
+      work:[...ns.map(n=>`${fmt(n)} = ${pfs(PF(n))}`),isH?`HCF: common primes, lowest index → ${pfs(PF(g))} = <b>${fmt(g)}</b>`:`LCM: every prime, highest index → ${pfs(PF(l))} = <b>${fmt(l)}</b>`]});return}
+  if(type==='word'){const isH=Math.random()<.5;let H=hlGen(Math.max(1,T),T===2&&isH);if(!isH){const LP=[];[4,6,8,9,10,12,15,18,20,24,30].forEach((x,i,A)=>A.slice(i+1).forEach(y=>{const l=lcm2(x,y);if(l<=180&&l!==y&&gcdN(x,y)>1&&(T>0||l<=60))LP.push({ns:[x,y],g:gcdN(x,y),l})}));H=pick(LP)}
+    const{ns,g,l}=H,[a,b]=ns,ans=isH?g:l,[kid]=pick(SGKIDS);
+    const Q=isH?pick([[`${kid} has ${ns.map(n=>`a ribbon ${n} cm long`).join(ns.length>2?', ':' and ')}. ${kid} cuts them all into pieces of the <b>same length</b>, with nothing left over. What is the <b>longest</b> each piece can be?`,'cm'],
+        ...(ns.length===2?[[`A rectangular floor is ${a} cm by ${b} cm. It is covered with identical <b>square</b> tiles, with no cutting. What is the side of the <b>largest</b> tile that fits?`,'cm']]:[])]):
+      pick([[`Bus ${R(10,99)} leaves the interchange every <b>${a} min</b> and bus ${R(100,199)} every <b>${b} min</b>. They leave together at 06 00. After how many minutes do they <b>next</b> leave together?`,'min'],[`One light flashes every <b>${a} s</b> and another every <b>${b} s</b>. They flash together now. After how many seconds do they <b>next</b> flash together?`,'s']]);
+    api.q(`<p class="qt">${Q[0]}</p>`);
+    askOne(api,{id:'pfW',unit:Q[1],w:6,right:ans,traps:[[isH?l:g,isH?`${fmt(l)} is the LCM. Each piece must <b>divide</b> every length exactly, so you need the <b>HCF</b>.`:`${fmt(g)} is the HCF. The time must be a <b>multiple</b> of both, so you need the <b>LCM</b>.`]],
+      hint:isH?'Splitting into equal parts with nothing left over: is that a factor or a multiple?':'Things that repeat and meet again: is that a factor or a multiple?',ok:`${isH?'HCF':'LCM'} = ${fmt(ans)} ${Q[1]}.`,bad:`The answer is ${fmt(ans)} ${Q[1]}.`,
+      work:[isH?'Equal parts with nothing left over → the answer must divide every number → <b>HCF</b>':'Events that repeat and meet again → the answer is a multiple of both → <b>LCM</b>',...ns.slice(0,isH?3:2).map(n=>`${n} = ${pfs(PF(n))}`),`${isH?'HCF':'LCM'} = ${pfs(PF(ans))} = <b>${fmt(ans)}</b>`]});return}
+  if(type==='root'){const cube=T===2,m=cube?pick([6,10,12,15,14,18,20,21]):T===1?pick([30,42,36,45,60,70,84,90]):pick([6,10,12,14,15,18,20,21]),N=cube?m*m*m:m*m,f=PF(N);
+    api.q(`<p class="qt"><b>${fmt(N)} = ${pfs(f)}</b>. Use the prime factorisation to find <b>${cube?'∛':'√'}${fmt(N)}</b>.</p>`);
+    askOne(api,{id:'pfR',w:5,right:m,traps:[[N/(cube?3:2),`Don't divide the <b>number</b> by ${cube?3:2}. Divide each <b>index</b> by ${cube?3:2}.`]],hint:`Divide each index by ${cube?3:2}.`,ok:`${cube?'∛':'√'}${fmt(N)} = ${m}.`,bad:`${cube?'∛':'√'}${fmt(N)} = ${m}.`,
+      work:[`${fmt(N)} = ${pfs(f)}`,`Divide each index by ${cube?3:2}: ${pfs(PF(m))}`,`= <b>${m}</b>`]});return}
+  /* smallest k to make a perfect square (Challenge: perfect cube) */
+  const cube=T===2;let f={2:3,3:1},k=cube?9:6;for(let q=0;q<300;q++){const f2=pfGen(Math.max(T,1)),o=Object.keys(f2).filter(p=>f2[p]%(cube?3:2));if(!o.length||(T===0&&o.length!==1))continue;const k2=o.reduce((a,p)=>a*Math.pow(+p,cube?3-f2[p]%3:1),1);if(k2<=60){f=f2;k=k2;break}}
+  const N=fromF(f),g={...f};Object.entries(PF(k)).forEach(([p,e])=>g[p]=(g[p]||0)+e);
+  api.q(`<p class="qt"><b>${fmt(N)} = ${pfs(f)}</b>. Find the <b>smallest</b> whole number <b>k</b> so that ${fmt(N)} × k is a <b>perfect ${cube?'cube':'square'}</b>.</p>`);
+  askOne(api,{id:'pfK',pre:'<span class="askunit">k =</span>',w:5,right:k,traps:[[N,`${fmt(N)} × ${fmt(N)} is a perfect square, but k = ${fmt(N)} is not the <b>smallest</b>.`]].filter(([x])=>x!==k),
+    hint:`In a perfect ${cube?'cube, every index is a multiple of 3':'square, every index is even'}. Which primes need more?`,ok:`k = ${k}.`,bad:`k = ${k}.`,
+    work:[`A perfect ${cube?'cube has indices that are multiples of 3':'square has even indices'}.`,`${pfs(f)} needs ${pfs(PF(k))} more.`,`k = ${pfs(PF(k))} = <b>${k}</b>, giving ${pfs(g)}`]})}});
+
+/* ---------- Sec 1 · Below Zero: negative numbers and the four operations ---------- */
+addGame('s1-integers',{level:'Sec 1',sec:'s1',strand:'num',glyph:'−5',title:'Below Zero',topic:'Negative numbers: ordering and the four operations',
+ how:'Order negative numbers, then add, subtract, multiply and divide them. Use the number line to see what is happening.',rounds:8,
+ round(api,r){const T=TIER(),M=[9,15,30][T],type=['order','temp','add','sub','muldiv','ops','story','missing'][r],pos=()=>R(2,M),sg=n=>n<0?'negative':'positive';
+  if(type==='order'){let v;do{v=shuffle([-R(1,M),-R(1,M),R(0,M),R(-M,M)].map(x=>T===2&&Math.random()<.4?x+.5:x))}while(new Set(v).size<4||new Set(v.map(Math.abs)).size<4);
+    const asc=[...v].sort((a,b)=>a-b),show=a=>a.map(mns).join(', '),abs=[...v].sort((a,b)=>Math.abs(a)-Math.abs(b)),neg=asc.filter(x=>x<0).reverse().concat(asc.filter(x=>x>=0));
+    api.q(`<p class="qt">Which list is in order from <b>smallest to largest</b>?</p>`);api.body.innerHTML=nLine(-M-1,M+1);
+    secChoice(api,'bzO',[{t:show(asc),ok:1},{t:show(abs),why:'You ordered them as if the signs were not there. On the number line, the number furthest <b>left</b> is the smallest.'},{t:show([...asc].reverse()),why:'That is largest to smallest.'},{t:show(neg),why:`Look at the negatives: ${mns(asc[0])} is further left than ${mns(asc[1])}, so ${mns(asc[0])} is smaller.`}],
+      ['On the number line, numbers get bigger from left to right.',`Smallest to largest: <b>${show(asc)}</b>`],'Correct order.');return}
+  if(type==='temp'){const C=shuffle(['Harbin','Sapporo','Seoul','Helsinki','Moscow','Oslo','Ulaanbaatar','Montreal']),h=T===2?.5:0,t1=-R(2,M)-h*R(0,1),t2=T===0?R(1,9):pick([R(1,9),-R(1,Math.max(1,Math.floor(-t1)-1))])+(T===2?h*R(0,1):0),d=t2-t1;
+    api.q(`<p class="qt">One winter night it is <b>${mns(t1)}°C</b> in ${C[0]} and <b>${mns(t2)}°C</b> in ${C[1]}. How many degrees <b>warmer</b> is ${C[1]} than ${C[0]}?</p>`);api.body.innerHTML=nLine(-M-2,10,t1,t2);
+    askOne(api,{id:'bzT',unit:'°C',w:5,right:d,traps:[[Math.abs(Math.abs(t2)-Math.abs(t1)),t2>0?`The two temperatures are on opposite sides of 0. Count from ${mns(t1)} up to 0, then on to ${t2}.`:'Count the steps between them on the number line.'],[Math.abs(t1)+Math.abs(t2),'Both are below zero, so do not add them. Count the steps from one to the other.']].filter(([x])=>!near(x,d)),
+      hint:'Count the steps from the colder temperature to the warmer one.',ok:`${C[1]} is ${d}°C warmer.`,bad:`The difference is ${d}°C.`,work:[`Difference = warmer − colder = ${mns(t2)} − (${mns(t1)})`,`= ${mns(t2)} + ${-t1} = <b>${d}°C</b>`]});return}
+  if(type==='add'){const a=pos(),b=pos(),[x,y]=pick([[-a,b],[a,-b],[-a,-b]]),ans=x+y;
+    api.q(`<p class="qt">Work out <b>${br(x)} + ${br(y)}</b>.</p>`);api.body.innerHTML=nLine(Math.min(x,ans,0)-2,Math.max(x,ans,0)+2,x,T?null:ans);
+    askInt(api,{id:'bzA',right:ans,traps:[[-ans,x<0&&y<0?'Both numbers are negative, so the answer is negative too.':`The signs are different. Find the difference between ${a} and ${b}, then take the sign of the one further from 0.`],[x<0&&y<0?Math.abs(a-b):a+b,x<0&&y<0?'Adding two negatives moves further left: add the sizes and keep the minus sign.':'The signs are different, so the sizes do not add. Start at the first number and move.'],[-(a+b),'The signs are different, so the sizes do not add.']].filter(([v])=>!near(v,ans)),
+      hint:`Start at ${mns(x)} on the number line. Adding a ${sg(y)} number moves ${y<0?'left':'right'}.`,ok:`${br(x)} + ${br(y)} = ${mns(ans)}.`,bad:`${br(x)} + ${br(y)} = ${mns(ans)}.`,work:[`Start at ${mns(x)}. Adding ${mns(y)} moves ${Math.abs(y)} to the ${y<0?'left':'right'}.`,`${br(x)} + ${br(y)} = <b>${mns(ans)}</b>`]});return}
+  if(type==='sub'){const a=pos(),b=pos()+(T?0:0),[x,y]=pick(T===0?[[a,a+b],[-a,b]]:[[a,-b],[-a,b],[-a,-b],[a,a+b]]),ans=x-y;
+    api.q(`<p class="qt">Work out <b>${br(x)} − ${br(y)}</b>.</p>`);api.body.innerHTML=nLine(Math.min(x,ans,0)-2,Math.max(x,ans,0)+2,x,T?null:ans);
+    askInt(api,{id:'bzS',right:ans,traps:[[x+y,y<0?`Subtracting a negative is the same as <b>adding</b>: ${br(x)} − ${br(y)} = ${mns(x)} + ${-y}.`:`Subtracting ${y} moves ${y} to the <b>left</b> from ${mns(x)}.`],[-ans,'Check the sign. Use the number line: where do you start, and which way do you move?'],[Math.abs(x)-Math.abs(y),'Watch the signs: start at the first number, then decide which way to move.']].filter(([v])=>!near(v,ans)),
+      hint:y<0?'Subtracting a negative number is the same as adding its positive.':`Start at ${mns(x)} and move ${y} to the left.`,ok:`${br(x)} − ${br(y)} = ${mns(ans)}.`,bad:`${br(x)} − ${br(y)} = ${mns(ans)}.`,
+      work:[y<0?`Subtracting a negative = adding: ${br(x)} − ${br(y)} = ${mns(x)} + ${-y}`:`Start at ${mns(x)} and move ${y} to the left.`,`= <b>${mns(ans)}</b>`]});return}
+  if(type==='muldiv'){const a=R(2,[6,9,12][T]),b=R(2,[6,9,12][T]),[sx,sy]=pick([[-1,-1],[-1,1],[1,-1]]),div=Math.random()<.5,x=div?sx*a*b:sx*a,y=sy*b,ans=div?x/y:x*y,op=div?'÷':'×';
+    api.q(`<p class="qt">Work out <b>${br(x)} ${op} ${br(y)}</b>.</p>`);
+    askInt(api,{id:'bzM',right:ans,traps:[[-ans,sx===sy?'Both numbers are negative. Same signs give a <b>positive</b> answer.':'One number is negative and one is positive. Different signs give a <b>negative</b> answer.']],
+      hint:'Same signs give a positive answer. Different signs give a negative answer.',ok:`${br(x)} ${op} ${br(y)} = ${mns(ans)}.`,bad:`${br(x)} ${op} ${br(y)} = ${mns(ans)}.`,work:[`Sizes: ${Math.abs(x)} ${op} ${Math.abs(y)} = ${Math.abs(ans)}`,`Signs: ${sx===sy?'same → positive':'different → negative'}`,`Answer: <b>${mns(ans)}</b>`]});return}
+  if(type==='ops'){const a=R(2,9),b=R(2,[5,7,9][T]),c=R(2,[5,7,9][T]);let ex,ans,trap,why,work;
+    const k=T===2?pick(['sq','sq2','mix']):T===1?pick(['mix','mix2']):'mix';
+    if(k==='mix'){ex=`${mns(-a)} + ${b} × ${br(-c)}`;ans=-a-b*c;trap=(-a+b)*-c;why='Multiply before you add.';work=[`${b} × ${br(-c)} = ${mns(-b*c)}`,`${mns(-a)} + ${br(-b*c)} = <b>${mns(ans)}</b>`]}
+    else if(k==='mix2'){ex=`${a} − ${br(-b)} × ${c}`;ans=a+b*c;trap=(a+b)*c;why='Multiply before you subtract.';work=[`${br(-b)} × ${c} = ${mns(-b*c)}`,`${a} − ${br(-b*c)} = ${a} + ${b*c} = <b>${ans}</b>`]}
+    else if(k==='sq'){ex=`−${a}² + ${b*c}`;ans=-a*a+b*c;trap=a*a+b*c;why=`−${a}² means −(${a}²) = ${mns(-a*a)}. Only (−${a})² equals ${a*a}.`;work=[`−${a}² = −(${a} × ${a}) = ${mns(-a*a)}`,`${mns(-a*a)} + ${b*c} = <b>${mns(ans)}</b>`]}
+    else{ex=`(−${a})² − ${b} × ${br(-c)}`;ans=a*a+b*c;trap=a*a-b*c;why=`${b} × ${br(-c)} = ${mns(-b*c)}, and subtracting a negative is adding.`;work=[`(−${a})² = ${a*a}`,`${b} × ${br(-c)} = ${mns(-b*c)}`,`${a*a} − ${br(-b*c)} = ${a*a} + ${b*c} = <b>${ans}</b>`]}
+    api.q(`<p class="qt">Work out <b>${ex}</b>.</p>`);askInt(api,{id:'bzP',right:ans,traps:[[trap,why],[-ans,'Check your signs at each step.']].filter(([v])=>!near(v,ans)),hint:'Order of operations: brackets, then powers, then × and ÷, then + and −.',ok:`${ex} = ${mns(ans)}.`,bad:`${ex} = ${mns(ans)}.`,work});return}
+  if(type==='story'){const[kid,pr]=pick(SGKIDS);
+    if(T===0){const t=-R(2,9),u=R(3,14),ans=t+u;api.q(`<p class="qt">In Seoul it was <b>${mns(t)}°C</b> at dawn. By noon the temperature had <b>risen by ${u}°C</b>. What was the temperature at noon?</p>`);api.body.innerHTML=nLine(Math.min(t,0)-2,Math.max(ans,0)+2,t,ans);
+      askInt(api,{id:'bzY',unit:'°C',right:ans,traps:[[t-u,'The temperature <b>rose</b>, so move to the right on the number line.'],[-ans,'Check the sign: did it pass 0?']].filter(([v])=>!near(v,ans)),hint:`Start at ${mns(t)} and move ${u} to the right.`,ok:`It was ${mns(ans)}°C.`,bad:`It was ${mns(ans)}°C.`,work:[`${mns(t)} + ${u} = <b>${mns(ans)}</b>°C`]});return}
+    if(T===1){const d=R(8,30),u=R(3,d-2),s=R(4,20),ans=-d+u-s;api.q(`<p class="qt">A diver is <b>${d} m below</b> sea level, which we write as <b>${mns(-d)} m</b>. The diver rises <b>${u} m</b>, then sinks <b>${s} m</b>. What is the diver's position now?</p>`);
+      askInt(api,{id:'bzY',unit:'m',right:ans,traps:[[-d-u+s,'Rising moves <b>up</b> (add). Sinking moves <b>down</b> (subtract).'],[-ans,'The diver is still below sea level, so the answer is negative.'],[-d+u+s,'Sinking moves down, so subtract.']].filter(([v])=>!near(v,ans)),hint:'Rising adds. Sinking subtracts.',ok:`The diver is at ${mns(ans)} m.`,bad:`The diver is at ${mns(ans)} m.`,work:[`${mns(-d)} + ${u} − ${s}`,`= ${mns(-d+u)} − ${s} = <b>${mns(ans)}</b> m`]});return}
+    const t=R(2,8),f=R(2,5),h=R(3,7),ans=t-f*h;api.q(`<p class="qt">At 6 p.m. the temperature in Harbin is <b>${t}°C</b>. It then <b>falls by ${f}°C every hour</b>. What is the temperature <b>${h} hours</b> later?</p>`);
+    askInt(api,{id:'bzY',unit:'°C',right:ans,traps:[[t-f,`It falls ${f}°C <b>every hour</b>, for ${h} hours.`],[t+f*h,'The temperature is falling, so subtract.'],[-ans,'Check the sign: it has fallen below 0.']].filter(([v])=>!near(v,ans)),hint:`Total fall = ${f} × ${h}.`,ok:`It is ${mns(ans)}°C.`,bad:`It is ${mns(ans)}°C.`,work:[`Total fall = ${f} × ${h} = ${f*h}°C`,`${t} − ${f*h} = <b>${mns(ans)}</b>°C`]});return}
+  /* missing number */
+  {const a=pos(),b=pos();let ex,ans,work;const k=T===0?'add':T===1?pick(['add','sub']):pick(['mul','div','sub']);
+   if(k==='add'){ans=pick([a+b,-(a+b),b-a].filter(v=>v!==0));const c=-a+ans;ex=`${mns(-a)} + ▢ = ${mns(c)}`;work=[`▢ = ${mns(c)} − ${br(-a)} = ${mns(c)} + ${a}`,`= <b>${mns(ans)}</b>`]}
+   else if(k==='sub'){ans=pick([-a,a-b-R(1,5)].filter(v=>v!==0));const c=ans-b;ex=`▢ − ${b} = ${mns(c)}`;work=[`▢ = ${mns(c)} + ${b}`,`= <b>${mns(ans)}</b>`]}
+   else if(k==='mul'){const m=R(2,9);ans=pick([-1,1])*R(2,9);const c=ans*-m;ex=`▢ × ${br(-m)} = ${mns(c)}`;work=[`▢ = ${mns(c)} ÷ ${br(-m)}`,`= <b>${mns(ans)}</b>`]}
+   else{const m=R(2,9);ans=pick([-1,1])*R(2,9);const n=-m*Math.abs(ans)*1;ex=`${br(n)} ÷ ▢ = ${mns(n/ans)}`;work=[`▢ = ${br(n)} ÷ ${br(n/ans)}`,`= <b>${mns(ans)}</b>`]}
+   api.q(`<p class="qt">Find the missing number: <b>${ex}</b></p>`);askInt(api,{id:'bzX',pre:'<span class="askunit">▢ =</span>',right:ans,traps:[[-ans,'Check the sign. Put your answer back into the box and work it out.']],hint:'Work backwards using the opposite operation, then check by putting your answer in the box.',ok:`▢ = ${mns(ans)}.`,bad:`▢ = ${mns(ans)}.`,work})}}});
+
+/* ---------- Sec 1 · Close Enough?: decimal places, significant figures and estimation ---------- */
+const sfCount=s=>{const d=s.replace('.','').replace(/^0+/,'');return d.length};
+const fm=v=>v.toLocaleString('en-SG',{maximumFractionDigits:6}),est1=x=>Number(x.toPrecision(1)),tidy=v=>Math.round(v*1e6)/1e6,nearby=(v)=>{for(let k=0;k<50;k++){const x=Number((v*(1+pick([-1,1])*R(8,40)/1000)).toPrecision(3));if(near(est1(x),v)&&x!==v)return x}return v};
+function estNums(T){const m=()=>R(2,9),a1=tidy(m()*pick(T===0?[10]:[10,100,.1])),b1=tidy(m()*pick(T===2?[1,10,.1]:[1,10])),c1=tidy(pick([2,5])*pick([1,.1,10]));return{a:nearby(a1),b:nearby(b1),c:nearby(c1),a1,b1,c1}}
+addGame('s1-estimate',{level:'Sec 1',sec:'s1',strand:'num',glyph:'≈',title:'Close Enough?',topic:'Decimal places, significant figures and estimation',
+ how:'Round to decimal places and significant figures, then use rounding to estimate answers and spot calculator mistakes.',rounds:8,
+ round(api,r){const T=TIER(),type=['dp','count','sf','zero','estimate','sense','story','bound'][r];
+  if(type==='dp'){const k=[2,4,4][T],d=[1,2,pick([1,3])][T],n=R(1,9)*Math.pow(10,k)+R(Math.pow(10,k-1),Math.pow(10,k)-1),drop=Math.pow(10,k-d),up=Math.round(n/drop),down=Math.floor(n/drop),xs=(n/Math.pow(10,k)).toFixed(k),ans=up/Math.pow(10,d);
+    api.q(`<p class="qt">Round <b>${xs}</b> to <b>${d} decimal place${d>1?'s':''}</b>.</p>`);
+    askOne(api,{id:'ceD',w:7,right:ans,traps:[...(up!==down?[[down/Math.pow(10,d),`You cut the extra digits off. Look at the next digit: it is 5 or more, so round <b>up</b>.`]]:[[ (down+1)/Math.pow(10,d),'Look at the next digit: it is less than 5, so the digit stays the same.']]),[Number(Number(xs).toPrecision(d)),`That is ${d} significant figure${d>1?'s':''}. Count ${d} digit${d>1?'s':''} <b>after the decimal point</b>.`]].filter(([x])=>!near(x,ans)),
+      hint:`Keep ${d} digit${d>1?'s':''} after the decimal point. The next digit decides: 5 or more rounds up.`,ok:`${xs} ≈ ${ans.toFixed(d)}.`,bad:`${xs} ≈ ${ans.toFixed(d)}.`,work:[`Keep ${d} digit${d>1?'s':''} after the point. The next digit is ${xs.split('.')[1][d]}.`,`${xs.split('.')[1][d]>=5?'5 or more → round up':'Less than 5 → stays the same'}: <b>${ans.toFixed(d)}</b>`]});return}
+  if(type==='count'){const s=T===0?pick([`${R(1,9)}.${R(1,9)}${R(1,9)}`,`${R(1,9)}0${R(1,9)}`,`${R(1,9)}00${R(1,9)}`,`${R(1,9)}${R(1,9)}.0${R(1,9)}`]):T===1?pick([`0.0${R(1,9)}${R(1,9)}`,`0.00${R(1,9)}0${R(1,9)}`,`0.${R(1,9)}0${R(1,9)}`,`0.000${R(1,9)}${R(1,9)}`]):pick([`0.0${R(1,9)}${R(1,9)}0`,`0.00${R(1,9)}0${R(1,9)}0`,`${R(1,9)}.${R(1,9)}00`,`0.0${R(1,9)}00`]);
+    const ans=sfCount(s),all=s.replace('.','').length,noTrail=sfCount(s.replace(/0+$/,'')),dec=(s.split('.')[1]||'').length;
+    api.q(`<p class="qt">How many <b>significant figures</b> does <b>${s}</b> have?</p>`);
+    askOne(api,{id:'ceC',w:4,right:ans,traps:[[all,'Zeros in <b>front</b> only show place value. They are not significant. Start counting from the first non-zero digit.'],[dec,'You counted the decimal places. Significant figures start at the first non-zero digit.'],[noTrail,'A zero at the <b>end</b>, after the decimal point, is significant: it shows how precise the number is.']].filter(([x],i,a)=>x!==ans&&a.findIndex(y=>y[0]===x)===i),
+      hint:'Start at the first non-zero digit and count every digit from there.',ok:`${s} has ${ans} significant figures.`,bad:`${s} has ${ans} significant figures.`,work:['Start counting at the first non-zero digit.','Zeros in front do not count. Zeros between digits, and zeros at the end after the decimal point, do count.',`${s} has <b>${ans}</b> significant figures.`]});return}
+  if(type==='sf'){let x,s,ans,xs;for(let q=0;q<200;q++){if(T===0){x=R(1200,98000);s=pick([1,2]);xs=fm(x)}else if(T===1){x=R(1001,9899)/1e6*pick([1,10]);s=2;xs=String(tidy(x))}else{x=R(10001,98999)/pick([1e3,1e4]);s=3;xs=String(x)}
+      ans=Number(x.toPrecision(s));if(sfCount(String(ans).replace(/0+$/,'').replace(/\.$/,''))<=s&&(T===0||sfCount(String(ans))===s)&&ans!==x)break}
+    api.q(`<p class="qt">Round <b>${xs}</b> to <b>${s} significant figure${s>1?'s':''}</b>.</p>`);
+    const lead=Number(String(x.toPrecision(s)).replace('.','').replace(/^0+/,'').slice(0,s));
+    askOne(api,{id:'ceS',w:8,right:ans,traps:[...(T===0?[[lead,`Keep the place value! ${xs} is about ${fm(ans)}, not ${lead}. Fill the other places with zeros.`]]:[]),[Number(x.toFixed(s)),`That is ${s} decimal places. Significant figures start at the first non-zero digit.`]].filter(([v])=>!near(v,ans)),
+      hint:`Find the first non-zero digit, keep ${s} digit${s>1?'s':''} from there, and look at the next digit to round.`,ok:`${xs} ≈ ${T===0?fm(ans):ans}.`,bad:`${xs} ≈ ${T===0?fm(ans):ans}.`,work:[`Start at the first non-zero digit and keep ${s} digit${s>1?'s':''}.`,'Look at the next digit: 5 or more rounds up.',`${xs} ≈ <b>${T===0?fm(ans):ans}</b>`]});return}
+  if(type==='zero'){const[xs,s,right,wr]=pick([[['4.97',2,'5.0',['5','4.9','5.00']],['6.98',2,'7.0',['7','6.9','7.00']],['39.6',2,'40',['4','39','40.0']]],[['2.996',3,'3.00',['3','2.99','3.0']],['0.0398',2,'0.040',['0.04','0.039','0.0400']],['19.96',3,'20.0',['20','19.9','20.00']]],[['0.03996',3,'0.0400',['0.04','0.0399','0.040']],['59.97',3,'60.0',['60','59.9','60.00']],['0.6997',3,'0.700',['0.7','0.699','0.70']]]][T]);
+    api.q(`<p class="qt">Round <b>${xs}</b> to <b>${s} significant figures</b>. Which answer is written correctly?</p>`);
+    secChoice(api,'ceZ',[{t:right,ok:1},...wr.map(w=>({t:w,why:Number(w)===Number(right)?`The value is right, but ${w} shows ${sfCount(w)} significant figure${sfCount(w)>1?'s':''}, not ${s}. Use zeros at the end to show ${s}.`:'Look at the digit after the ones you keep: it is 5 or more, so round up.'}))],
+      [`Keep ${s} significant figures and round up.`,`Write <b>${right}</b>: the zero${right.replace(/[^0]/g,'').length>1?'s':''} at the end show${right.replace(/[^0]/g,'').length>1?'':'s'} the answer is correct to ${s} significant figures.`],`${xs} ≈ ${right} (${s} s.f.).`);return}
+  if(type==='estimate'||type==='sense'){const{a,b,c,a1,b1,c1}=estNums(T),div=T===2,ex=div?`${a} × ${b} ÷ ${c}`:`${a} × ${b}`,ans=tidy(div?a1*b1/c1:a1*b1),wk=[`${a} ≈ ${a1}, ${b} ≈ ${b1}${div?`, ${c} ≈ ${c1}`:''}`,`${a1} × ${b1}${div?` ÷ ${c1}`:''} = <b>${fm(ans)}</b>`];
+    if(type==='estimate'){api.q(`<p class="qt">Estimate <b>${ex}</b> by first rounding each number to <b>1 significant figure</b>.</p>`);
+      askOne(api,{id:'ceE',w:8,right:ans,traps:[[tidy(ans*10),'Check the place value of each rounded number.'],[tidy(ans/10),'Check the place value of each rounded number.']],hint:'Round each number to 1 significant figure first, then calculate.',ok:`About ${fm(ans)}.`,bad:`The estimate is ${fm(ans)}.`,work:wk});return}
+    const exact=tidy(div?a*b/c:a*b),slip=Number((exact*pick([10,.1])).toPrecision(4));
+    api.q(`<p class="qt">Jun types <b>${ex}</b> into a calculator and gets <b>${fm(slip)}</b>. Use an estimate to decide: is Jun's answer reasonable?</p>`);
+    secChoice(api,'ceN',[{t:`No. It should be about ${fm(ans)}.`,ok:1},{t:'Yes. It is close to the estimate.',why:`Estimate: ${wk[1].replace(/<\/?b>/g,'')}. Jun's answer is about ${slip>exact?'10 times too big':'10 times too small'}.`},{t:`No. It should be about ${fm(tidy(ans*(slip>exact?100:.01)))}.`,why:'Round each number to 1 significant figure and work it out again.'}],[...wk,`Jun's ${fm(slip)} is about ${slip>exact?'10 times too big':'10 times too small'}: a decimal point slipped.`],`It should be about ${fm(ans)}.`);return}
+  if(type==='story'){let q,ans,wk,unit;
+    if(T===0){const n=pick([198,203,296,304,395]),p=pick([4.85,5.2,2.95,3.1,6.9]),n1=est1(n),p1=est1(p);ans=n1*p1;unit='$';q=`<b>${n} students</b> each pay <b>$${p.toFixed(2)}</b> for a concert ticket. Estimate the total by rounding each number to 1 significant figure.`;wk=[`${n} ≈ ${n1}, $${p.toFixed(2)} ≈ $${p1}`,`${n1} × ${p1} = <b>$${fm(ans)}</b>`]}
+    else if(T===1){const l=pick([19.6,20.4,38.6,41.2,49.5]),l1=est1(l),k1=pick([8,10,20]),d=nearby(l1*k1),d1=est1(d);ans=tidy(d1/l1);unit='km/l';q=`A car travels <b>${d} km</b> on <b>${l} litres</b> of petrol. Estimate how many km it travels on 1 litre, by rounding each number to 1 significant figure.`;wk=[`${d} ≈ ${d1}, ${l} ≈ ${l1}`,`${d1} ÷ ${l1} = <b>${ans}</b> km per litre`]}
+    else{const L=pick([48.6,51.3,29.4,61.2]),W=pick([21.3,19.6,31.4]),p=pick([1.95,2.1,4.85,5.15]),L1=est1(L),W1=est1(W),p1=est1(p);ans=L1*W1*p1;unit='$';q=`A rectangular field is <b>${L} m</b> by <b>${W} m</b>. Grass seed costs <b>$${p.toFixed(2)} per m²</b>. Estimate the cost of seeding the whole field, by rounding each number to 1 significant figure.`;wk=[`Area ≈ ${L1} × ${W1} = ${fm(L1*W1)} m²`,`Cost ≈ ${fm(L1*W1)} × $${p1} = <b>$${fm(ans)}</b>`]}
+    api.q(`<p class="qt">${q}</p>`);askOne(api,{id:'ceY',pre:unit==='$'?'<span class="askunit">$</span>':'',unit:unit==='$'?'':unit,w:8,right:ans,traps:[[tidy(ans*10),'Check the place value of each rounded number.'],[tidy(ans/10),'Check the place value of each rounded number.']],hint:'Round every number to 1 significant figure first.',ok:`About ${unit==='$'?'$':''}${fm(ans)}${unit==='$'?'':' '+unit}.`,bad:`The estimate is ${unit==='$'?'$':''}${fm(ans)}${unit==='$'?'':' '+unit}.`,work:wk});return}
+  /* smallest or largest value that rounds to a given number */
+  if(T<2){const u=T===0?10:100,N=R(12,97)*u,small=T===0||Math.random()<.5,ans=small?N-u/2:N+u/2-1;
+    api.q(`<p class="qt">A whole number is rounded to the nearest <b>${u}</b>. The result is <b>${fm(N)}</b>. What is the <b>${small?'smallest':'largest'}</b> the whole number could be?</p>`);
+    askOne(api,{id:'ceB',w:7,right:ans,traps:small?[[N-u/2+1,`${fm(N-u/2)} also rounds up to ${fm(N)}. A 5 rounds up.`],[N-u/2-1,`${fm(N-u/2-1)} rounds down to ${fm(N-u)}.`],[N-u,`${fm(N-u)} is a different multiple of ${u}.`]]:[[N+u/2,`${fm(N+u/2)} rounds up to ${fm(N+u)}.`],[N+u-1,`${fm(N+u-1)} rounds up to ${fm(N+u)}.`]],
+      hint:`Halfway between ${fm(small?N-u:N)} and ${fm(small?N:N+u)} is ${fm(small?N-u/2:N+u/2)}. Which way does the halfway number round?`,ok:`The ${small?'smallest':'largest'} is ${fm(ans)}.`,bad:`The ${small?'smallest':'largest'} is ${fm(ans)}.`,work:[`Halfway to the ${small?'multiple below':'next multiple'} is ${fm(small?N-u/2:N+u/2)}, and halfway rounds <b>up</b>.`,small?`So ${fm(N-u/2)} is the smallest that rounds to ${fm(N)}.`:`So the largest whole number that still rounds to ${fm(N)} is <b>${fm(ans)}</b>.`]});return}
+  const v=R(21,98)/10,ans=tidy(v-.05);api.q(`<p class="qt">A length is <b>${v.toFixed(1)} cm</b>, correct to <b>1 decimal place</b>. What is the <b>smallest</b> the actual length could be?</p>`);
+  askOne(api,{id:'ceB',unit:'cm',w:7,right:ans,traps:[[tidy(v-.1),`${(v-.1).toFixed(1)} cm is a different 1-decimal-place value. Go only halfway down to it.`],[tidy(v-.04),`${(v-.05).toFixed(2)} also rounds up to ${v.toFixed(1)}.`],[tidy(v-.5),'It is correct to 1 decimal place, so go half of 0.1 below, not 0.5.']],
+    hint:`Halfway between ${(v-.1).toFixed(1)} and ${v.toFixed(1)} is the smallest value that rounds up to ${v.toFixed(1)}.`,ok:`The smallest is ${ans.toFixed(2)} cm.`,bad:`The smallest is ${ans.toFixed(2)} cm.`,work:[`Halfway between ${(v-.1).toFixed(1)} and ${v.toFixed(1)} is ${ans.toFixed(2)}.`,`${ans.toFixed(2)} rounds up to ${v.toFixed(1)}, so the smallest is <b>${ans.toFixed(2)} cm</b>.`]})}});
+
 /* ================= P4. Treasure Map — 8-point compass and turns ================= */
 const DIRS=['N','NE','E','SE','S','SW','W','NW'],DNAME={N:'North',NE:'North-east',E:'East',SE:'South-east',S:'South',SW:'South-west',W:'West',NW:'North-west'};
 const DV=[[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
@@ -3935,6 +4137,9 @@ const HOWTO={
 'p6-chain':{steps:['The figure is made of squares, rectangles, rhombuses or parallelograms joined to triangles.','First find angle <b>y</b>, then use it to find angle <b>x</b>.','Look for equal sides (isosceles triangles), parallel lines and straight lines (180°).','Type each answer. The figure is not drawn to scale, so do not measure it.'],eg:'In a rhombus the opposite angles are equal, and the angles next to each other add up to 180°.'},
 'p6-average':{steps:['Towers of blocks show how many each child has.','Tap a tower to pick up its top block, then tap another tower to drop it there.','Move blocks until all the towers are the same height. That height is the <b>average</b>.','Other rounds: average = total ÷ number of items, and total = average × number of items.'],eg:'Towers of 2, 5 and 5 → total 12 → 12 ÷ 3 = 4 each.'},
 'p4-diner':{steps:['Read the order ticket. Each order uses decimals.','For adding and subtracting, first choose the layout with the <b>decimal points lined up</b> (not the last digits).','Fill empty places with 0 (3.5 → 3.50, 5 → 5.00), then work out the answer and press Check.','For × and ÷, think in tenths or hundredths first (0.4 = 4 tenths), then change back.','Wrong the first time? Qubi tells you what went wrong so you can fix it.'],eg:'3.5 + 1.25 → 3.50 + 1.25 = 4.75 (not 1.60).'},
+'s1-primes':{steps:['A prime number has exactly two factors: 1 and itself.','To factorise, keep dividing by primes (2, 3, 5, 7…) until you reach 1. Write repeated primes with an index: 2 × 2 × 2 = 2³.','<b>HCF</b>: primes that appear in every number, with the lowest index. <b>LCM</b>: every prime, with the highest index.','Word problems: equal parts with nothing left over → HCF. Things that repeat and meet again → LCM.','Square root: halve every index. Cube root: divide every index by 3.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'72 = 2³ × 3² and 60 = 2² × 3 × 5. HCF = 2² × 3 = 12. LCM = 2³ × 3² × 5 = 360.'},
+'s1-integers':{steps:['On the number line, numbers get bigger to the right. So −8 is smaller than −3.','Adding a negative moves left. Subtracting a negative is the same as adding: 5 − (−3) = 5 + 3.','Multiplying or dividing: same signs give a positive answer, different signs give a negative answer.','−3² means −(3²) = −9. Only (−3)² equals 9.','On a phone, tap the ± button to make your answer negative.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'−2 − 3 = −5, but (−2) × (−3) = 6.'},
+'s1-estimate':{steps:['Decimal places: count digits after the decimal point. The next digit decides: 5 or more rounds up.','Significant figures: start counting at the first non-zero digit. Zeros in front never count.','Keep the place value: 34 567 to 2 significant figures is 35 000, not 35.','A zero at the end can matter: 2.996 to 3 significant figures is 3.00.','To estimate, round every number to 1 significant figure first, then calculate.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'48.7 × 5.12 ≈ 50 × 5 = 250.'},
 'sg-journeys':{steps:['Watch the journey on the map. The train moves along the route, and the time for each part pops up underneath.','Add up the minutes for <b>every</b> part, including the walk when you change lines.','Count on from the start time to find when you arrive, or count back to find when to board.','Easy: one MRT line. Hard: changing lines, walking, and planning when to leave.'],eg:'Bishan → Braddell 2 min, → Toa Payoh 2 min, → Novena 3 min: 2 + 2 + 3 = 7 min.'},
 'sg-journeys-2':{steps:['Plan trips across Singapore by walking, bus and MRT.','Add up every part of the trip: walking, waiting, bus, train and changing lines.','Bus timetables: buses come every few minutes, so count on in equal jumps to find the next one.','When the minutes add up to 60 or more, change 60 min into 1 h.','Hard: surprise delays, comparing two routes and finding the latest bus you can take.'],eg:'8 min + 25 min + 1 h 12 min: 8 + 25 + 12 = 45 min, plus 1 h = 1 h 45 min.'},
 'world-journeys':{steps:['Travel around the world on trams, bullet trains, water buses, cable cars and more.','Speed = distance ÷ time. Distance = speed × time. Time = distance ÷ speed.','km/h means km in 1 <b>hour</b>, so change minutes into hours first (30 min = ½ h). m/min means metres in 1 minute.','Average speed = total distance ÷ total time, and stops (like a traffic jam) count as time too!','Score 80% or more and something secret might appear…'],eg:'12 km in 30 min: 30 min = ½ h, so speed = 12 ÷ ½ = 24 km/h.'},
@@ -3973,7 +4178,7 @@ async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();
   try{const res=await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(SCORECAP[id]||1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
     if(res&&res.taken)return lbNote(`Someone on another device already uses the name <b>${esc(me.nick)}</b>${me.cls?' in '+esc(me.cls):''}. <button class="btn sm" id="lbRename">Pick a different nickname</button>`,()=>$('lbRename').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
     const rows=bestPer(window.ARCB.rank?await window.ARCB.rank(id,diff):(await window.ARCB.top(id)).filter(r=>r.diff===diff));const k=rows.findIndex(r=>r.nick===me.nick&&r.cls===(me.cls||''));
-    const dn=diff!=='-'?` (${LVNAME[diff]})`:'',pts=champPts(id,diff,o.stars);
+    const dn=diff!=='-'?` (${(GAMES[id]&&GAMES[id].sec?SECLVNAME:LVNAME)[diff]})`:'',pts=champPts(id,diff,o.stars);
     lbNote(`🏆 Score saved${k>=0?` · you are <b>#${k+1}</b> of ${rows.length} for ${esc(G.title)}${dn}`:''}. <button class="btn sm" id="lbSee">See the leaderboard</button>${pts?`<br>⭐ 3 stars${diff!=='-'?' on '+LVNAME[diff]:''}: worth ${pts} Champion point${pts>1?'s':''}!`:''}`,
       ()=>$('lbSee').onclick=()=>lbPopup(id,diff))}
   catch(e){lbNote('Could not reach the leaderboard just now. Your game still counts on this device.')}}
@@ -3987,7 +4192,7 @@ function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=documen
     <div class="row"><button class="btn primary" id="lbOk">Save</button><button class="btn" id="lbGuest">Play as guest</button></div>
     ${window.ARCB&&window.ARCB.canSignIn&&!window.ARCB.user?`<p style="margin:6px 0 0">Have a Google account? Sign in to keep your progress on any device. (Optional)</p><div class="row"><button class="btn" id="lbGoogle">☁️ Sign in with Google</button></div>`:''}</div>`;
   document.body.appendChild(o);$('lbNick').focus();
-  const close=()=>{o.remove();if(location.hash===''||location.hash==='#')hub()};
+  const close=()=>{o.remove();if(isHome())homeView()};
   $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
   const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
   $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
@@ -3997,9 +4202,9 @@ function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
   return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
 function wireHubPlayer(){const b=$('lbWho');if(b)b.onclick=()=>playerPrompt();
   const i=$('lbIn');if(i)i.onclick=async()=>{try{await arcSignIn();if(!(arcMe()||{}).nick)playerPrompt()}catch(e){}};
-  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();hub()}}
+  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();homeView()}}
 async function arcSignIn(){await window.ARCB.signIn();for(let k=0;k<40&&!window.ARCB.user;k++)await new Promise(r=>setTimeout(r,150));arcLog('signin')}
-addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(!h&&!document.querySelector('.lbmodal'))hub()});
+addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(isHome()&&!document.querySelector('.lbmodal'))homeView()});
 const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
   const isMe=x=>x.nick===me.nick&&x.cls===(me.cls||''),val=x=>`${x.score}${x.stars>=0?` <small>${'★'.repeat(x.stars)}</small>`:''}${x.sub?` <small class="pts">${x.sub}</small>`:''}`,mood=['party','wave','cheer'];
   const step=i=>{const x=r[i];if(!x)return `<div class="lbp-col lbp-${i+1} lbp-none"><div class="lbp-who"><b>—</b><span class="lbc">No one yet</span></div><div class="lbp-block"><span>${i+1}</span></div></div>`;
@@ -4030,7 +4235,7 @@ function champRows(rows){const P=new Map();
     .sort((a,b)=>b.score-a.score||b.hard-a.hard||a.t-b.t)}
 async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','#leaderboard');setTimeout(()=>lbPopup(gid),50)}
   const me=arcMe()||{};let cls='',rows=null;const ids=ORDER.filter(id=>GAMES[id]);
-  $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="#">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Arcade Champions</h2>
+  $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="${homeHref()}">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Arcade Champions</h2>
     <div class="howcard champhow"><b>How to earn Champion points</b><ol class="howlist"><li>Play a game in <b>Solo</b> and get <b>3 stars</b>.</li><li>⭐ Easy = <b>1 point</b>, ⚡ Medium = <b>2 points</b>, 🔥 Hard = <b>3 points</b>.</li><li>🗺️ <b>PSLE Quest</b>: 3 stars = <b>3 points</b>. Scores saved before levels were added count as Easy.</li><li>Each game counts once, at the hardest level you got 3 stars on. Master more games to climb!</li><li class="qs" style="list-style:none">Party games, Vault Cracker and multiplayer games have their own leaderboards but don't give Champion points.</li></ol></div>
     <div class="row"><select id="lbC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select>
     <select id="lbG" class="num" style="width:auto"><option value="">See one game's leaderboard…</option>${['P4','P5','P6','All levels'].map(l=>`<optgroup label="${l}">${ids.filter(id=>GAMES[id].level===l).map(id=>`<option value="${id}">${esc(GAMES[id].title)}</option>`).join('')}</optgroup>`).join('')}</select></div>
@@ -4040,7 +4245,7 @@ async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','
   $('lbC').onchange=()=>{cls=$('lbC').value;draw()};$('lbG').onchange=()=>{const g=$('lbG').value;$('lbG').value='';if(g)lbPopup(g)};
   if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
   try{rows=await window.ARCB.champs();draw()}catch(e){$('lbList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'}}
-addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(!h||h==='')hub();else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
+addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(isHome())homeView(true);else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
   const me=arcMe();if(!me&&(!h||h===''))setTimeout(()=>{if(!arcMe())playerPrompt()},400)});
 /* ================= QR CODE (for sharing online-room links) =================
    Small QR encoder: byte mode, error correction level M, versions 1 to 10 (links up to about 210 characters).
@@ -4879,11 +5084,11 @@ const MUSIC={on:true,key:null,timer:null,gain:null,song:null,n:0,next:0,noise:nu
 try{MUSIC.on=localStorage.getItem('arcMusic')!=='0'}catch(e){}
 function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
 function compose(key){const rnd=mulberry(hashStr(key)),pk=a=>a[Math.floor(rnd()*a.length)];
-  const minor=rnd()<.3,scale=minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11],root=pk([0,2,3,5,7,-3,-2]),bpm=pk([100,108,116,124,132]);
-  const prog=pk(minor?[[0,5,2,6],[0,3,4,0],[0,6,5,4],[0,3,6,4]]:[[0,4,5,3],[0,5,3,4],[5,3,0,4],[0,3,4,3],[0,3,5,4],[0,4,3,4]]);
+  const secret=key.endsWith('~secret'),chill=key==='secondary'||!!(GAMES[key]&&GAMES[key].sec),minor=!secret&&rnd()<.3,scale=chill?[0,2,3,5,7,9,10]:minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11],root=pk([0,2,3,5,7,-3,-2]),bpm=secret?150:chill?84:pk([100,108,116,124,132]);
+  const prog=chill?[0,3,6,4]:pk(minor?[[0,5,2,6],[0,3,4,0],[0,6,5,4],[0,3,6,4]]:[[0,4,5,3],[0,5,3,4],[5,3,0,4],[0,3,4,3],[0,3,5,4],[0,4,3,4]]);
   const motif=()=>{const ev=[];let s=0;while(s<16){const len=pk([2,2,2,4,1,1,3,4]);if(rnd()<.18){s+=len;continue}ev.push({s,len:Math.min(len,16-s),d:pk([0,2,4,4,7,1,3,5,2])});s+=len}return ev};
   const A=motif(),B=motif(),C=motif();
-  return {bpm,root,scale,prog,form:[A,B,A,C,A,B,C,A],lead:pk(['square','triangle','square','sawtooth']),arp:rnd()<.7,hat:rnd()<.85,bassPat:pk([[0,8],[0,6,8,14],[0,4,8,12],[0,10]])}}
+  return {bpm,root,scale,prog,form:[A,B,A,C,A,B,C,A],chill,lead:secret?'square':chill?'triangle':pk(['square','triangle','square','sawtooth']),arp:secret||rnd()<.7,hat:secret||rnd()<.85,secret,bassPat:pk([[0,8],[0,6,8,14],[0,4,8,12],[0,10]])}}
 const midiF=m=>440*Math.pow(2,(m-69)/12);
 function mnote(S,d,oct){const o=Math.floor(d/7),i=((d%7)+7)%7;return 60+S.root+S.scale[i]+12*(o+oct)}
 function mtone(t,f,dur,type,vol){const c=AC,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.01);
@@ -4891,28 +5096,76 @@ function mtone(t,f,dur,type,vol){const c=AC,o=c.createOscillator(),g=c.createGai
 function mnoise(t,dur,vol,hp){const c=AC;if(!MUSIC.noise){const b=c.createBuffer(1,c.sampleRate*.5,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MUSIC.noise=b}
   const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=MUSIC.noise;f.type='highpass';f.frequency.value=hp;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f).connect(g).connect(MUSIC.gain);s.start(t);s.stop(t+dur+.02)}
 function mstep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
-  if(s===0||s===8)mtone(t,110,.18,'sine',.16),mtone(t,60,.2,'sine',.12);
+  if(S.chill){ /* the secondary theme: slower, laid-back beat with soft chords */
+    if(s===0||s===10)mtone(t,90,.22,'sine',.18),mtone(t,55,.24,'sine',.13);if(s===8)mnoise(t,.14,.06,1500);if(s%4===2)mnoise(t,.03,.022,8000);
+    if(s===0)[0,2,4,6].forEach(k=>mtone(t,midiF(mnote(S,ch+k,0)),st*15,'sine',.034))}
+  else{if(s===0||s===8)mtone(t,110,.18,'sine',.16),mtone(t,60,.2,'sine',.12);
   if(s===4||s===12)mnoise(t,.12,.06,1800);
-  if(S.hat&&s%2===0)mnoise(t,.04,.025,7000);
+  if(S.hat&&s%2===0)mnoise(t,.04,.025,7000)}
   if(S.bassPat.includes(s))mtone(t,midiF(mnote(S,ch,-2)),st*3,'triangle',.11);
   if(S.arp&&s%2===1){const k=[0,2,4,7][(s>>1)%4];mtone(t,midiF(mnote(S,ch+k,0)),st*1.5,'sine',.028)}
-  S.form[bar].forEach(ev=>{if(ev.s===s)mtone(t,midiF(mnote(S,ch+ev.d,1)),ev.len*st*.92,S.lead,.045)})}
+  if(S.secret&&s%4===2)mtone(t,midiF(mnote(S,ch+[4,7,9,11][(n>>2)%4],2)),st*.9,'sine',.03); /* twinkles in the secret round */
+  S.form[bar].forEach(ev=>{if(ev.s===s)mtone(t,midiF(mnote(S,ch+ev.d,S.chill?0:1)),ev.len*st*.92,S.lead,S.chill?.085:.045)})}
 function playMusic(key){if(!MUSIC.on)return stopMusic();const c=ac();if(!c||c.state!=='running')return;if(MUSIC.key===key&&MUSIC.timer)return;
-  stopMusic(true);MUSIC.key=key;MUSIC.song=compose(key);MUSIC.gain=c.createGain();MUSIC.gain.gain.setValueAtTime(.0001,c.currentTime);MUSIC.gain.gain.exponentialRampToValueAtTime(.55,c.currentTime+.8);MUSIC.gain.connect(c.destination);
+  stopMusic(true);MUSIC.key=key;MUSIC.song=compose(key);MUSIC.gain=c.createGain();MUSIC.gain.gain.setValueAtTime(.0001,c.currentTime);MUSIC.gain.gain.exponentialRampToValueAtTime(Math.max(.0001,.55*VOL.m),c.currentTime+.8);MUSIC.gain.connect(c.destination);
   MUSIC.n=0;MUSIC.next=c.currentTime+.1;MUSIC.timer=setInterval(()=>{const S=MUSIC.song,st=60/S.bpm/4;while(MUSIC.next<c.currentTime+.15){mstep(S,MUSIC.n,MUSIC.next);MUSIC.n++;MUSIC.next+=st}},30)}
 function stopMusic(keepKey){clearInterval(MUSIC.timer);MUSIC.timer=null;if(MUSIC.gain&&AC){const g=MUSIC.gain;try{g.gain.cancelScheduledValues(AC.currentTime);g.gain.setValueAtTime(g.gain.value||.3,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.4)}catch(e){}setTimeout(()=>g.disconnect(),600)}MUSIC.gain=null;if(!keepKey)MUSIC.key=null}
-const musicKey=()=>{const h=location.hash.slice(1);return GAMES[h]?h:'hub'};
+/* three theme songs: 'hub' is the main Maths Arcade theme (start screen), 'primary' and 'secondary' have their own */
+const musicKey=()=>{const h=location.hash.slice(1);if(!GAMES[h])return h==='secondary'?'secondary':h==='start'||(typeof START_SEEN!=='undefined'&&!START_SEEN)?'hub':'primary';return typeof ctx!=='undefined'&&ctx&&ctx.id===h&&ctx.inBonus&&document.body.classList.contains('playing')?h+'~secret':h};
 function setMusic(on){MUSIC.on=on;try{localStorage.setItem('arcMusic',on?'1':'0')}catch(e){}$('music').innerHTML='♪<span class="tl"> Music: '+(on?'on':'off')+'</span>';$('music').setAttribute('aria-label','Music '+(on?'on':'off'));$('music').setAttribute('aria-pressed',String(on));$('music').classList.toggle('off',!on);$('music').title=on?'Turn off the background song':'Turn on the background song';on?playMusic(musicKey()):stopMusic()}
 $('music').onclick=()=>{ac();setMusic(!MUSIC.on)};
 /* browsers only allow sound after the first tap, so start the music then */
 addEventListener('pointerdown',()=>{const c=ac();if(c&&c.state!=='running')c.resume().then(()=>playMusic(musicKey()));else playMusic(musicKey())},{passive:true});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic();else if(AC&&AC.state==='running')playMusic(musicKey())});
 setMusic(MUSIC.on);
+/* volume panel: two sliders, remembered on this device */
+(()=>{const btn=$('vol'),pn=$('volPanel');if(!btn||!pn)return;
+  const pct=v=>v<=0?'Off':Math.round(v*100)+'%';
+  /* the old on/off buttons are gone: anyone who had switched music or sound effects off now has that slider at 0 */
+  try{if(!MUSIC.on){VOL.m=0;localStorage.setItem('arcVol_m','0');setMusic(true)}if(muted){VOL.s=0;localStorage.setItem('arcVol_s','0');setMute(false)}}catch(e){}
+  const set=(k,v,quiet)=>{VOL[k]=v;try{localStorage.setItem('arcVol_'+k,String(v))}catch(e){}$('vol_'+k+'v').textContent=pct(v);
+    if(k==='m'&&MUSIC.gain&&AC){try{MUSIC.gain.gain.cancelScheduledValues(AC.currentTime);MUSIC.gain.gain.setTargetAtTime(Math.max(.0001,.55*v),AC.currentTime,.05)}catch(e){}}
+    if(k==='s'){if(SFXBUS)SFXBUS.gain.value=v;if(!quiet)sfx.pop()}};
+  ['m','s'].forEach(k=>{const r=$('vol_'+k);r.value=Math.round(VOL[k]*100);$('vol_'+k+'v').textContent=pct(VOL[k]);r.oninput=()=>set(k,r.value/100,true);r.onchange=()=>set(k,r.value/100)});
+  btn.onclick=e=>{e.stopPropagation();ac();pn.hidden=!pn.hidden;btn.setAttribute('aria-expanded',String(!pn.hidden))};
+  pn.onclick=e=>e.stopPropagation();document.addEventListener('click',()=>{pn.hidden=true;btn.setAttribute('aria-expanded','false')});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')pn.hidden=true})})();
 window.MUSICREADY=true;
 /* ================= HUB ================= */
-const OTHER={P5:[{title:'I Want to Be a Millionaire',glyph:'$',strand:'num',topic:'Percentage',d:'15-level game show with lifelines and a money ladder.',url:'https://claude.ai/artifact/EaWLvwRt2H5ry5p66Quc3K'},
-  {title:'Percentage Lab',glyph:'%',strand:'num',topic:'Percentage',d:'Hundred square, bar models, discount and GST, pie chart games.',url:'https://claude.ai/artifact/UfwF6vH7GvVHX53QoAdjMq'}],P6:[]};
+const OTHER={P5:[{title:'I Want to Be a Millionaire',glyph:'$',strand:'num',topic:'Percentage',d:'15-level game show with lifelines and a money ladder.',url:'millionaire.html'},
+  {title:'Percentage Lab',glyph:'%',strand:'num',topic:'Percentage',d:'Hundred square, bar models, discount and GST, pie chart games.',url:'percentage-lab.html'}],P6:[]};
 const CARD={'p4-diner':'Help the cook add, subtract, multiply and divide decimals. Line up those points!','p4-train':'Read the departure board: 24-hour clock and how long journeys take.','sg-journeys':'Ride the MRT across Singapore. How long is the trip? When do you arrive? When must you board?','sg-journeys-2':'Plan trips by bus, MRT and walking. Read bus timetables, beat delays and pick the fastest route.','world-journeys':'Trams, bullet trains, water buses and cable cars around the world: speed, distance and time.','p4-compass':'Find the treasure with the 8-point compass, turns and angles.','p5-pizza':'Add and subtract fractions and mixed numbers with pizzas.','p5-pshop':'Shade, shop and save: percentages, discount, GST and interest.','p6-pie':'Solve problems from the bakery’s pie charts using % and angles.','party-team':'Class teams on their own devices race to answer quick-fire questions. Best for the whole class!','party-tug':'Two players, one rope. Quick-fire facts pull the knot your way.','party-bingo':'Maths-clue bingo: solo, vs Robo or the whole class with paper cards.','party-wall':'Race to fill fraction walls with bricks that fit exactly.','p6-quest':'Full PSLE-style revision: Booklet A MCQs, Booklet B short answers, then Paper 2 boss battles with a calculator. Ends with a topic report card.','p4-rounding':'Land the rocket, then round to the nearest 10, 100 or 1000.','p4-factors':'Catch the jungle animals holding factors, multiples and common factors.','p4-product':'Arrange digit cards for the biggest or smallest product, then multiply.','p4-flip':'A memory game matching improper fractions, mixed numbers and pizzas.','p4-share':'Split a jar of sweets into equal groups to find a fraction of a set.','p4-target':'Choose two fraction cards that add or subtract to hit the target.','p4-decimals':'Put tricky decimals like 0.7, 0.07 and 0.707 in order.','p4-cashier':'Total up canteen orders and give the right change.','p4-garden':'Build gardens on a grid to match an area and a perimeter.','p4-angles':'Aim a cannon by angle to pop hidden balloons, by eye or with a protractor.','p4-mirror':'Complete figures so they are symmetric about a mirror line.','p4-nets':'Will it fold into a cube? Spot the nets of solids.','p4-graphs':'Tap points and segments on line graphs; read pie charts.','p5-vault':'Explore a maze of vaults and crack numbers in the millions. Solo levels or a 2-player gold race.','p5-order':'Tap the right operation first: brackets, then × ÷, then + −.','p5-slide':'Slide digits on a place-value chart to × or ÷ by 10, 100, 1000 and convert units.','p5-share':'Cut and share pizzas to see that a ÷ b is the fraction a/b.','p5-fgrid':'Shade columns and rows on an area model to multiply fractions.','p5-rate':'Find the rate, then use it. Includes car park and postage step rates.','p5-tarea':'Pick the true height of a triangle, then find its area.','p5-volume':'Count, build and calculate volumes, and litres of water in a tank.','p5-angles':'Choose the angle fact, then find x.','p5-triangles':'Name triangles by sides and angles; find unknown angles.','p5-quads':'Guess the mystery quadrilateral from clues; find unknown angles.','p6-fdiv':'Scoop and share on bar models to divide fractions.','p6-pchange':'Build before-and-after bar models for percentage change.','p6-ratio':'Mix drinks with cups, simplify ratios and share with unit models.','p6-algebra':'Take weights off both sides of a balance scale to solve for x.','p6-circle':'Trace the perimeter edges, pick the formula, then calculate with π.','p6-cuberoot':'Crack crates using cube roots, square roots and volume.','p6-chain':'Find y, then x, in figures made of quadrilaterals and triangles.','p6-average':'Level towers of blocks to see what an average really is.'};
+/* ================= START SCREEN: Maths Arcade title, Qubi, then Primary or Secondary ================= */
+var START_SEEN=false;try{START_SEEN=sessionStorage.getItem('arcStart')==='1'}catch(e){}
+/* teenager Qubi: headphones and a backpack */
+const QTEEN=QUBI.replace('<g class="q-hat">','<g class="q-teen"><rect x="0" y="66" width="12" height="40" rx="6" fill="#0b968b" stroke="#16233a" stroke-width="2.5"/><rect x="108" y="66" width="12" height="40" rx="6" fill="#0b968b" stroke="#16233a" stroke-width="2.5"/><path d="M14,62 Q14,25 60,25 Q106,25 106,62" fill="none" stroke="#16233a" stroke-width="9" stroke-linecap="round"/><path d="M14,62 Q14,25 60,25 Q106,25 106,62" fill="none" stroke="#5f50ec" stroke-width="5" stroke-linecap="round"/><rect x="4" y="52" width="17" height="28" rx="7" fill="#5f50ec" stroke="#16233a" stroke-width="2.5"/><rect x="99" y="52" width="17" height="28" rx="7" fill="#5f50ec" stroke="#16233a" stroke-width="2.5"/></g><g class="q-hat">');
+const qmini=(svg,cls,col)=>svg.replace('class="qubi"',`class="qubi idle ${cls}"`).replace(/#ff8a3d/g,col||'#ff8a3d');
+/* the three home pages: start screen, primary hub, secondary hub */
+const isHome=()=>['','start','secondary'].includes(location.hash.slice(1));
+function homeView(quiet){const h=location.hash.slice(1);if(h==='start'||(h===''&&!START_SEEN)){if(quiet&&$('stBar')){$('stBar').innerHTML=hubPlayerBar();wireHubPlayer();return}startView()}else if(h==='secondary')secView();else hub()}
+function startView(){document.body.classList.add('atstart');
+  const word=(w,o)=>[...w].map((c,i)=>`<span class="hl" style="--i:${i+o}">${c}</span>`).join('');
+  $('view').innerHTML=`<div class="start"><div class="st-top">${qubiBox('stQ','Hi! I\u2019m Qubi. Where shall we go?','wave')}<h1 class="st-title">${word('Maths',0)} <span>${word('Arcade',5)}</span></h1><p class="st-sub">Games that make maths click.</p></div>
+    <div class="st-opts">
+      <button class="st-opt pri" id="stPri"><span class="st-pop" aria-hidden="true">${qmini(QUBI,'k1')}${qmini(QUBI,'k2','#45d08a')}${qmini(QUBI,'k3','#6aa5ff')}</span><b>Primary Mathematics</b><small>Primary 4 to 6 · ages 10 to 12</small><span class="st-go">Let\u2019s play →</span></button>
+      <a class="st-opt sec" id="stSec" href="#secondary"><span class="st-pop" aria-hidden="true">${qmini(QTEEN,'teen')}</span><b>Secondary Mathematics</b><small>Secondary 1 to 4 · ages 13 to 16</small><span class="st-go">Let\u2019s go →</span></a>
+    </div><div id="stBar" style="margin-top:26px;animation:stfade .7s 2s both">${hubPlayerBar()}</div></div>`;wireHubPlayer();
+  $('stPri').onclick=()=>{sfx.pop();START_SEEN=true;try{sessionStorage.setItem('arcStart','1')}catch(e){}document.body.classList.remove('atstart');if(location.hash.slice(1)==='start')history.replaceState(null,'','#');hub();window.scrollTo(0,0);if(window.MUSICREADY&&(MUSIC.timer||MUSIC.key))playMusic(musicKey())};
+  $('stSec').onclick=()=>sfx.pop()}
+/* ================= SECONDARY HUB: level tabs, games (coming) and the Visual Lab applets ================= */
+const SECLAB=[['discs','s1','±','Zero-Pair Zapper','Integers','Cancel + and − discs to add and subtract negative numbers.','num'],['gradient','s1','m','Gradient Garage','Gradient of a line','Drag the line and watch rise ÷ run change.','num'],['coords','s1','xy','Coordinate Catch','Cartesian coordinates','Catch the stars at the right coordinates.','num'],['parallel','s1','∠','Parallel Lines Lab','Angles and parallel lines','Spot corresponding, alternate and interior angles.','geo'],
+  ['expand','s2','x²','Expansion Area Model','Expanding brackets','See (a + b)(c + d) as the area of a rectangle.','num'],['parabola','s2','∪','Parabola Lab','Quadratic graphs','Slide a, b and c and watch the curve move.','num'],['trig','s2','sin','Trig Ratio Lab','Sine, cosine and tangent','Drag the triangle and compare the ratios.','geo'],
+  ['circles','s3','○','Circle Theorem Studio','Angle properties of circles','Drag points round the circle to test each theorem.','geo'],['vectors','s3','→','Vector Lab','Vectors in two dimensions','Add, subtract and scale vectors by dragging.','geo'],['matrices','s3','[ ]','Matrix Multiplier','Matrices','Watch each row meet each column, step by step.','num'],
+  ['unitcircle','am','sin','Unit Circle to Graph','Trig functions and equations','See the unit circle unroll into a graph.','geo'],['waves','am','∿','Wave Shaper','Graphs of y = a sin bx + c','Shape the wave with a, b and c.','geo'],['inequality','am','><','Inequality Shader','Quadratic inequalities','Shade where the curve is above or below zero.','num'],['perp','am','⊥','Perpendicular Rotator','Perpendicular lines','Rotate a line 90° and see the gradients multiply to −1.','geo']];
+const SECLV=[['s1','Secondary 1'],['s2','Secondary 2'],['s3','Secondary 3 and 4'],['am','Additional Maths']];
+let secLevel='s1';try{secLevel=localStorage.getItem('arcSecLevel')||'s1'}catch(e){}
+function secView(){const labs=SECLAB.filter(a=>a[1]===secLevel);
+  $('view').innerHTML=`<div style="display:grid;gap:22px">
+    <div class="hero"><div class="ht"><h1>${[...'Secondary '].map((c,i)=>c===' '?' ':`<span class="hl" style="--i:${i}">${c}</span>`).join('')}<span>${[...'Maths'].map((c,i)=>`<span class="hl" style="--i:${i+10}">${c}</span>`).join('')}</span></h1></div><div class="mbox" id="secQ"><div class="mbubble">${pick(['Pick a level, then dive in.','What are you working on today?'])}</div>${qmini(QTEEN,'teen')}</div></div>
+    <div class="levels" role="group" aria-label="Level">${SECLV.map(([k,n])=>`<button aria-pressed="${k===secLevel}" data-l="${k}">${n}</button>`).join('')}<a class="btn" href="#start" style="margin-left:auto;align-self:center;text-decoration:none">⇄ Primary / Secondary</a></div>${hubPlayerBar()}
+    <section class="strand" style="--c:var(--teal)"><h2>Games · Number and Algebra</h2>${(()=>{const gs=Object.entries(GAMES).filter(([,g])=>g.sec===secLevel);return gs.length?`<div class="cards">${gs.map(([id,g],ci)=>`<a class="gcard" href="#${id}" style="--c:var(--teal);--i:${ci}"><span class="gl" aria-hidden="true">${g.glyph}</span><span><b>${g.title}</b><small>${g.topic}</small><span class="d">${g.how}</span></span></a>`).join('')}</div><p style="margin:10px 0 0;color:var(--muted);font-size:.92rem"><b>Three levels in every game:</b> Core, Stretch and Challenge. All three cover the same skills; the numbers get harder. Start with Core and move up when it feels easy.</p>`:`<div class="empty"><b>${SECLV.find(l=>l[0]===secLevel)[1]} games are on the way.</b> Secondary 1 is being built first.</div>`})()}</section>
+    <section class="strand" style="--c:var(--violet)"><h2>Visual Lab · explore, then take the challenge</h2><div class="cards">${labs.map((a,ci)=>`<a class="gcard" href="secondary.html#${a[0]}" style="--c:var(--${a[6]==='geo'?'tomato':'violet'});--i:${ci}"><span class="gl" aria-hidden="true">${a[2]}</span><span><b>${a[3]}</b><small>${a[4]}</small><span class="d">${a[5]}</span></span></a>`).join('')}</div></section></div>`;
+  $('view').querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{secLevel=b.dataset.l;try{localStorage.setItem('arcSecLevel',secLevel)}catch(e){}sfx.tap();secView()});wireHubPlayer()}
 let level='P4';try{level=localStorage.getItem('arcLevel')||'P4'}catch(e){}
 function hub(){
   const ids=ORDER.filter(id=>GAMES[id].level===level||GAMES[id].level==='All levels'),other=OTHER[level]||[];
@@ -4922,13 +5175,13 @@ function hub(){
     body+=`<section class="strand" style="--c:${s.c}"><h2>${s.name}</h2><div class="cards">`+
       here.map((id,ci)=>{const g=GAMES[id],b=getBest(id);return `<a class="gcard" href="#${id}" style="--c:${s.c};--i:${ci}"><span class="gl" aria-hidden="true">${g.glyph}</span><span><b>${g.title}</b><small>${g.topic}</small>
         <span class="d">${CARD[id]||''}</span>${b?`<span class="best" aria-label="Best ${b} stars">${starStr(b)}</span>`:''}</span></a>`}).join('')+
-      ext.map(o=>`<a class="gcard" href="${o.url}" target="_blank" rel="noopener" style="--c:${s.c}"><span class="gl" aria-hidden="true">${o.glyph}</span><span><b>${o.title}</b><small>${o.topic} · opens in a new tab</small><span class="d">${o.d}</span></span></a>`).join('')+`</div></section>`});
+      ext.map(o=>`<a class="gcard" href="${o.url}" style="--c:${s.c}"><span class="gl" aria-hidden="true">${o.glyph}</span><span><b>${o.title}</b><small>${o.topic}</small><span class="d">${o.d}</span></span></a>`).join('')+`</div></section>`});
   if(!body)body=`<div class="empty"><b>No ${level} games yet.</b> They are coming next.</div>`;
   $('view').innerHTML=`<div style="display:grid;gap:22px">
-    <div class="hero"><div class="ht"><h1>${[...'Maths '].map((c,i)=>c===' '?' ':`<span class="hl" style="--i:${i}">${c}</span>`).join('')}<span>${[...'Arcade'].map((c,i)=>`<span class="hl" style="--i:${i+6}">${c}</span>`).join('')}</span></h1></div>${qubiBox('hubQ',pick(['Hi! I\u2019m Qubi. Pick a game!','Ready to play? Pick a game!','Which topic today?']),'wave')}</div>
-    <div class="levels" role="group" aria-label="Level">${['P4','P5','P6'].map(l=>`<button aria-pressed="${l===level}" data-l="${l}">Primary ${l[1]}</button>`).join('')}</div>${hubPlayerBar()}${window.ARCROOM&&typeof olRejoinBar==='function'?olRejoinBar():''}${body}</div>`;wireHubPlayer();if(typeof wireRejoin==='function')wireRejoin();
+    <div class="hero"><div class="ht"><h1>${[...'Primary '].map((c,i)=>c===' '?' ':`<span class="hl" style="--i:${i}">${c}</span>`).join('')}<span>${[...'Maths'].map((c,i)=>`<span class="hl" style="--i:${i+8}">${c}</span>`).join('')}</span></h1></div>${qubiBox('hubQ',pick(['Hi! I\u2019m Qubi. Pick a game!','Ready to play? Pick a game!','Which topic today?']),'wave')}</div>
+    <div class="levels" role="group" aria-label="Level">${['P4','P5','P6'].map(l=>`<button aria-pressed="${l===level}" data-l="${l}">Primary ${l[1]}</button>`).join('')}<a class="btn" href="#start" style="margin-left:auto;align-self:center;text-decoration:none">⇄ Primary / Secondary</a></div>${hubPlayerBar()}${window.ARCROOM&&typeof olRejoinBar==='function'?olRejoinBar():''}${body}</div>`;wireHubPlayer();if(typeof wireRejoin==='function')wireRejoin();
   $('view').querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{level=b.dataset.l;try{localStorage.setItem('arcLevel',level)}catch(e){}sfx.tap();hub()})}
-function route(){{const hh=location.hash.slice(1);if(ONLINE.room&&!ONLINE.pending&&!hh.startsWith('join/')&&hh!==ONLINE.gid){if(olInGame()&&!confirm(OL_ASK)){history.replaceState(null,'','#'+ONLINE.gid);return}onlineLeave()}}if(MUSIC.timer||MUSIC.key)playMusic(musicKey());document.body.classList.toggle('ingame',!!GAMES[location.hash.slice(1)]);const h=location.hash.slice(1);if(h.startsWith('join/')&&olSaved()&&olSaved().code===(h.split('/')[1]||'').toLowerCase()&&!ONLINE.room&&Date.now()-olSaved().at>15000){const s=olSaved();history.replaceState(null,'','#');olRejoin(s);return}if(h.startsWith('join/')){const [,code,gid]=h.split('/'),g=olCan(gid)?gid:'p4-rounding';cleanup();ONLINE.autoCode=/^[a-z0-9]{4}$/i.test(code||'')?code.toLowerCase():null;MODE='online';history.replaceState(null,'','#'+g);document.body.classList.add('ingame');playGame(g,{setup:true});window.scrollTo(0,0);return}if(h.startsWith('leaderboard')){cleanup();boardView(h.split('/')[1]);window.scrollTo(0,0)}else if(GAMES[h]){if(ONLINE.pending){const g=ONLINE.pending;ONLINE.pending=null;g()}else playGame(h);window.scrollTo(0,0)}else{cleanup();hub()}}
+function route(){document.body.classList.remove('atstart');{const hh=location.hash.slice(1);if(ONLINE.room&&!ONLINE.pending&&!hh.startsWith('join/')&&hh!==ONLINE.gid){if(olInGame()&&!confirm(OL_ASK)){history.replaceState(null,'','#'+ONLINE.gid);return}onlineLeave()}}if(MUSIC.timer||MUSIC.key)playMusic(musicKey());document.body.classList.toggle('ingame',!!GAMES[location.hash.slice(1)]);const h=location.hash.slice(1);if(h.startsWith('join/')&&olSaved()&&olSaved().code===(h.split('/')[1]||'').toLowerCase()&&!ONLINE.room&&Date.now()-olSaved().at>15000){const s=olSaved();history.replaceState(null,'','#');olRejoin(s);return}if(h.startsWith('join/')){const [,code,gid]=h.split('/'),g=olCan(gid)?gid:'p4-rounding';cleanup();ONLINE.autoCode=/^[a-z0-9]{4}$/i.test(code||'')?code.toLowerCase():null;MODE='online';history.replaceState(null,'','#'+g);document.body.classList.add('ingame');playGame(g,{setup:true});window.scrollTo(0,0);return}if(h.startsWith('leaderboard')){cleanup();boardView(h.split('/')[1]);window.scrollTo(0,0)}else if(GAMES[h]){if(ONLINE.pending){const g=ONLINE.pending;ONLINE.pending=null;g()}else playGame(h);window.scrollTo(0,0)}else{cleanup();if(h==='start'||(h===''&&!START_SEEN))startView();else if(h==='secondary')secView();else hub()}}
 addEventListener('hashchange',route);route();
 
 </script>

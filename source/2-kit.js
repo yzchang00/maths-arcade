@@ -15,17 +15,22 @@ function addGame(id,g){GAMES[id]=g;ORDER.push(id)}
 /* sound: generated live, no files */
 let AC=null,muted=false;try{muted=localStorage.getItem('arcMute')==='1'}catch(e){}
 const ac=()=>{if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC};
-function tone(f,t0,dur,{type='triangle',vol=.16,to=null}={}){const c=ac();if(!c||muted)return;
+/* volume chosen by the player: 1 = normal, 0 = silent, up to 1.5 */
+const VOL={m:1,s:1};try{['m','s'].forEach(k=>{const v=parseFloat(localStorage.getItem('arcVol_'+k));if(v>=0&&v<=1.5)VOL[k]=v})}catch(e){}
+let SFXBUS=null;const sfxBus=c=>{if(!SFXBUS||SFXBUS.context!==c){SFXBUS=c.createGain();SFXBUS.connect(c.destination)}SFXBUS.gain.value=VOL.s;return SFXBUS};
+function tone(f,t0,dur,{type='triangle',vol=.16,to=null}={}){const c=ac();if(!c||muted||VOL.s<=0)return;
   const o=c.createOscillator(),g=c.createGain(),t=c.currentTime+t0;o.type=type;o.frequency.setValueAtTime(f,t);
   if(to)o.frequency.exponentialRampToValueAtTime(to,t+dur);
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-  o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.05)}
+  o.connect(g).connect(sfxBus(c));o.start(t);o.stop(t+dur+.05)}
 const sfx={
   tap(){tone(700,0,.05,{type:'square',vol:.04})},
   pop(){tone(480,0,.1,{type:'sine',vol:.14,to:960})},
   soft(){tone(260,0,.18,{type:'sine',vol:.12,to:180})},
   ok(){[523,659,784,1047].forEach((f,i)=>tone(f,i*.08,.28,{vol:.17}))},
   no(){tone(200,0,.45,{type:'sawtooth',vol:.15,to:100})},
+  /* the secret-round fanfare: a rising sparkle, then a held chord */
+  secret(){[392,494,587,784,988,1175,1568].forEach((f,i)=>tone(f,i*.07,.2,{type:'square',vol:.07}));[784,988,1175,1568].forEach(f=>tone(f,.56,1.1,{type:'triangle',vol:.09}));[2093,2637,3136].forEach((f,i)=>tone(f,.62+i*.12,.25,{type:'sine',vol:.05}))},
   win(){[523,523,523,784,659,784,1047].forEach((f,i)=>tone(f,[0,.14,.28,.42,.7,.84,.98][i],i===6?1.2:.22,{type:'square',vol:.1}))}
 };
 function setMute(m){muted=m;try{localStorage.setItem('arcMute',m?'1':'0')}catch(e){}const b=$('mute');b.innerHTML=(m?'🔇':'🔊')+'<span class="tl"> Sound effects: '+(m?'off':'on')+'</span>';b.setAttribute('aria-label','Sound effects '+(m?'off':'on'));b.setAttribute('aria-pressed',String(!m));b.classList.toggle('off',m);b.title=m?'Turn on the beeps, dings and cheers':'Turn off the beeps, dings and cheers (music is separate)'}
@@ -98,7 +103,7 @@ const api={
       ${c.streak>=3&&c.mode!=='pass'?`<p class="streak">Streak ×${c.streak}</p>`:''}
       ${work.length?`<div class="work"><span class="tag">Working</span>${work.map(w=>`<div>${w}</div>`).join('')}</div>`:''}
       <div><button class="btn primary" id="gNext">${bonusNext?'🎁 Something is unlocked… open it!':last?(c.mode==='solo'?'See my stars':'See the results'):nextName?`Pass to ${esc(nextName)} →`:'Next round →'}</button></div></div>`;
-    $('gNext').onclick=()=>{sfx.tap();if(bonusNext){c.inBonus=true;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}else if(last)finish();else{c.r++;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}};
+    $('gNext').onclick=()=>{sfx.tap();if(bonusNext){c.inBonus=true;sfx.secret();if(window.MUSICREADY)playMusic(musicKey());startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}else if(last)finish();else{c.r++;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}};
     $('gf').scrollIntoView({behavior:calm?'auto':'smooth',block:'nearest'})}
 };
 /* Levels: Easy replays the first half of a game's round types, Hard the second half, Mixed runs the full warm-up-to-hard sequence. */
@@ -113,12 +118,12 @@ function renderScore(){const c=ctx;if(!c||!$('gVs'))return;
   else if(c.G.custom){$('gVs').innerHTML='';return} /* online party games draw their own scoreboard */
   else rows=onlineRows();
   $('gVs').innerHTML=`<div class="vs">${rows.map(x=>`<span class="vsp ${x.me?'me':''}"><b>${esc(x.n)}</b> ${x.s}${x.sub?`<small>${x.sub}</small>`:''}</span>`).join('')}</div>`}
-const LVNAME={easy:'Easy',mixed:'Medium',hard:'Hard'},MODENAME={solo:'Solo',bot:'vs Robot',pass:'Pass & play',online:'Online room',class:'Whole class'};
+const LVNAME={easy:'Easy',mixed:'Medium',hard:'Hard'},SECLVNAME={easy:'Core',mixed:'Stretch',hard:'Challenge'},secG=()=>{const g=GAMES[location.hash.slice(1)];return !!(g&&g.sec)},lvn=l=>(secG()?SECLVNAME:LVNAME)[l],homeHref=()=>secG()?'#secondary':'#',MODENAME={solo:'Solo',bot:'vs Robot',pass:'Pass & play',online:'Online room',class:'Whole class'};
 function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id);document.body.classList.remove('playing');const G=GAMES[id];
   ctx={id,G,r:0,score:0,botScore:0,streak:0,timers:[],answered:false,dead:false,level:opts.level||getLvl(id),mode:MODE,seedBase:opts.seedBase,go:!!opts.go};
   const s=STRANDS[G.strand];
   $('view').innerHTML=`<div style="display:grid;gap:14px;--c:${s.c}">
-    <div class="gbar"><a class="back" href="#">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
+    <div class="gbar"><a class="back" href="${homeHref()}">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
     <div class="gtop"><div class="ghead"><span class="tag">${G.level} · ${G.topic}</span><h2>${G.title}</h2></div>${qubiBox('gQ',pick(['Let’s go!','You can do this!','I believe in you!']))}</div>
     <div id="gSet" class="row"></div><div id="gVs"></div>
     <div class="stagewrap"><button class="stagemenu" id="gMenu" hidden title="Leave this round and go back to this game's start screen">↩ Back to game menu</button><section class="stage" id="gStage"><div id="gq"></div><div id="gb" style="display:grid;gap:14px;min-width:0"></div><div id="gf"></div></section></div></div>`;
@@ -126,7 +131,7 @@ function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id
   $('gMenu').onclick=()=>{sfx.tap();playGame(id)};if($('gLb'))$('gLb').onclick=()=>{sfx.tap();lbPopup(id)};
   if(G.ownStart){$('gSet').hidden=true;G.custom($('gStage'),'solo');return}
   if(!opts.go&&!opts.setup)return startWizard(id);
-  $('gSet').innerHTML=`<span class="setchip">${MODENAME[MODE]||''}${G.custom||(MODE==='online'&&!opts.go)?'':' · '+LVNAME[ctx.level]}</span><button class="btn" id="gChange">Change settings</button>`;
+  $('gSet').innerHTML=`<span class="setchip">${MODENAME[MODE]||''}${G.custom||(MODE==='online'&&!opts.go)?'':' · '+lvn(ctx.level)}</span><button class="btn" id="gChange">Change settings</button>`;
   $('gChange').onclick=()=>{sfx.tap();playGame(id)};
   if(G.custom){$('gStage').innerHTML='';G.custom($('gStage'),MODE);return}
   if(MODE==='pass'&&!opts.go)return passSetup(id);
@@ -148,7 +153,7 @@ function startWizard(id){const G=GAMES[id],modes=G.custom?G.modes.map(m=>m[0]):[
   const draw=()=>{let body='',title='';
     if(st.step===1){title='How do you want to play?';body=tile('solo','🎯','Solo','Play on your own and beat your best.',st.mode==='solo')+tile('multi','👥','Multiplayer',G.custom?'Race a friend or Robo.':'Play against Robo or with friends.',st.mode!=='solo')}
     else if(st.step===2){title='Who are you playing with?';body=multi.map(m=>m==='bot'?tile('bot','🤖','vs Robot','Race Robo, the computer player.',st.mode==='bot'):m==='pass'?tile('pass','📱',G.custom?'2 players':'Pass & play',G.custom?'Two players take turns on this device.':'2 to 4 players take turns on this device.',st.mode==='pass'):m==='online'?tile('online','🌐','Online room','Friends join with a room code on their own devices.',st.mode==='online'):(e=>tile(m,e[3]||'👥',e[1],e[2]||'',st.mode===m))(G.modes.find(x=>x[0]===m))).join('')}
-    else{title='Choose your level';body=tile('easy','🌱','Easy','Easier question types to warm up.',st.level==='easy')+tile('mixed','⚡','Medium','Starts easy and gets harder each round.',st.level==='mixed')+tile('hard','🔥','Hard','Only the toughest question types.',st.level==='hard')}
+    else{title='Choose your level';body=secG()?tile('easy','🌱','Core','The key skills, with friendly numbers.',st.level==='easy')+tile('mixed','⚡','Stretch','The same skills with tougher numbers.',st.level==='mixed')+tile('hard','🔥','Challenge','The hardest numbers and exam-style twists.',st.level==='hard'):tile('easy','🌱','Easy','Easier question types to warm up.',st.level==='easy')+tile('mixed','⚡','Medium','Starts easy and gets harder each round.',st.level==='mixed')+tile('hard','🔥','Hard','Only the toughest question types.',st.level==='hard')}
     const n=st.step===1?1:st.step===2?2:(st.mode==='solo'?2:3),of=st.mode==='solo'?(G.custom?1:2):steps;
     $('gStage').innerHTML=`<div class="wiz"><div class="row" style="justify-content:space-between"><span class="tag">Game start · step ${n}</span>${st.step>1?'<button class="btn" id="wBack">← Back</button>':''}</div>
       <h3>${title}</h3><div class="wtiles">${body}</div></div>`;
@@ -167,17 +172,17 @@ function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
   $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
-  const rr=c.mode==='pass'?effR(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds),c.G.rounds,c.level):effR(c.r,c.G.rounds,c.level);
+  const eff=(r)=>c.G.sec?r:effR(r,c.G.rounds,c.level),rr=c.mode==='pass'?eff(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds)):eff(c.r);
   const real=Math.random;Math.random=mulberry(c.seed);try{if(c.inBonus)c.G.bonus(api);else c.G.round(api,rr)}finally{Math.random=real}
   if(c.mode==='pass')$('gq').insertAdjacentHTML('afterbegin',`<p class="turn">${esc(c.players[c.r%c.players.length].name)}, it's your turn!</p>`);
   if(retry)$('gq').insertAdjacentHTML('afterbegin','<p class="retry" role="status">Not quite. Look carefully and have one more try!</p>');
   renderScore();document.body.classList.add('playing');if(!retry)fitView()}
 function fitView(){requestAnimationFrame(()=>{const st=$('gStage');if(!st)return;const r=st.getBoundingClientRect();if(r.bottom>innerHeight||r.top<0)window.scrollTo({top:Math.max(0,r.top+scrollY-(innerWidth<600?44:24)),behavior:calm?'auto':'smooth'})})}
-function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ','party','Game over! Great playing!',true);
+function finish(){document.body.classList.remove('playing');const c=ctx;if(c.inBonus&&window.MUSICREADY)playMusic(musicKey());qubi('gQ','party','Game over! Great playing!',true);
   if(c.mode==='solo'){const max=c.G.rounds*10,p=c.score/max,st=p>=.9?3:p>=.6?2:p>=.3?1:0;setBest(c.id,st);if(st>=2){sfx.win();confetti(180,true)}setTimeout(()=>arcReport(c.id,c.score,{stars:st,mode:'solo'}),60);
     $('gStage').innerHTML=`<div class="end"><span class="tag">Game complete</span><div class="stars" aria-label="${st} out of 3 stars">${starStr(st)}</div>
       <h3>You scored ${c.score} out of ${max}</h3>${c.inBonus?`<p style="margin:0;font-weight:800">🎁 ${c.bonusOk?'You found the secret bonus round and solved it. Legend!':'You found the secret bonus round! Read the working and try to unlock it again.'}</p>`:''}${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
-      <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
+      <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="${homeHref()}" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
     $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id);return}
   if(c.mode==='online'){c.finished=true;try{localStorage.removeItem(OLRES)}catch(e){}onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
   let title,rows;
@@ -185,7 +190,7 @@ function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ
   else{rows=c.players.map(p=>[p.name,p.score]).sort((a,b)=>b[1]-a[1]);const top=rows.filter(r=>r[1]===rows[0][1]);title=top.length>1?'It’s a tie between '+top.map(t=>esc(t[0])).join(' and ')+'!':esc(rows[0][0])+' wins!'}
   if(c.mode==='pass'||c.score>=c.botScore){sfx.win();confetti(180,true)}if(c.mode==='bot')setTimeout(()=>arcReport(c.id,c.score,{mode:'bot'}),60);
   $('gStage').innerHTML=`<div class="end"><span class="tag">Final scores</span><h3>${title}</h3><ol class="board">${rows.map(r=>`<li><b>${esc(r[0])}</b><span>${r[1]}</span></li>`).join('')}</ol>${c.mode==='pass'&&c.log?`<div class="glogs">${c.players.map((p,i)=>c.log[i]?`<div class="glog"><b>${esc(p.name)}</b><ul>${c.log[i].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:'').join('')}</div>`:''}
-    <div class="row"><button class="btn primary" id="again">Rematch</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
+    <div class="row"><button class="btn primary" id="again">Rematch</button><button class="btn" id="again2">Change settings</button><a class="btn" href="${homeHref()}" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
   $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id)}
 function passSetup(id){const names=PASS||['Player 1','Player 2'];
   $('gStage').innerHTML=`<div class="end"><span class="tag">Pass & play</span><h3>Who is playing?</h3><p style="margin:0;color:var(--muted)">Take turns on this device. Each player gets the same kinds of questions with different numbers.</p>
@@ -318,6 +323,6 @@ function onlineEnd(){const list=onlineRows(),all=ONLINE.timeUp||list.every(x=>x.
   if(!$('olEnd')){$('gStage').innerHTML=`<div class="end" id="olEnd"></div>`;sfx.win();confetti(120,true)}
   $('olEnd').innerHTML=`<span class="tag">${all?'Final leaderboard':'Waiting for others to finish…'}</span><h3>${all&&list[0]?esc(list[0].n.replace(/^★ /,'').replace(' (you)',''))+' wins!':ONLINE.timeUp?'Time\'s up!':'You finished!'}</h3>${all?'':'<p id="olWait" class="olwait"></p>'}
     <ol class="board">${list.map(x=>`<li class="${x.me?'me':''}${x.left?' olleft':''}"><b>${esc(x.n)}</b><span>${x.s}${x.done?'':x.sub}</span></li>`).join('')}</ol>
-    <div class="row">${ONLINE.host?'<button class="btn primary" id="olAgain">Rematch for everyone</button>':'<span style="color:var(--muted)">The host can start a rematch.</span>'}<a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div>`;
+    <div class="row">${ONLINE.host?'<button class="btn primary" id="olAgain">Rematch for everyone</button>':'<span style="color:var(--muted)">The host can start a rematch.</span>'}<a class="btn" href="${homeHref()}" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div>`;
   if($('olAgain'))$('olAgain').onclick=()=>{ctx.finished=false;olHostStart()};
   olEndExtras()}
