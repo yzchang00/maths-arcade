@@ -49,15 +49,15 @@ addGame('p5-volume',{level:'P5',strand:'geo',glyph:'▣',title:'Cube Builder',to
   const ans1=(ans,u,work,q,pic,dec)=>{api.q(`<p class="qt">${q}</p>`);api.body.innerHTML=pic+`<div class="row"><input class="num" id="cuIn" inputmode="${dec?'decimal':'numeric'}" aria-label="Answer"><span>${u}</span><button class="btn primary" id="cuChk">Check</button></div>`;
     $('cuChk').onclick=()=>{const v=parseFloat($('cuIn').value);if(isNaN(v))return;$('cuIn').disabled=true;const ok=Math.abs(v-ans)<.001;api.done(ok,`The answer is ${ans} ${u}.`,work)}};
   if(type==='count'){const L=R(2,5),B=R(2,4),H=R(2,4);
-    ans1(L*B*H,'cm³',[`Each layer has ${L} × ${B} = ${L*B} cubes.`,`There are ${H} layers: ${L*B} × ${H} = <b>${L*B*H} cm³</b>`,'Volume of a cuboid = length × breadth × height'],'What is the volume of this cuboid?',isoCubes(L,B,H))}
+    ans1(L*B*H,'cm³',[`Each layer has ${L} × ${B} = ${L*B} cubes.`,`There are ${H} layers: ${L*B} × ${H} = <b>${L*B*H} cm³</b>`,'Volume of a cuboid = length × breadth × height'],'What is the volume of this cuboid?</p><p class="qs">Each small cube is 1 cm by 1 cm by 1 cm, so it has a volume of <b>1 cm³</b>.',isoCubes(L,B,H))}
   else if(type==='miss'){const L=R(2,6),B=R(2,5),H=R(2,6),V=L*B*H;
     ans1(H,'cm',[`Base area = ${L} × ${B} = ${L*B} cm²`,`Height = volume ÷ base area = ${V} ÷ ${L*B} = <b>${H} cm</b>`],
-      `A cuboid has a volume of <b>${V} cm³</b>. Its base is ${L} cm by ${B} cm (one layer is shown). What is its height?`,isoCubes(L,B,1))}
+      `A cuboid has a volume of <b>${V} cm³</b>. Its base is ${L} cm by ${B} cm (one layer is shown). What is its height?</p><p class="qs">Each small cube is 1 cm by 1 cm by 1 cm, so it has a volume of <b>1 cm³</b>.`,isoCubes(L,B,1))}
   else if(type==='tank'){const L=pick([20,25,30,40,50]),B=pick([10,15,20,25,30]),H=pick([20,25,30,35,40]),w=pick([5,10,15,20].filter(x=>x<H)),V=L*B*w;
     ans1(V/1000,'ℓ',[`Volume of water = ${L} × ${B} × ${w} = ${fmt(V)} cm³`,`1000 cm³ = 1 ℓ, so ${fmt(V)} cm³ = ${fmt(V)} ÷ 1000 = <b>${V/1000} ℓ</b>`],
       `A tank ${L} cm long, ${B} cm wide and ${H} cm high has water ${w} cm deep. How many litres of water are in the tank?`,isoTank(L,B,H,w),true)}
   else{const L0=R(2,6),B0=R(2,6),h=R(2,4),V=L0*B0*h;const d={L:1,B:1,H:1};
-    api.q(`<p class="qt">Build a cuboid with volume <b>${V} cm³</b> and height <b>${h} cm</b>.</p><p class="qs">There may be more than one way.</p>`);
+    api.q(`<p class="qt">Build a cuboid with volume <b>${V} cm³</b> and height <b>${h} cm</b>.</p><p class="qs">Each small cube is 1 cm³ (1 cm by 1 cm by 1 cm). There may be more than one way.</p>`);
     api.body.innerHTML=`<div id="cuP" style="min-height:160px;display:grid;place-items:start"></div><div class="row" id="cuS"></div><div class="row"><span class="pill" id="cuV" style="font-size:1.05rem"></span><button class="btn primary" id="cuChk">Check</button></div>`;
     const draw=()=>{$('cuP').innerHTML=isoCubes(d.L,d.B,d.H);$('cuV').textContent=`Volume: ${d.L} × ${d.B} × ${d.H} = ${d.L*d.B*d.H} cm³`;
       $('cuS').innerHTML=[['L','Length'],['B','Breadth'],['H','Height']].map(([k,n])=>`<div class="stepper"><span>${n}</span><button class="btn" data-k="${k}" data-d="-1" aria-label="${n} down">−</button><b>${d[k]}</b><button class="btn" data-k="${k}" data-d="1" aria-label="${n} up">+</button></div>`).join('');
@@ -150,6 +150,8 @@ function quadSVG(P,labs,marks){const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]),ox=Math
   (marks||[]).forEach(([i,j,n])=>{const a=P[i],b=P[j],m=[(a[0]+b[0])/2,(a[1]+b[1])/2],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy),u=[dx/l,dy/l];
     for(let k=0;k<n;k++){const c=[m[0]+u[0]*(k*7-3),m[1]+u[1]*(k*7-3)];s+=`<path d="M${c[0]-u[0]*7-u[1]*6},${c[1]-u[1]*7+u[0]*6} L${c[0]},${c[1]} L${c[0]-u[0]*7+u[1]*6},${c[1]-u[1]*7-u[0]*6}" fill="none" stroke="var(--tomato)" stroke-width="2.5"/>`}});
   (labs||[]).forEach((lb,i)=>{if(!lb)return;const q=P[i],o=[P[(i+1)%4],P[(i+3)%4]],u=o.map(p=>{const dx=p[0]-q[0],dy=p[1]-q[1],l=Math.hypot(dx,dy);return [dx/l,dy/l]}),bx=u[0][0]+u[1][0],by=u[0][1]+u[1][1],bl=Math.hypot(bx,by);
+    {const r=19,col=lb==='x'?'var(--tomato)':'var(--sun)',sw=(u[0][0]*u[1][1]-u[0][1]*u[1][0])>0?1:0;
+     s+=`<path d="M${(q[0]+u[0][0]*r).toFixed(1)},${(q[1]+u[0][1]*r).toFixed(1)} A${r},${r} 0 0 ${sw} ${(q[0]+u[1][0]*r).toFixed(1)},${(q[1]+u[1][1]*r).toFixed(1)}" fill="none" stroke="${col}" stroke-width="3"/>`}
     s+=`<text x="${(q[0]+bx/bl*36).toFixed(1)}" y="${(q[1]+by/bl*36+5).toFixed(1)}" text-anchor="middle" style="font:800 15px var(--body);fill:${lb==='x'?'var(--tomato)':'var(--ink)'}">${lb}</text>`});
   return `<svg viewBox="${ox} ${oy} ${W} ${H}" class="msvg" style="max-width:340px" role="img" aria-label="Quadrilateral">${s}</svg>`}
 addGame('p5-quads',{level:'P5',strand:'geo',glyph:'▱',title:'Quad Quest',topic:'Parallelogram, rhombus and trapezium',

@@ -83,6 +83,7 @@ const api={
   done(ok,msg,work=[],pts,opt={}){const c=ctx;if(!c||c.answered)return;c.answered=true;if(pts===undefined)pts=ok?10:0;
     if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
+    if(c.inBonus){c.bonusOk=ok;pts=0}
     let extra='';
     if(c.mode==='pass'){const p=c.players[c.r%c.players.length];p.score+=pts}else c.score+=pts;
     c.streak=ok&&c.try===1?c.streak+1:0;
@@ -91,12 +92,12 @@ const api={
     if(c.mode==='online')onlineReport();
     if(ok){sfx.ok();confetti(c.streak>=3?90:45);qubi('gQ','cheer',c.streak>=3?`Streak ×${c.streak}! Unstoppable!`:pick(CHEER))}else{sfx.no();qubi('gQ','oops',pick(OOPS))}
     renderScore();
-    const last=c.r+1>=totalRounds(c),nextName=c.mode==='pass'&&!last?c.players[(c.r+1)%c.players.length].name:'';
+    const last=c.r+1>=totalRounds(c),bonusNext=last&&!c.inBonus&&c.mode==='solo'&&c.G.bonus&&c.score>=c.G.rounds*10,nextName=c.mode==='pass'&&!last?c.players[(c.r+1)%c.players.length].name:'';
     $('gf').innerHTML=`<div class="fb ${ok?'ok':'no'}"><p class="fbt">${ok?pick(PRAISE)+' ':''}${msg}</p>${extra}
       ${c.streak>=3&&c.mode!=='pass'?`<p class="streak">Streak ×${c.streak}</p>`:''}
       ${work.length?`<div class="work"><span class="tag">Working</span>${work.map(w=>`<div>${w}</div>`).join('')}</div>`:''}
-      <div><button class="btn primary" id="gNext">${last?(c.mode==='solo'?'See my stars':'See the results'):nextName?`Pass to ${esc(nextName)} →`:'Next round →'}</button></div></div>`;
-    $('gNext').onclick=()=>{sfx.tap();if(last)finish();else{c.r++;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}};
+      <div><button class="btn primary" id="gNext">${bonusNext?'🎁 Something is unlocked… open it!':last?(c.mode==='solo'?'See my stars':'See the results'):nextName?`Pass to ${esc(nextName)} →`:'Next round →'}</button></div></div>`;
+    $('gNext').onclick=()=>{sfx.tap();if(bonusNext){c.inBonus=true;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}else if(last)finish();else{c.r++;startRound();window.scrollTo({top:0,behavior:calm?'auto':'smooth'})}};
     $('gf').scrollIntoView({behavior:calm?'auto':'smooth',block:'nearest'})}
 };
 /* Levels: Easy replays the first half of a game's round types, Hard the second half, Mixed runs the full warm-up-to-hard sequence. */
@@ -164,9 +165,9 @@ function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach
   if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1}
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
-  $('gRound').innerHTML=`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
+  $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
   const rr=c.mode==='pass'?effR(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds),c.G.rounds,c.level):effR(c.r,c.G.rounds,c.level);
-  const real=Math.random;Math.random=mulberry(c.seed);try{c.G.round(api,rr)}finally{Math.random=real}
+  const real=Math.random;Math.random=mulberry(c.seed);try{if(c.inBonus)c.G.bonus(api);else c.G.round(api,rr)}finally{Math.random=real}
   if(c.mode==='pass')$('gq').insertAdjacentHTML('afterbegin',`<p class="turn">${esc(c.players[c.r%c.players.length].name)}, it's your turn!</p>`);
   if(retry)$('gq').insertAdjacentHTML('afterbegin','<p class="retry" role="status">Not quite. Look carefully and have one more try!</p>');
   renderScore();document.body.classList.add('playing');if(!retry)fitView()}
@@ -174,7 +175,7 @@ function fitView(){requestAnimationFrame(()=>{const st=$('gStage');if(!st)return
 function finish(){document.body.classList.remove('playing');const c=ctx;qubi('gQ','party','Game over! Great playing!',true);
   if(c.mode==='solo'){const max=c.G.rounds*10,p=c.score/max,st=p>=.9?3:p>=.6?2:p>=.3?1:0;setBest(c.id,st);if(st>=2){sfx.win();confetti(180,true)}setTimeout(()=>arcReport(c.id,c.score,{stars:st,mode:'solo'}),60);
     $('gStage').innerHTML=`<div class="end"><span class="tag">Game complete</span><div class="stars" aria-label="${st} out of 3 stars">${starStr(st)}</div>
-      <h3>You scored ${c.score} out of ${max}</h3>${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
+      <h3>You scored ${c.score} out of ${max}</h3>${c.inBonus?`<p style="margin:0;font-weight:800">🎁 ${c.bonusOk?'You found the secret bonus round and solved it. Legend!':'You found the secret bonus round! Read the working and try to unlock it again.'}</p>`:''}${c.log&&c.log[0]?`<div class="glog"><b>Round by round</b><ul>${c.log[0].map(t=>`<li>${t}</li>`).join('')}</ul></div>`:''}<p style="margin:0;color:var(--muted)">${st===3?'Outstanding! You have mastered this topic.':st===2?'Great work! One more game to get all three stars?':'Good effort. Read the working in each round, then try again.'}</p>
       <div class="row"><button class="btn primary" id="again">Play again</button><button class="btn" id="again2">Change settings</button><a class="btn" href="#" style="text-decoration:none;display:inline-flex;align-items:center">Choose another game</a></div></div>`;
     $('again').onclick=()=>playGame(c.id,{go:true});$('again2').onclick=()=>playGame(c.id);return}
   if(c.mode==='online'){c.finished=true;try{localStorage.removeItem(OLRES)}catch(e){}onlineReport(true);onlineEnd();setTimeout(()=>arcReport(c.id,c.score,{mode:'online'}),60);return}
