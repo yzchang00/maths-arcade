@@ -24,7 +24,7 @@ service cloud.firestore {
         'p6-fdiv': 80, 'p6-pchange': 80, 'p6-ratio': 80, 'p6-algebra': 80, 'p6-circle': 80, 'p6-cuberoot': 80,
         'p6-chain': 80, 'p6-average': 80, 'p4-diner': 80, 'p4-train': 80, 'p4-compass': 80, 'p5-pizza': 80,
         'p5-pshop': 80, 'p6-pie': 80, 'party-tug': 1000, 'party-bingo': 1000, 'party-wall': 1000, 'p6-quest': 100,
-        'party-team': 1000
+        'party-team': 1000, 'sg-journeys': 80, 'sg-journeys-2': 80, 'world-journeys': 80
       };
     }
     // Class: empty, or letters/numbers/dash starting with a letter or number (5B, P5-2, 6E1).
