@@ -92,7 +92,7 @@ const api={
     if(c.mode==='online')onlineReport();
     if(ok){sfx.ok();confetti(c.streak>=3?90:45);qubi('gQ','cheer',c.streak>=3?`Streak ×${c.streak}! Unstoppable!`:pick(CHEER))}else{sfx.no();qubi('gQ','oops',pick(OOPS))}
     renderScore();
-    const last=c.r+1>=totalRounds(c),bonusNext=last&&!c.inBonus&&c.mode==='solo'&&c.G.bonus&&c.score>=c.G.rounds*10,nextName=c.mode==='pass'&&!last?c.players[(c.r+1)%c.players.length].name:'';
+    const last=c.r+1>=totalRounds(c),bonusNext=last&&!c.inBonus&&c.mode==='solo'&&c.G.bonus&&c.score>=c.G.rounds*10*0.8,nextName=c.mode==='pass'&&!last?c.players[(c.r+1)%c.players.length].name:'';
     $('gf').innerHTML=`<div class="fb ${ok?'ok':'no'}"><p class="fbt">${ok?pick(PRAISE)+' ':''}${msg}</p>${extra}
       ${c.streak>=3&&c.mode!=='pass'?`<p class="streak">Streak ×${c.streak}</p>`:''}
       ${work.length?`<div class="work"><span class="tag">Working</span>${work.map(w=>`<div>${w}</div>`).join('')}</div>`:''}

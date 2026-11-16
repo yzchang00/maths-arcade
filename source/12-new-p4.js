@@ -344,6 +344,13 @@ function routePick(api,faster,id,then){api.body.insertAdjacentHTML('beforeend',`
   ['Route A','Route B'].forEach(nm=>{const bt=document.createElement('button');bt.className='btn';bt.style.fontSize='1.1rem';bt.textContent=nm;
     bt.onclick=()=>{const box=$(id+'P');if(api.answered||box.dataset.done)return;box.dataset.done=1;const ok=nm===faster;[...box.children].forEach(x=>{x.disabled=true;if(x.textContent===faster)x.classList.add('ok')});if(!ok){bt.classList.add('no');ctx.st[id]=1}sfx[ok?'ok':'no']();
       $(id+'Pm').innerHTML=`<p class="${ok?'askok':'askneed'}">${ok?'Yes!':'Not quite.'} <b>${faster}</b> is faster.</p><p class="asklab"><b>Step 2:</b> by how many minutes is ${faster} faster?</p>`;then()};$(id+'P').appendChild(bt)})}
+/* bus departures as a time line: a dot per bus, a hop between buses, the child standing at the arrival time; the next bus is a "?" */
+function busLine(first,fq,arr,next,kid,no){const n=Math.round((next-first)/fq),nar=innerWidth<600,W=nar?440:660,H=170,x0=nar?34:40,x1=W-(nar?30:40),y=96,sx=t=>x0+(t-first)/(next-first)*(x1-x0);let s=`<rect width="${W}" height="${H}" fill="#eef6ff"/><line x1="${x0-20}" y1="${y}" x2="${x1+20}" y2="${y}" stroke="#2c3446" stroke-width="4"/>`;
+  for(let i=0;i<n;i++){const a=sx(first+i*fq),b=sx(first+(i+1)*fq),m=(a+b)/2,h=Math.min(26,(b-a)*.45);s+=`<path d="M${a} ${y-6} Q${m} ${y-6-h*2} ${b} ${y-6}" fill="none" stroke="#5f50ec" stroke-width="2.5"/>`;if(i<3||n<=5)s+=`<text x="${m}" y="${y-12-h}" text-anchor="middle" font-size="14" font-weight="800" fill="#5f50ec">+${fq}</text>`}
+  for(let i=0;i<=n;i++){const t=first+i*fq,x=sx(t),last=i===n;s+=`<circle cx="${x}" cy="${y}" r="${last?10:7}" fill="${last?'#ffd257':'#5f50ec'}" stroke="#16233a" stroke-width="2"/>`;
+    const gap=sx(first+fq)-sx(first),lbl=gap>=54?3:gap>=30?(i%2===0&&i<4?3:0):1;if(i<lbl)s+=`<text x="${x}" y="${y+30}" text-anchor="middle" font-size="16" font-weight="800" fill="#16233a">${ttm(t)}</text>`;if(last)s+=`<text x="${x}" y="${y+32}" text-anchor="middle" font-size="20" font-weight="900" fill="#c2410c">?</text>`}
+  const ax=sx(arr);s+=`<line x1="${ax}" y1="${y+8}" x2="${ax}" y2="${y+44}" stroke="#c2410c" stroke-width="3" stroke-dasharray="4 4"/><g transform="translate(${ax},${y+58})"><circle r="11" fill="#fff" stroke="#c2410c" stroke-width="2.5"/><circle cy="-5" r="2.4" fill="#16233a"/><path d="M0 -2.5 L0 3.5 M0 3.5 L-3 8 M0 3.5 L3 8 M-4 0 L4 -1" stroke="#16233a" stroke-width="1.8" stroke-linecap="round" fill="none"/></g><text x="${ax>W*.55?ax-16:ax+16}" y="${y+64}" text-anchor="${ax>W*.55?'end':'start'}" font-size="15" font-weight="800" fill="#c2410c">${kid} arrives ${ttm(arr)}</text>`;
+  return `<div class="jmwrap" style="max-width:920px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26"><div class="tbh" style="padding:7px 12px">🚌 Bus ${no}: first bus ${ttm(first)}, then every ${fq} min</div><svg class="tmap-nozoom" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Time line of bus ${no}: first bus at ${ttm(first)}, then every ${fq} minutes. ${kid} arrives at ${ttm(arr)}.">${s}</svg></div>`}
 /* shared round builder for SG Journeys (P4) and SG Journeys 2 (P5) */
 function sgRound(api,type){
   const[kid,pr]=pick(SGKIDS),Pr=pr[0].toUpperCase()+pr.slice(1);
@@ -409,7 +416,7 @@ function sgRound(api,type){
     return}
   if(type==='freq'){const no=pick(['14','36','75','190','506','851']),fq=pick([8,10,12,15,20]),first=R(5,6)*60+pick([0,5,10,15,30]),k=R(4,8),next=first+k*fq,arr=next-R(1,fq-1);
     api.q(`<p class="qt">The first bus <b>${no}</b> leaves the bus interchange at <b>${ttm(first)}</b>. After that, a bus leaves <b>every ${fq} minutes</b>. Each bus leaves exactly on time and does not wait for anyone.</p><p class="qt">${kid} reaches the interchange at <b>${ttm(arr)}</b>. What time does the next bus that ${pr} can catch leave?</p>`);
-    api.body.innerHTML=busBoard([ttm(first),ttm(first+fq),ttm(first+2*fq),`… every ${fq} min`],`Bus ${no} timetable`,`Bus ${no} leaves at:`)+board([[`${kid} arrives at`,ttm(arr)],[`Next bus ${kid} can catch`,'??  ??']],'At the interchange','🧍');
+    api.body.innerHTML=busLine(first,fq,arr,next,kid,no);
     const list=[];for(let t=first;t<=next;t+=fq)list.push(ttm(t));
     askTime(api,'sgF',next,[[arr+fq,`You added ${fq} min to the time ${kid} arrived. The buses leave at ${ttm(first)}, ${ttm(first+fq)}, ${ttm(first+2*fq)}… Count on in jumps of ${fq} min from <b>${ttm(first)}</b>.`],[next-fq,`The ${ttm(next-fq)} bus has already left when ${kid} arrives at ${ttm(arr)}. Look for the first bus <b>after</b> ${ttm(arr)}.`]],
       `The next bus leaves at ${ttm(next)}.`,[`Count on in jumps of ${fq} min from ${ttm(first)}:`,list.join(' → '),`The first bus after ${ttm(arr)} is at <b>${ttm(next)}</b>.`]);return}
@@ -434,7 +441,7 @@ function sgRound(api,type){
         api.done(ok,ok?`The ${ttm(lb)} bus gets ${ob} there at ${ttm(lb+d)}, in time.`:t>lb?`The ${ttm(t)} bus arrives at ${ttm(t+d)}, which is after ${ttm(T)}: too late!`:`The ${ttm(t)} bus works, but it is not the <b>latest</b>. The ${ttm(lb)} bus still arrives by ${ttm(T)}.`,work)};$('sgPc').appendChild(b)});return}
  }
 
-/* SG Journeys 2 secret bonus (all 8 right first time): Jas's real trip to school at SIT, Punggol */
+/* SG Journeys 2 secret bonus (score 80% or more): Jas's real trip to school at SIT, Punggol */
 function sgBonus(api){
   const st=(n,k)=>{const p=MRT[k].P.find(q=>q.n===n);return{n,x:p.x,y:p.y,kind:'stn',col:MRT[k].col}};
   const ns=R(26,30),c1=R(3,5),cc=R(4,5),c2=R(3,5),ne=R(13,16),wA=R(2,4),ns2=R(14,17),w1=R(3,5),wait=R(3,10),bus=R(50,58),wB=R(2,4);
@@ -551,7 +558,7 @@ addGame('world-journeys',{level:'P6',strand:'geo',glyph:'🌏',title:'Beat the C
   askTime(api,'wjC',ans,[[T+t+B,`That is after the train leaves! Count <b>back</b> from ${ttm(T)}.`],[T-t,`You forgot the ${B} min to buy a ticket.`],[T-B,`You forgot the walk: ${D} ÷ ${s} = ${t} min.`]],`${Pr} must leave by ${ttm(ans)}.`,
     [`Walking time = ${D} ÷ ${s} = ${t} min`,`Walk + ticket = ${t} + ${B} = ${t+B} min`,`${ttm(T)} − ${t+B} min = <b>${ttm(ans)}</b>`]);
  },
- /* secret bonus (all 8 right first time): time zones */
+ /* secret bonus (score 80% or more): time zones */
  bonus(api){const TZ=[['Tokyo','Japan',1,[390,420]],['Seoul','South Korea',1,[380,410]],['Bangkok','Thailand',-1,[140,160]],['Dubai','the United Arab Emirates',-4,[440,470]],['London','the United Kingdom',-8,[830,860]],['Sydney','Australia',3,[460,490]]];
   let Z,a,f,loc;do{Z=pick(TZ);a=R(7,15)*60+pick([0,10,15,20,30,40,45,50]);f=R(Z[3][0]/5,Z[3][1]/5)*5;loc=a+f+Z[2]*60}while(loc>=1440||loc<0);
   const z=Math.abs(Z[2]),dir=Z[2]>0?'ahead of':'behind';
