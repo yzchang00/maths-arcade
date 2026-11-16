@@ -600,11 +600,20 @@ function wjMap(T,o){const M=WMAPS[T.map],S=M.stops,fsc=innerWidth<600?1.3:1,fs=v
     const [mx,my]=cands.find(fits)||cands[0];
     s+=`<g><rect x="${(mx-w/2).toFixed(1)}" y="${(my-h/2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${(h/2).toFixed(1)}" fill="#ef5240" stroke="#fff" stroke-width="2"/><text x="${mx.toFixed(1)}" y="${(my+6*fsc).toFixed(1)}" text-anchor="middle" style="font:800 ${fs(16)}px var(--body,sans-serif);fill:#fff">${o.lab}</text></g>`}
   if(o.jam&&seg){const m=seg[Math.floor(seg.length/2)];s+=`<g transform="translate(${m[0]},${m[1]+26})"><rect x="-38" y="-12" width="76" height="24" rx="12" fill="#c2410c"/><text y="5" text-anchor="middle" style="font:800 ${fs(13)}px var(--body,sans-serif);fill:#fff">🚗🚗 jam</text></g>`}
-  if(seg&&!o.noSprite){const d='M'+seg.map(p=>p.join(' ')).join(' L');
-    if(!calm)s+=`<g>${WJS[T.m]||WJS.walk}<animateMotion dur="3.2s" fill="freeze" path="${d}"/><set attributeName="opacity" to="0" begin="3.6s" fill="freeze"/></g>`}
+  if(seg&&!o.noSprite&&!calm)s+=`<g id="wjSpr" data-p="${seg.map(p=>p.join(',')).join(' ')}" transform="translate(${seg[0].join(',')})"><g>${WJS[T.m]||WJS.walk}</g></g>`;
   return `<div class="jmwrap" style="max-width:920px;border:3px solid #2c3446;border-radius:14px;overflow:hidden;background:#141a26"><div class="tbh" style="padding:7px 12px">📍 ${o.head||T.c}</div><svg class="wjsvg tmap-nozoom" viewBox="0 0 660 320" style="width:100%;height:auto;display:block" role="img" aria-label="Map of ${T.c} with ${S.map(p=>p[0]).join(', ')}">${css}${s}</svg>${o.note?`<div style="padding:6px 12px;color:#c8d0dc;font-size:.9rem">${o.note}</div>`:''}</div>
   ${calm||o.noSprite?'':'<div class="row" style="margin-top:8px"><button class="btn" id="wjPlay">▶ Replay</button></div>'}`}
-function wjWire(){const go=()=>document.querySelectorAll('.wjsvg').forEach(s=>{try{s.setCurrentTime(0)}catch(e){}});go();const b=$('wjPlay');if(b)b.onclick=()=>{sfx.tap();go()}}
+let wjTok=0;
+/* move the vehicle along the highlighted route (it faces the way it travels), then fade it so it does not cover the labels */
+function wjWire(){const g=$('wjSpr');if(!g)return;const P=g.dataset.p.split(' ').map(q=>q.split(',').map(Number)),L=[0];for(let i=1;i<P.length;i++)L.push(L[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));
+  const tot=L[L.length-1]||1,inner=g.firstElementChild;
+  const run=()=>{const tok=++wjTok,D=3200;let t0=null;g.style.opacity=1;
+    const step=now=>{if(tok!==wjTok||!g.isConnected)return;if(t0===null)t0=now;const u=Math.min(1,(now-t0)/D),d=u*tot;let i=1;while(i<P.length-1&&L[i]<d)i++;
+      const f=(d-L[i-1])/((L[i]-L[i-1])||1),x=P[i-1][0]+(P[i][0]-P[i-1][0])*f,y=P[i-1][1]+(P[i][1]-P[i-1][1])*f;
+      g.setAttribute('transform',`translate(${x.toFixed(1)},${y.toFixed(1)})`);inner.setAttribute('transform',P[i][0]<P[i-1][0]?'scale(-1,1)':'scale(1,1)');
+      if(u<1)requestAnimationFrame(step);else setTimeout(()=>{if(tok===wjTok&&g.isConnected)g.style.opacity=0},900)};
+    requestAnimationFrame(step)};
+  run();const b=$('wjPlay');if(b)b.onclick=()=>{sfx.tap();run()}}
 const gcdN=(a,b)=>b?gcdN(b,a%b):a;
 const hstr=t=>{if(t%60===0)return `${t/60} h`;const w=Math.floor(t/60),r=t%60,g=gcdN(r,60);return `${w?w+' ':''}${fr(r/g,60/g)} h`};
 const decMis=t=>{const h=t/60;if(t%60===0||Math.round(h*100)!==h*100)return null;return Math.floor(h)*60+Math.round(h%1*100)};
