@@ -1,13 +1,25 @@
 rules_version = '2';
 // Paste this into Firebase console → Firestore Database → Rules, then press Publish.
-// Only the email below can open the tracker or delete leaderboard entries. Everything not listed here is blocked.
+// Only the admin email below can open the tracker, see every pupil or delete leaderboard entries. Everything not listed here is blocked.
+// Teachers (optional, added later): a document in staff/{their email} = { role: "teacher", classes: ["5B", "6A"] } lets that Google
+// account read the profiles and game history of pupils in those classes only. Only the admin can create or change staff documents.
 // Every device signs in with an invisible anonymous ID (Authentication → Anonymous must be ON), so a device can only change its own entries.
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isTeacher() {
+    function isAdmin() {
       return request.auth != null && request.auth.token.email_verified == true
         && request.auth.token.email in ["xxyanzhangxx@gmail.com"];   // admin: only Yan
     }
+    function isTeacher() { return isAdmin(); }   // older rules below use this name
+    // A teacher who has been given this class by the admin (see staff/{email}).
+    function teaches(cls) {
+      return request.auth != null && request.auth.token.email_verified == true
+        && cls is string && cls != ''
+        && exists(/databases/$(database)/documents/staff/$(request.auth.token.email))
+        && cls in get(/databases/$(database)/documents/staff/$(request.auth.token.email)).data.classes;
+    }
+    // Signed in with a real account (Google), not the invisible anonymous ID.
+    function hasAccount() { return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
     function signedIn() { return request.auth != null; }
     function shortText(v, n) { return v is string && v.size() <= n; }
     // Server-side backstop for the worst words (the website has a fuller filter; this stops anyone bypassing it).
@@ -69,6 +81,48 @@ service cloud.firestore {
         && request.resource.data.ts == request.time;
       allow read, delete: if isTeacher();
       allow update: if false;
+    }
+
+    // Staff list. Only the admin can change it; a teacher can read their own entry.
+    match /staff/{email} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == email);
+      allow write: if isAdmin();
+    }
+
+    // Profile of a pupil who signed in with Google: who they are, and when they first and last came.
+    // The pupil writes their own; the admin (or a teacher of their class) can read it.
+    match /users/{uid} {
+      function okUser() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['name','email','nick','cls','first','last'])
+          && shortText(d.name, 60) && shortText(d.email, 100) && d.email == request.auth.token.email
+          && shortText(d.nick, 14) && shortText(d.cls, 8) && cleanName(d.nick) && cleanName(d.cls)
+          && d.last == request.time;
+      }
+      allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin() || teaches(resource.data.cls);
+      allow create: if hasAccount() && request.auth.uid == uid && okUser() && request.resource.data.first == request.time;
+      allow update: if hasAccount() && request.auth.uid == uid && okUser() && request.resource.data.first == resource.data.first;
+      allow delete: if isAdmin();
+    }
+
+    // Game history of signed-in pupils: one document per finished game. Never changed after it is written.
+    match /plays/{id} {
+      function okPlay() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['uid','nick','cls','game','title','level','strand','topic','diff','mode','score','max','stars','res','rt','ts'])
+          && d.uid == request.auth.uid
+          && shortText(d.nick, 14) && shortText(d.cls, 8) && cleanName(d.nick) && cleanName(d.cls)
+          && shortText(d.game, 40) && shortText(d.title, 60) && shortText(d.level, 12) && shortText(d.strand, 12) && shortText(d.topic, 80)
+          && shortText(d.diff, 8) && shortText(d.mode, 8)
+          && d.score is int && d.score >= 0 && d.score <= 20000 && d.max is int && d.max >= 0 && d.max <= 20000
+          && d.stars is int && d.stars >= -1 && d.stars <= 3
+          && shortText(d.res, 40) && d.res.matches('^[0-2]*$') && shortText(d.rt, 120)
+          && d.ts == request.time;
+      }
+      allow create: if hasAccount() && okPlay();
+      allow read: if (request.auth != null && resource.data.uid == request.auth.uid) || isAdmin() || teaches(resource.data.cls);
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     // Saved progress for pupils who sign in with Google: each pupil can only read and write their own.

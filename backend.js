@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, doc, query, where, limit, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, linkWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { firebaseConfig } from "./firebase-config.js";
+import { firebaseConfig, teacherEmails } from "./firebase-config.js";
 
 if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
   const app = initializeApp(firebaseConfig);
@@ -50,7 +50,33 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
     }
   };
 
+  // ---- Profiles (Google sign-in only). users/{uid} holds who signed in; plays/{id} holds each finished game.
+  // The rules let a pupil read only their own; the admin (and, later, teachers for their own classes) can read them.
+  const ADMINS = (teacherEmails || []).map(x => String(x).toLowerCase());
+  const myNick = () => { try { return JSON.parse(LS.getItem("arcMe") || "null") || {}; } catch (e) { return {}; } };
+  const touchUser = async (u) => {
+    const ref = doc(db, "users", u.uid), me = myNick();
+    const base = { name: clean(u.displayName, 60), email: clean(u.email, 100), nick: clean(me.nick, 14), cls: clean(me.cls, 8), last: serverTimestamp() };
+    const s = await getDoc(ref);
+    return setDoc(ref, { ...base, first: s.exists() && s.data().first ? s.data().first : serverTimestamp() });
+  };
+  // Is this account staff? The admin list is in firebase-config.js. Teachers are documents in staff/{email} = { role: "teacher", classes: ["5B", ...] }.
+  const staffOf = async (u) => {
+    const email = String(u.email || "").toLowerCase();
+    if (ADMINS.includes(email)) return { admin: true, staff: true };
+    try { const s = await getDoc(doc(db, "staff", email)); if (s.exists()) return { admin: false, staff: true, classes: s.data().classes || [] }; } catch (e) {}
+    return { admin: false, staff: false };
+  };
+
   window.ARCB = {
+    // One finished game of a signed-in pupil (guests are never recorded here).
+    play: async (p) => { if (!user) return; return addDoc(collection(db, "plays"), {
+      uid: user.uid, nick: clean(p.nick, 14), cls: clean(p.cls, 8), game: clean(p.game, 40), title: clean(p.title, 60), level: clean(p.level, 12),
+      strand: clean(p.strand, 12), topic: clean(p.topic, 80), diff: clean(p.diff || "-", 8), mode: clean(p.mode, 8),
+      score: Math.round(p.score) || 0, max: Math.round(p.max) || 0, stars: p.stars == null ? -1 : p.stars,
+      res: clean(p.res, 40), rt: clean(p.rt, 120), ts: serverTimestamp() }); },
+    // Called after the pupil picks or changes their nickname or class.
+    profile: async () => { if (user) return touchUser(user); },
     // One document per player per game per difficulty, holding their best score only.
     // Stars are kept from the best solo result, so a higher robot/online score never wipes a 3-star solo result.
     // Returns {saved}, {kept} (an equal or better score is already there) or {taken} (that name and class belong to another device).
@@ -146,8 +172,10 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
     user = null; window.ARCB.user = null;
     if (u && !u.isAnonymous) {
       try { const s = await getDoc(doc(db, "players", u.uid)); if (s.exists()) mergeIn(s.data().p); } catch (e) { console.warn("Could not load progress", e); }
-      user = u; window.ARCB.user = { first: clean((u.displayName || "").split(" ")[0], 20) };
+      user = u; window.ARCB.user = { first: clean((u.displayName || "").split(" ")[0], 20), admin: false, staff: false };
       save();
+      touchUser(u).catch(e => console.warn("Profile not saved", e));
+      staffOf(u).then(r => { if (window.ARCB.user && user === u) { Object.assign(window.ARCB.user, r); if (r.staff) dispatchEvent(new Event("arcb-auth")); } });
     }
     dispatchEvent(new Event("arcb-auth"));
   });

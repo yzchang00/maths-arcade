@@ -4,8 +4,16 @@
 const SID=Math.random().toString(36).slice(2,10);
 function arcMe(){try{return JSON.parse(localStorage.getItem('arcMe')||'null')}catch(e){return null}}
 function arcSetMe(m){try{localStorage.setItem('arcMe',JSON.stringify(m))}catch(e){}}
-function arcLog(event,game,score){if(!window.ARCB)return;const me=arcMe();
+/* A profile (nickname on the leaderboard, saved progress, play history) needs a Google sign-in. Everyone else is a guest. */
+const signedIn=()=>!!(window.ARCB&&window.ARCB.user);
+const myProfile=()=>{const me=arcMe();return signedIn()&&me&&me.nick?me:null};
+function arcLog(event,game,score){if(!window.ARCB)return;const me=myProfile();
   window.ARCB.log({event,game:game||'',score:score==null?-1:Math.max(0,Math.min(1000,Math.round(score))),nick:me?me.nick:'',cls:me?me.cls:'',sid:SID,device:innerWidth<600?'phone':innerWidth<1000?'tablet':'computer'}).catch(()=>{})}
+/* one finished game of a signed-in pupil, kept for the teacher's view: score plus how each round went (2 = first try, 1 = second try, 0 = wrong) */
+function arcPlay(id,score,o){const G=GAMES[id],me=arcMe()||{},c=typeof ctx!=='undefined'&&ctx&&ctx.id===id?ctx:null;if(!G||!window.ARCB.play)return;
+  window.ARCB.play({game:id,title:G.title,level:G.level||'',strand:G.strand||'',topic:G.topic||'',diff:o.diff||(hasDiff(id)&&c?c.level:'-'),mode:o.mode||'solo',
+    score:Math.max(0,Math.min(SCORECAP[id]||1000,Math.round(score))),max:c&&hasDiff(id)?c.G.rounds*10:0,stars:o.stars==null?-1:o.stars,
+    res:c&&c.res?c.res.join('').slice(0,40):'',rt:c&&c.rt?c.rt.join(',').slice(0,120):'',nick:me.nick||'',cls:me.cls||''}).catch(()=>{})}
 /* difficulty of the game just played: Easy / Medium / Hard for normal games, '-' for games with their own start screen */
 const DIFFS=[['easy','Easy'],['mixed','Medium'],['hard','Hard'],['old','Older']],DIFFPTS={easy:1,mixed:2,hard:3,old:1};
 /* Champion points for one result: 3 stars in Solo. Easy/Medium/Hard = 1/2/3; scores saved before levels existed ("old") = 1; PSLE Quest = 3. */
@@ -16,8 +24,11 @@ const champPts=(game,diff,stars)=>stars!==3?0:hasDiff(game)?(DIFFPTS[diff]||0):(
 /* class must look like a class: letters, numbers or a dash, starting with a letter or number (e.g. 5B, P5-2, 6E1) */
 const okClass=c=>c===''||/^[A-Z0-9][A-Z0-9-]{0,7}$/.test(c);
 const hasDiff=id=>GAMES[id]&&!GAMES[id].custom&&!GAMES[id].ownStart;
-async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();if(!o.again)arcLog('finish',id,score);
-  if(!me||!me.nick){lbNote('<button class="btn" id="lbJoin">🏆 Add my name to the leaderboard</button>',()=>$('lbJoin').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));return}
+async function arcReport(id,score,o={}){if(!window.ARCB)return;if(!o.again)arcLog('finish',id,score);
+  if(signedIn()&&!o.played){arcPlay(id,score,o);o={...o,played:1}}
+  const me=myProfile();
+  if(!signedIn()){lbNote('You are playing as a <b>guest</b>, so this score is not saved. <button class="btn sm" id="lbJoin">Sign in with Google to save it</button>',()=>$('lbJoin').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));return}
+  if(!me){lbNote('<button class="btn" id="lbJoin">🏆 Pick a nickname for the leaderboard</button>',()=>$('lbJoin').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));return}
   if(me.cls&&!okClass(String(me.cls).toUpperCase()))return lbNote(`Your class "${esc(me.cls)}" doesn't look like a class. <button class="btn sm" id="lbFix">Fix my class</button>`,()=>$('lbFix').onclick=()=>playerPrompt(()=>arcReport(id,score,{...o,again:1})));
   const G=GAMES[id],diff=o.diff||(hasDiff(id)&&ctx&&ctx.id===id?ctx.level:'-');
   try{const res=await window.ARCB.post({game:id,title:G.title,level:G.level,diff,nick:me.nick,cls:me.cls||'',score:Math.max(0,Math.min(SCORECAP[id]||1000,Math.round(score))),stars:o.stars==null?-1:o.stars,mode:o.mode||'solo'});
@@ -30,24 +41,40 @@ async function arcReport(id,score,o={}){if(!window.ARCB)return;const me=arcMe();
 function lbNote(html,wire){const end=document.querySelector('#gStage .end, #vmOver .end, .ptover .end, .rqrep');if(!end)return;let n=end.querySelector('.lbnote');if(!n){n=document.createElement('p');n.className='lbnote';end.appendChild(n)}n.innerHTML=html;if(wire)wire()}
 /* keep each player's best score only, highest first */
 function bestPer(rows){const m=new Map();rows.forEach(r=>{const k=r.nick+'|'+(r.cls||'');if(!m.has(k)||m.get(k).score<r.score||(m.get(k).score===r.score&&r.t<m.get(k).t))m.set(k,r)});return [...m.values()].sort((a,b)=>b.score-a.score||a.t-b.t)}
-function playerPrompt(after){const old=arcMe()||{nick:'',cls:''};const o=document.createElement('div');o.className='zoomov lbmodal';
-  o.innerHTML=`<div class="end"><span class="tag">Who's playing?</span><h3>Pick a nickname</h3><p style="margin:0">Use a nickname, <b>not your full name</b>. It shows on the leaderboard.</p>
-    <label class="row"><b>Nickname</b><input class="num" id="lbNick" maxlength="14" style="width:10em" value="${esc(old.nick)}" placeholder="e.g. Speedy Sam"></label>
-    <label class="row"><b>Class</b><input class="num" id="lbCls" maxlength="8" style="width:6em" value="${esc(old.cls)}" placeholder="e.g. 5B"></label><p id="lbErr" class="askneed"></p>
-    <div class="row"><button class="btn primary" id="lbOk">Save</button><button class="btn" id="lbGuest">Play as guest</button></div>
-    ${window.ARCB&&window.ARCB.canSignIn&&!window.ARCB.user?`<p style="margin:6px 0 0">Have a Google account? Sign in to keep your progress on any device. (Optional)</p><div class="row"><button class="btn" id="lbGoogle">☁️ Sign in with Google</button></div>`:''}</div>`;
-  document.body.appendChild(o);$('lbNick').focus();
+/* Not signed in: choose "Sign in with Google" (creates a profile) or "Play as guest". Signed in: pick or change the nickname and class. */
+function playerPrompt(after){const o=document.createElement('div');o.className='zoomov lbmodal';document.body.appendChild(o);
   const close=()=>{o.remove();if(isHome())homeView()};
-  $('lbGuest').onclick=()=>{arcSetMe({nick:'',cls:'',guest:1});close()};
-  const g=$('lbGoogle');if(g)g.onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();const m=arcMe();if(m&&m.nick){close();if(after)after()}else{g.parentNode.previousElementSibling.textContent='Signed in! Now type a nickname and press Save.';g.remove();$('lbNick').focus()}}catch(e){$('lbErr').textContent='Sign-in did not finish. You can still type a nickname and press Save.'}};
-  $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
-    if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(isBadNick(nick))return $('lbErr').textContent='Please choose a kinder nickname.';if(isBadNick(cls)||!okClass(cls))return $('lbErr').textContent='Type your class like 5B or P5-2 (letters and numbers only), or leave it empty.';
-    arcSetMe({nick,cls});arcLog('join');sfx.ok();close();if(after)after()}}
-function hubPlayerBar(){if(!window.ARCB)return '';const me=arcMe();
-  return `<div class="row lbbar">${me&&me.nick?`<span class="pill">👤 ${esc(me.nick)}${me.cls?' · '+esc(me.cls):''}</span>`:'<span class="pill">👤 Guest</span>'}<button class="btn" id="lbWho">${me&&me.nick?'Change':'Add my name'}</button><a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>${!window.ARCB.canSignIn?'':window.ARCB.user?`<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${window.ARCB.user.first?' · '+esc(window.ARCB.user.first):''}</span><button class="btn" id="lbOut">Sign out</button>`:'<button class="btn" id="lbIn">☁️ Save my progress</button>'}</div>`}
+  const nickForm=()=>{const old=arcMe()||{nick:'',cls:''};
+    o.innerHTML=`<div class="end"><span class="tag">Your profile</span><h3>Pick a nickname</h3><p style="margin:0">Use a nickname, <b>not your full name</b>. It shows on the leaderboard.</p>
+      <label class="row"><b>Nickname</b><input class="num" id="lbNick" maxlength="14" style="width:10em" value="${esc(old.nick||'')}" placeholder="e.g. Speedy Sam"></label>
+      <label class="row"><b>Class</b><input class="num" id="lbCls" maxlength="8" style="width:6em" value="${esc(old.cls||'')}" placeholder="e.g. 5B"></label><p id="lbErr" class="askneed"></p>
+      <div class="row"><button class="btn primary" id="lbOk">Save</button><button class="btn" id="lbCancel">${old.nick?'Cancel':'Not now'}</button></div></div>`;
+    $('lbNick').focus();$('lbCancel').onclick=close;
+    $('lbOk').onclick=()=>{const nick=$('lbNick').value.trim().replace(/\s+/g,' '),cls=$('lbCls').value.trim().toUpperCase().replace(/\s+/g,'');
+      if(nick.length<2)return $('lbErr').textContent='Type a nickname with at least 2 letters.';if(isBadNick(nick))return $('lbErr').textContent='Please choose a kinder nickname.';if(isBadNick(cls)||!okClass(cls))return $('lbErr').textContent='Type your class like 5B or P5-2 (letters and numbers only), or leave it empty.';
+      arcSetMe({nick,cls});if(window.ARCB.profile)window.ARCB.profile().catch(()=>{});arcLog('join');sfx.ok();close();if(after)after()}};
+  if(signedIn())return nickForm();
+  o.innerHTML=`<div class="end"><span class="tag">Welcome to Maths Arcade</span><h3>How do you want to play?</h3>
+    <div style="display:grid;gap:10px">
+      <button class="btn primary" id="lbGoogle" style="text-align:left;padding:12px 16px"><b style="display:block;font-size:1.1rem">☁️ Sign in with Google</b><span style="font-weight:600">Create a profile: your nickname on the leaderboard, and your progress saved on any device.</span></button>
+      <button class="btn" id="lbGuest" style="text-align:left;padding:12px 16px"><b style="display:block;font-size:1.1rem">👤 Play as a guest</b><span style="font-weight:600">Just play. Scores and progress are not saved.</span></button></div>
+    <p style="margin:6px 0 0;font-size:.9rem;color:var(--muted)">If you sign in, your teacher can see your Google name and email, and how you did in each game, to help you improve.</p><p id="lbErr" class="askneed"></p></div>`;
+  $('lbGuest').onclick=()=>{if(!(arcMe()||{}).nick)arcSetMe({nick:'',cls:'',guest:1});close()};
+  $('lbGoogle').onclick=async()=>{$('lbErr').textContent='';try{await arcSignIn();if(!signedIn())throw 0;const m=arcMe();if(m&&m.nick){if(window.ARCB.profile)window.ARCB.profile().catch(()=>{});close();if(after)after()}else nickForm()}catch(e){$('lbErr').textContent='Sign-in did not finish. Try again, or play as a guest.'}}}
+/* Tracker link: a small pill fixed in the bottom-right corner of the home pages, shown only to the admin and to teachers. */
+function staffCorner(){var u=window.ARCB&&window.ARCB.user,h=location.hash.slice(1),on=!!(u&&u.staff)&&(h===''||h==='start'||h==='secondary'),a=document.getElementById('staffCorner');
+  if(!on){if(a)a.remove();return}
+  if(!a){a=document.createElement('a');a.id='staffCorner';a.href='dashboard.html';a.title='See who has signed in and how they are doing';
+    a.style.cssText='position:fixed;right:12px;bottom:12px;z-index:40;display:inline-flex;align-items:center;gap:6px;font:800 13px var(--body);color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:6px 12px;text-decoration:none;box-shadow:0 3px 0 rgba(0,0,0,.18)';document.body.appendChild(a)}
+  a.textContent='🛠 '+(u.admin?'Tracker':'My classes')}
+window.addEventListener('hashchange',function(){setTimeout(staffCorner,0)});window.addEventListener('arcb-auth',function(){setTimeout(staffCorner,0)});window.addEventListener('arcb-ready',function(){setTimeout(staffCorner,0)});
+function hubPlayerBar(){if(!window.ARCB)return '';const me=myProfile(),u=window.ARCB.user;
+  const champs='<a class="btn primary" href="#leaderboard" style="text-decoration:none;display:inline-flex;align-items:center">🏆 Champions</a>';
+  if(!u)return `<div class="row lbbar"><span class="pill" title="Guests can play everything, but scores and progress are not saved">👤 Guest</span>${window.ARCB.canSignIn?'<button class="btn" id="lbIn" title="Create a profile to save your scores and progress">☁️ Sign in with Google</button>':''}${champs}</div>`;
+  return `<div class="row lbbar"><span class="pill">👤 ${me?esc(me.nick)+(me.cls?' · '+esc(me.cls):''):'No nickname yet'}</span><button class="btn" id="lbWho">${me?'Change':'Pick a nickname'}</button>${champs}<span class="pill" title="Your progress is saved to your Google account">☁️ Saved${u.first?' · '+esc(u.first):''}</span><button class="btn" id="lbOut">Sign out</button></div>`}
 function wireHubPlayer(){const b=$('lbWho');if(b)b.onclick=()=>playerPrompt();
-  const i=$('lbIn');if(i)i.onclick=async()=>{try{await arcSignIn();if(!(arcMe()||{}).nick)playerPrompt()}catch(e){}};
-  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device will start fresh.'))return;await window.ARCB.signOut();homeView()}}
+  const i=$('lbIn');if(i)i.onclick=()=>playerPrompt();
+  const o=$('lbOut');if(o)o.onclick=async()=>{if(!confirm('Sign out? Your progress stays saved in your Google account, and this device goes back to guest mode.'))return;await window.ARCB.signOut();homeView()}}
 async function arcSignIn(){await window.ARCB.signIn();for(let k=0;k<40&&!window.ARCB.user;k++)await new Promise(r=>setTimeout(r,150));arcLog('signin')}
 addEventListener('arcb-auth',()=>{const h=location.hash.slice(1);if(isHome()&&!document.querySelector('.lbmodal'))homeView()});
 const lbRows=(r,me)=>{if(!r.length)return '<p>No scores yet. Be the first!</p>';
@@ -91,4 +118,4 @@ async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','
   if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
   try{rows=await window.ARCB.champs();draw()}catch(e){$('lbList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'}}
 addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(isHome())homeView(true);else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
-  const me=arcMe();if(!me&&(!h||h===''))setTimeout(()=>{if(!arcMe())playerPrompt()},400)});
+  const me=arcMe();if(!me&&(!h||h===''))setTimeout(()=>{if(!arcMe()&&!signedIn()&&!document.querySelector('.lbmodal'))playerPrompt()},400)});

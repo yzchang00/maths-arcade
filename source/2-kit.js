@@ -89,6 +89,7 @@ const api={
     if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
     if(c.inBonus){c.bonusOk=ok;pts=0}
+    else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
     if(ok&&c.keep&&c.keep.pen&&pts>6)pts=6;
     let extra='';
     if(c.mode==='pass'){const p=c.players[c.r%c.players.length];p.score+=pts}else c.score+=pts;
@@ -172,7 +173,7 @@ function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
   $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
-  const eff=(r)=>c.G.sec?r:effR(r,c.G.rounds,c.level),rr=c.mode==='pass'?eff(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds)):eff(c.r);
+  const eff=(r)=>c.G.sec?r:effR(r,c.G.rounds,c.level),rr=c.mode==='pass'?eff(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds)):eff(c.r);c.rr=rr;
   const real=Math.random;Math.random=mulberry(c.seed);try{if(c.inBonus)c.G.bonus(api);else c.G.round(api,rr)}finally{Math.random=real}
   if(c.mode==='pass')$('gq').insertAdjacentHTML('afterbegin',`<p class="turn">${esc(c.players[c.r%c.players.length].name)}, it's your turn!</p>`);
   if(retry)$('gq').insertAdjacentHTML('afterbegin','<p class="retry" role="status">Not quite. Look carefully and have one more try!</p>');
