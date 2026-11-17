@@ -852,7 +852,7 @@ const api={
     if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
     if(c.inBonus){c.bonusOk=ok;pts=0}
-    else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
+    else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2||c.hint?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
     if(ok&&c.keep&&c.keep.pen&&pts>6)pts=6;
     let extra='';
     if(c.mode==='pass'){const p=c.players[c.r%c.players.length];p.score+=pts}else c.score+=pts;
@@ -932,7 +932,7 @@ function mulberry(a){return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,
 /* Each round is built from a saved random seed, so a second try rebuilds exactly the same question with a fresh board.
    In an online room every player derives the same seeds from the host's game seed, so everyone gets identical questions. */
 function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach(clearTimeout);c.timers=[];if(c.mode==='online'&&!retry)olResSave({r:c.r,score:c.score});
-  if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1;c.keep={}}
+  if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1;c.keep={};c.hint=0}
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
   $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
@@ -3475,6 +3475,215 @@ addGame('p4-compass',{level:'P4',strand:'geo',glyph:'🧭',title:'Treasure Map',
       if(api.first('cW')){api.retry($('cWM'),msg||'No treasure here. Count again, one step at a time.');api.later(()=>c.classList.remove('noc'),900);return}
       svg.querySelector(`.tapc[data-x="${x}"][data-y="${y}"]`).classList.add('okc');api.done(false,(msg?msg+' ':'')+'The treasure was on the green square.',[])});return}
  }});
+/* ---------- Sec 1 · Prime Bouncer: prime and composite numbers ----------
+   A queue outside the "PRIMES ONLY" club. Each guest steps forward and hands over a card with its name (a number).
+   Let it in or turn it away. Right: a prime jumps for joy and goes in; a composite walks off sad.
+   Wrong: a composite sneaks in and gets kicked out (or a real prime is turned away), the manager scolds you, and a NEW guest
+   comes forward. There is no second try: the round is only complete when you get a guest right. Help (equal rows, divisibility
+   tests, a nudge) is only shown when the pupil asks for a hint. Round types follow the usual mistakes:
+   warm-up · 1 and 2 · odd impostors · numbers ending in 1, 3, 7, 9 · the 7 trap · big numbers · squares of primes · mixed. */
+document.head.insertAdjacentHTML('beforeend',`<style>
+.pbscene{position:relative;height:250px;max-width:760px;margin:0 auto;width:100%;border:3px solid #16233a;border-radius:18px;overflow:hidden;background:linear-gradient(#2b2560 0 62%,#3b3247 62%);--g:64px}
+@media (max-width:600px){.pbscene{height:220px;--g:50px}}
+.pbdoor{position:absolute;right:3%;bottom:38%;width:16%;min-width:64px;height:40%;background:#0e0b1f;border:4px solid #d4af37;border-bottom:0;border-radius:40px 40px 0 0;box-shadow:inset 0 0 22px #ffb81f55}
+.pbneon{position:absolute;right:1%;top:4%;font:700 clamp(13px,3.2vw,19px) var(--display);letter-spacing:.1em;color:#ffd257;text-shadow:0 0 6px #ffb81f,0 0 16px #ff8a3d;border:2.5px solid #ffd257;border-radius:10px;padding:1px 10px;box-shadow:0 0 12px #ffb81f88}
+.pbmgr{position:absolute;right:21%;bottom:30%;width:calc(var(--g)*1.05)}.pbmgr svg{width:100%;height:auto}
+.pbsay{position:absolute;left:22%;top:5%;max-width:min(48%,300px);background:#fff;color:#16233a;border:2.5px solid #16233a;border-radius:14px;padding:5px 10px;font:800 13px/1.3 var(--body);box-shadow:3px 3px 0 #16233a;opacity:0;transform:scale(.8);transition:.2s;z-index:13}
+.pbsay.on{opacity:1;transform:none}.pbsay.mad{background:#ffe1dc;border-color:#c2410c}
+.pbguy{position:absolute;bottom:14%;left:2%;width:var(--g);transition:left .9s ease,bottom .5s ease,opacity .5s,transform .5s;z-index:3}
+.pbguy svg{width:100%;height:auto;display:block}.pbguy.wait{opacity:.85;filter:saturate(.7)}
+.pbguy .m,.pbguy .e2,.pbguy .tear{display:none}.pbguy .m0{display:inline}
+.pbguy.happy .m0{display:none}.pbguy.happy .m1{display:inline}.pbguy.happy .e1{display:none}.pbguy.happy .e2.hp{display:inline}
+.pbguy.sad .m0{display:none}.pbguy.sad .m2{display:inline}.pbguy.sad .tear{display:inline}
+.pbguy.sly .m0{display:none}.pbguy.sly .m3{display:inline}.pbguy.sly .e1{display:none}.pbguy.sly .e2.sl{display:inline}
+.pbguy.jump{animation:pbjump .45s ease 2}.pbguy.tip{animation:pbtip .3s ease-in-out infinite}
+.pbguy.kick{transition:left .7s cubic-bezier(.2,.8,.3,1),bottom .7s ease,transform .7s;transform:rotate(-540deg) scale(.8)}
+@keyframes pbjump{50%{transform:translateY(-34px)}}@keyframes pbtip{50%{transform:translateY(-5px) rotate(-4deg)}}
+.pbcard{position:absolute;left:50%;top:6%;color:#16233a;transform:translateX(-50%) scale(.3) rotate(-12deg);opacity:0;transition:left .6s ease,top .6s ease,transform .55s cubic-bezier(.3,1.4,.5,1),opacity .2s;transform-origin:50% 50%;background:#fff;border:3px solid #16233a;border-radius:14px;padding:4px 16px 6px;text-align:center;box-shadow:4px 4px 0 #ff8a3d;z-index:12;min-width:118px}
+.pbcard.on{opacity:1;transform:translateX(-50%) scale(1) rotate(-3deg)}.pbcard.hand{opacity:1;transform:translateX(-50%) scale(.2) rotate(12deg)}.pbcard.give{opacity:1;transform:translateX(-50%) scale(.26) rotate(-10deg)}.pbmgr.pbhop{animation:pbjump .4s ease}.pbcard span{display:block;font:800 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:#5b6475}.pbcard b{font:700 clamp(2rem,8vw,2.8rem)/1.05 var(--display);color:#16233a}
+.pbboom{position:absolute;font-size:34px;z-index:14;left:78%;bottom:40%;animation:pbboom .6s ease both}@keyframes pbboom{0%{transform:scale(.2);opacity:0}40%{transform:scale(1.4);opacity:1}100%{transform:scale(1);opacity:0}}
+.pbask{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;justify-items:center;text-align:center}.pbask .qt{margin:0}
+.pbbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:520px}.pbbtns .btn{font-size:1.15rem;padding:12px}
+.pbwrong{background:#ffe9e4;color:#16233a;border:2.5px solid #c2410c;border-radius:14px;padding:10px 14px;max-width:620px;font:600 15px/1.5 var(--body);text-align:left;display:grid;gap:6px}.pbwrong b{color:#16233a}.pbwrong .pbwhy{background:#fff;border-radius:10px;padding:8px 10px;border:2px solid #f3c1b6}.pbwrong .pbfac{font-weight:800;color:#5f50ec}
+.pbhintbox{background:var(--bg);color:var(--ink);border-left:5px solid #ffd257;border-radius:10px;padding:8px 12px;max-width:620px;font:600 14px/1.45 var(--body);text-align:left;width:100%;box-sizing:border-box}
+.pbtiles{display:grid;gap:8px;justify-items:center;margin-top:6px}.pbtiles svg{width:100%;max-width:440px;height:auto;display:block;background:#eef6ff;border:2.5px solid #2c3446;border-radius:12px}
+.pbctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}.pbctl .btn{min-height:34px;padding:4px 10px;font-size:13px}.pbctl .btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.pbmsg{font:800 14px var(--body);text-align:center;margin:0}
+.pbnote{background:#fff3cc;color:#16233a;border:2px solid #ffb81f;border-radius:12px;padding:6px 10px;font:600 14px/1.4 var(--body);margin:6px 0 0}
+.pbpat{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;font:800 14px var(--body)}.pbpat i{flex:1;height:14px;border:2.5px solid var(--ink);border-radius:99px;overflow:hidden;background:var(--surface)}
+.pbpat b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ef5240,#ffd257 40%,#45d08a)}.pbpat b.out{background:#ef5240}.pbpat span{white-space:nowrap}
+.pbcards{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;width:100%;max-width:620px}
+.pbgc{display:grid;justify-items:center;gap:2px;background:#fff;color:#16233a;border:3px solid #16233a;border-radius:14px;padding:8px 6px;cursor:pointer;box-shadow:3px 3px 0 #ff8a3d;font-family:var(--body)}
+.pbgc span{font:800 10px var(--body);letter-spacing:.08em;text-transform:uppercase;color:#5b6475}.pbgc b{font:700 clamp(1.4rem,6vw,2rem)/1.1 var(--display)}.pbgc em{font:800 13px var(--body);font-style:normal;color:#c2410c}
+.pbgc[aria-pressed="true"]{background:#e3fbef;box-shadow:3px 3px 0 #0b968b;border-color:#0b968b}.pbgc[aria-pressed="true"] em{color:#0b7a6f}.pbgc:disabled{opacity:.8;cursor:default}
+@media (max-width:600px){.pbcard{min-width:96px;padding:3px 12px 5px}.pbsay{left:3%;max-width:58%}.pbneon{font-size:12px;padding:1px 6px}}
+</style>`);
+const PBP=n=>{const ps=[];for(let p=2;p*p<=n;p++)if(isPrime(p))ps.push(p);return ps}; /* primes you must test for n */
+const pbSmall=n=>{for(let d=2;d*d<=n;d++)if(n%d===0)return d;return n};
+const pbFactors=n=>{const f=[];for(let d=1;d<=n;d++)if(n%d===0)f.push(d);return f};
+const pbList=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+const PBCOL=['#ff8a3d','#5f50ec','#0b968b','#e0559a','#3aa0ff','#ffb81f','#45d08a'];
+/* a guest: a round blob with a face. Expressions are switched with classes: happy, sad, sly */
+const PBHATS=['',
+ '<path d="M28 16 L40 -18 L52 16Z" fill="#ff5fa2" stroke="#16233a" stroke-width="2.5"/><circle cx="40" cy="-18" r="4" fill="#ffd257" stroke="#16233a" stroke-width="2"/><path d="M33 4 l14 0 M31 10 l18 0" stroke="#ffd257" stroke-width="2.5"/>',
+ '<rect x="24" y="-12" width="32" height="26" rx="3" fill="#16233a"/><rect x="16" y="11" width="48" height="6" rx="3" fill="#16233a"/><rect x="24" y="4" width="32" height="5" fill="#ef5240"/>',
+ '<path d="M24 14 L26 -6 L33 6 L40 -10 L47 6 L54 -6 L56 14Z" fill="#ffd257" stroke="#16233a" stroke-width="2.5"/><circle cx="40" cy="2" r="2.5" fill="#ef5240"/>',
+ '<ellipse cx="40" cy="14" rx="30" ry="6" fill="#45d08a" stroke="#16233a" stroke-width="2.5"/><path d="M26 14 q14 -30 28 0" fill="#45d08a" stroke="#16233a" stroke-width="2.5"/><path d="M52 6 q10 -10 4 -16" stroke="#ff8a3d" stroke-width="3" fill="none"/>'];
+const PBGLASS='<g><rect x="20" y="33" width="17" height="12" rx="5" fill="#16233a"/><rect x="43" y="33" width="17" height="12" rx="5" fill="#16233a"/><path d="M37 38 h6" stroke="#16233a" stroke-width="3"/><path d="M23 36 l5 0" stroke="#fff" stroke-width="2" opacity=".6"/></g>';
+const PBBOW='<path d="M32 78 l8 4 l-8 4z M48 78 l-8 4 l8 4z" fill="#ef5240" stroke="#16233a" stroke-width="2"/><circle cx="40" cy="82" r="2.5" fill="#16233a"/>';
+/* a guest: a round blob with a face. Expressions are switched with classes: happy, sad, sly. outfit 1-4 adds a costume */
+const pbGuySvg=(c,o)=>`<svg viewBox="0 -24 80 120" aria-hidden="true"><ellipse cx="40" cy="92" rx="22" ry="4" fill="#000" opacity=".25"/>
+ <rect x="24" y="74" width="10" height="16" rx="5" fill="#16233a"/><rect x="46" y="74" width="10" height="16" rx="5" fill="#16233a"/>
+ <rect x="8" y="14" width="64" height="66" rx="30" fill="${c}" stroke="#16233a" stroke-width="3"/>${o?'':'<path d="M40 14 q-4 -10 4 -12" stroke="#16233a" stroke-width="3" fill="none"/>'}
+ <g class="e1"><circle cx="29" cy="40" r="5" fill="#16233a"/><circle cx="51" cy="40" r="5" fill="#16233a"/><circle cx="30.5" cy="38.5" r="1.6" fill="#fff"/><circle cx="52.5" cy="38.5" r="1.6" fill="#fff"/></g>
+ <path class="e2 hp" d="M23 42 q6 -8 12 0 M45 42 q6 -8 12 0" stroke="#16233a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+ <path class="e2 sl" d="M23 40 h12 M45 40 h12 M25 36 l8 3 M55 36 l-8 3" stroke="#16233a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+ <path class="m m0" d="M32 56 h16" stroke="#16233a" stroke-width="3.5" stroke-linecap="round"/>
+ <path class="m m1" d="M28 52 q12 16 24 0 z" fill="#16233a"/>
+ <path class="m m2" d="M30 60 q10 -9 20 0" stroke="#16233a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+ <path class="m m3" d="M30 56 q12 6 22 -4" stroke="#16233a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+ <path class="tear" d="M52 46 q4 7 0 9 q-4 -2 0 -9z" fill="#7cc8ff"/>${o?(PBHATS[o]||'')+(o%2?PBGLASS:'')+(o>2?PBBOW:''):''}</svg>`;
+/* why a number is or isn't prime, aimed at the mistake a pupil probably made */
+function pbWhy(n){if(n===0)return '<b>0 is not prime</b> (and not composite either). Every whole number divides 0 (0 = 0 × 5 = 0 × 7…), so 0 has endless factors. A prime must be a whole number <b>greater than 1</b> with exactly two factors.';
+  if(n<0)return `<b>${n}</b> is negative. A prime must be a whole number <b>greater than 1</b>, so ${n} is <b>not prime</b>${isPrime(-n)?` (even though ${-n} is)`:''}.`;
+  if(n===1)return '1 has only <b>one</b> factor (1 itself). A prime needs exactly <b>two different</b> factors, so 1 is <b>not prime</b>. It is not composite either.';
+  if(n===2)return '2 is even, but its only factors are 1 and 2. That is exactly two factors, so <b>2 is prime</b>. It is the only even prime.';
+  if(isPrime(n)){const t=PBP(n);return `${n} cannot be divided exactly by ${pbList(t.length?t:[2])}, so its only factors are 1 and ${n}. <b>${n} is prime.</b>${n>50?' Big numbers can be prime too!':''}`}
+  const d=pbSmall(n),e=n/d,end=n%10;
+  if(d===2)return `${n} is even, so 2 divides it: <b>${n} = 2 × ${e}</b>. It is composite.`;
+  if(d===e)return `${n} = <b>${d} × ${d}</b>, so it has three factors: 1, ${d} and ${n}. It is composite.`;
+  if(d>=7)return `${n} is odd${[1,3,7,9].includes(end)?` and ends in ${end}`:''}, and 2, 3 and 5 don't divide it${d>7?', nor does 7':''}. But <b>${n} = ${d} × ${e}</b>. Did you try ${d}?`;
+  return `Being odd${[1,3,7,9].includes(end)?` or ending in ${end}`:''} is not enough. <b>${n} = ${d} × ${e}</b>, so ${n} is composite.`}
+/* the factor list that settles it */
+function pbFacts(n){if(n===0)return 'Every whole number is a factor of 0 → not prime';if(n<0)return `${n} is less than 2 → not prime`;const f=pbFactors(n);return `Factors of ${n}: ${pbList(f)} → ${f.length===1?'only <b>one</b> factor, so not prime':f.length===2?'exactly <b>two</b> factors, so prime':`<b>${f.length}</b> factors, so not prime`}`}
+/* hint tool: can n guests stand in equal rows? (at least 2 rows, the same number in each) */
+function pbRowsTool(el,n){const rmax=Math.min(10,Math.floor(n/2));
+  el.innerHTML=`<div class="pbtiles"><div class="pbT"></div><p class="pbmsg" role="status">Tap a number of rows to try.</p><div class="pbctl">${Array.from({length:Math.max(0,rmax-1)},(_,i)=>i+2).map(r=>`<button class="btn" data-r="${r}">${r} rows</button>`).join('')}</div></div>`;
+  const pic=r=>{const c=Math.floor(n/r),left=n%r,cols=c+(left?1:0),size=Math.max(10,Math.min(28,Math.floor(400/Math.max(cols,1)),Math.floor(200/r))),g=3,gap=left?size*.5:0,W=cols*(size+g)+g+12+gap,H=r*(size+g)+g+12;let s='';
+    for(let row=0;row<r;row++)for(let col=0;col<c;col++)s+=`<rect x="${6+g+col*(size+g)}" y="${6+g+row*(size+g)}" width="${size}" height="${size}" rx="${size*.3}" fill="#0b968b" stroke="#16233a" stroke-width="1.2"/>`;
+    for(let k=0;k<left;k++)s+=`<rect x="${6+g+c*(size+g)+gap}" y="${6+g+k*(size+g)}" width="${size}" height="${size}" rx="${size*.3}" fill="#ef5240" stroke="#16233a" stroke-width="1.2"/>`;
+    el.querySelector('.pbT').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${n} guests in ${r} rows">${s}</svg>`;
+    el.querySelector('.pbmsg').innerHTML=left?`<span style="color:#c2410c">✗ ${r} rows of ${c}, ${left} left over</span>`:`<span style="color:var(--teal)">✓ ${r} equal rows of ${c}: ${r} × ${c} = ${n}</span>`};
+  el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{sfx.tap();pic(+b.dataset.r);el.querySelectorAll('[data-r]').forEach(x=>x.setAttribute('aria-pressed',x===b))})}
+/* number pools: [composites, primes] for each round type and level (Core to about 50, Stretch to 100, Challenge to about 200) */
+const pbPrimesIn=(a,b)=>{const p=[];for(let n=a;n<=b;n++)if(isPrime(n))p.push(n);return p};
+const PBPOOL={
+  warm:[[[4,6,8,9,10,12,14,15,16,18,20],[2,3,5,7,11,13,17,19]],[[22,24,25,26,28,30,32,34,35,38,40],[23,29,31,37]],[[42,44,45,46,48,50,52,54,55,56,58,60],[41,43,47,53,59]]],
+  odd:[[[9,15,21,25,27],[11,13,17,19,23]],[[33,39,45,51,57,63,69],[41,43,47,53,59,61]],[[111,117,123,129,141,159],[101,103,107,109,113,127]]],
+  ends:[[[21,27,33,39,49],[23,29,31,37,41,43,47]],[[51,57,63,69,77,81,87,91,93,99],[53,59,61,67,71,73,79,83,89,97]],[[121,133,143,147,153,161,169,171,177,183,187,189],pbPrimesIn(131,199)]],
+  seven:[[[49,77,91],[41,43,47,53]],[[49,77,91],[71,73,79,83,89,97]],[[119,133,161,203,217],pbPrimesIn(127,199)]],
+  big:[[[39,45,42,48,50],[41,43,47]],[[85,87,93,95,99],[73,79,83,89,97]],[[171,177,183,185,195],[173,179,181,191,193,197,199]]],
+  square:[[[4,9,25,49],[5,7,23,29]],[[9,25,49,81],[37,47,53,59]],[[121,169,49,289],[127,131,163,167]]]};
+const PBTYPES=['warm','tiny','odd','ends','seven','big','square','mix'];
+function pbNumber(type,T){const seen=ctx.pbSeen=ctx.pbSeen||new Set();
+  if(type==='mix')return pbNumber(pick(['odd','ends','seven','big','square']),T);
+  if(type==='tiny'){const o=[1,2].filter(x=>!seen.has(x));if(o.length){const n=pick(o);seen.add(n);return n}return pbNumber('warm',0)}
+  const [C,P]=PBPOOL[type][T],comp=Math.random()<(type==='warm'||type==='big'?.5:.6);
+  let list=(comp?C:P).filter(x=>!seen.has(x));if(!list.length)list=(comp?P:C).filter(x=>!seen.has(x));if(!list.length)list=comp?C:P;const n=pick(list);seen.add(n);return n}
+/* the hint ladder for one guest: equal rows → quick tests → a nudge */
+function pbHint(n,k){if(n<=0)return {h:['<b>Hint 1:</b> read the house rule: a prime must be a whole number <b>greater than 1</b>.',`<b>Hint 2:</b> is ${n} greater than 1?`,'<b>Hint 3:</b> numbers less than 2 (like 0, 1 and negatives) are never prime.'][Math.min(k,2)]};const ps=PBP(n),dg=String(n).split(''),sum=dg.reduce((a,b)=>a+ +b,0);
+  if(k===0)return n<4?{h:`<b>Hint 1:</b> list every factor of ${n}. A prime has <b>exactly two different</b> factors: 1 and itself.`}:{h:`<b>Hint 1:</b> could <b>${n}</b> guests stand in <b>equal rows</b> (at least 2 rows, the same number in every row)? If yes, ${n} is not prime. Try it:`,tool:1};
+  if(k===1)return {h:`<b>Hint 2:</b> quick tests. Is ${n} even? Do its digits add up to a multiple of 3${dg.length>1?` (${dg.join(' + ')} = ${sum})`:''}? Does it end in 0 or 5? If none of those work, keep testing 7, 11, 13…`};
+  if(n===1)return {h:'<b>Hint 3:</b> how many different factors does 1 have? A prime needs exactly two.'};
+  if(n===2||n===3)return {h:`<b>Hint 3:</b> the factors of ${n} are 1 and ${n}. How many is that?`};
+  return {h:isPrime(n)?`<b>Hint 3:</b> you only need to test the primes up to √${n} ≈ ${Math.sqrt(n).toFixed(1)}: ${pbList(ps)}. Try dividing ${n} by each of them.`:`<b>Hint 3:</b> try dividing ${n} by <b>${pbSmall(n)}</b>.`}}
+/* a group for Challenge (3) or the outfit party (4): a mix of primes and look-alikes, all different */
+function pbGroup(type,T,size,bonus){const seen=ctx.pbSeen=ctx.pbSeen||new Set(),out=[],add=n=>{if(!out.includes(n)){out.push(n);seen.add(n)}};
+  if(bonus){const hi=T===2?199:99,ps=pbPrimesIn(11,hi),cs=[];for(let n=10;n<=hi;n++)if(!isPrime(n)&&n%2&&n%5)cs.push(n);const k=R(1,size-1);
+    shuffle(ps).filter(x=>!seen.has(x)).slice(0,k).forEach(add);shuffle(cs).filter(x=>!seen.has(x)).slice(0,size-k).forEach(add);return shuffle(out)}
+  if(type==='tiny'){add(pick([0,1]));add(2);add(pick([-2,-3,-5,-7]));return shuffle(out)}
+  const trick=Math.random()<.45?pick([0,1,2,-3,-5,-7,-11,-13].filter(x=>!seen.has(x))):undefined;if(trick!==undefined)add(trick);
+  let g=0;while(out.length<size&&g++<40){const n=pbNumber(out.length===size-1&&Math.random()<.5?'mix':type,T);add(n)}return shuffle(out)}
+/* one round: a guest (or a group) walks up from the moving queue and hands its card(s) to Qubi */
+function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patience||0,bonus=!!o.bonus;
+  const st=ctx.pbR={misses:0,hints:0,log:[],k:0},base=T>=1||bonus?8:10;
+  const lead=bonus?`<p class="qt">🎭 <b>Surprise outfit party!</b> Four guests in costume arrive together, and they are <b>very impatient</b>. Tap every guest who may enter, then press <b>Done</b>.</p>`
+    :size>1?`<p class="qt">A group of <b>${size}</b> guests arrives. Tap <b>every</b> guest who may enter (only prime numbers), then press <b>Done</b>.</p><p class="qs">House rule: a prime is a whole number <b>greater than 1</b> with exactly two different factors. Watch out for tricky guests like 0 and negative numbers!</p>`
+    :`<p class="qt">You're the bouncer at the <b>PRIMES ONLY</b> club. Check each guest's card. Only <b>prime numbers</b> may enter.</p>`;
+  const banner=(api.r0&&!bonus)?(T===1?`<p class="pbnote">⏳ <b>Medium level: guests have a patience bar.</b> Decide before it runs out for <b>+2 bonus points</b>. If it runs out, you lose nothing but the bonus.</p>`:T===2?`<p class="pbnote">👥 <b>Challenge level: guests come in groups of 3.</b> Each group has a patience bar for <b>+2 bonus points</b>.</p>`:''):'';
+  api.q(lead+banner);
+  const W=[[30,20,10,0,-10],[28,18,8,-2,-12]][nar?1:0]; /* queue slots, front of the line first */
+  api.body.innerHTML=`<div class="pbscene" id="pbScene"><div class="pbneon">PRIMES ONLY</div><div class="pbdoor"></div><div class="pbmgr">${QUBI.replace('class="qubi"','class="qubi idle"')}</div><div class="pbsay" id="pbSay"></div>
+    <div class="pbcard" id="pbCard"><span>🪪 Guest card</span><b id="pbName"></b></div></div>
+    <div class="pbask" id="pbAsk"></div>`;
+  const scene=$('pbScene'),Q=[];
+  const mk=(left,wait)=>{const g=document.createElement('div');g.className='pbguy'+(wait?' wait':'');g.style.left=left+'%';g.innerHTML=pbGuySvg(pick(PBCOL),bonus?R(1,4):0);scene.appendChild(g);return g};
+  for(let i=0;i<4;i++){const g=mk(W[i],1);g.style.zIndex=5-i;Q.push(g)}
+  const say=(t,mad)=>{const x=$('pbSay');if(x){x.innerHTML=t;x.className='pbsay on'+(mad?' mad':'')}};
+  const wait=ms=>new Promise(r=>api.later(r,calm?Math.min(ms,150):ms));
+  const fronts=size===1?[nar?44:57]:size===3?(nar?[20,36,52]:[36,46,56]):(nar?[2,18,34,50]:[30,40,50,60]);
+  let timer=null,t0=0,late=false;
+  const patience=()=>{if(!secs)return;const b=$('pbBar');late=false;b.style.transition='none';b.style.width='100%';b.className='';void b.offsetWidth;b.style.transition=`width ${secs}s linear`;b.style.width='0%';t0=Date.now();
+    clearTimeout(timer);timer=setTimeout(()=>{if(st.busy||api.answered)return;late=true;b.className='out';st.guys.forEach(g=>g.classList.add('tip'));
+      if(bonus){say('We\'re leaving! This party is boring!',true);decide(null)}else say(size>1?'Hurry up! We\'ve been waiting ages!':'Hurry up! I\'m waiting!',true)},secs*1000);ctx.timers.push(timer)};
+  const stopPat=()=>{clearTimeout(timer);const b=$('pbBar');if(b){const w=getComputedStyle(b).width;b.style.transition='none';b.style.width=w}};
+  const patUI=()=>secs?`<div class="pbpat" id="pbPat"><span>⏳ ${bonus?'Very impatient!':'Patience'}</span><i><b id="pbBar"></b></i></div>`:'';
+  const next=async()=>{if(api.answered)return;(st.guys||[]).forEach(g=>g.remove());st.k=0;st.busy=false;late=false;
+    const nums=size===1?[pbNumber(o.type,T)]:pbGroup(o.type,T,size,bonus);st.nums=nums;st.pick=new Set();
+    $('pbSay').className='pbsay';$('pbCard').className='pbcard';$('pbAsk').innerHTML='';
+    /* the front of the queue steps up to the door, everyone behind shuffles forward, and new guests join the back */
+    const guys=Q.splice(0,size);st.guys=guys;
+    guys.forEach((g,i)=>{g.classList.remove('wait');g.style.zIndex=8+i;g.style.bottom='3%';g.style.left=fronts[i]+'%'});
+    Q.forEach((g,i)=>{g.style.left=W[i]+'%';g.style.zIndex=5-i});
+    while(Q.length<4){const g=mk(-16,1);Q.push(g);await wait(40);g.style.left=W[Q.length-1]+'%';g.style.zIndex=5-Q.length}
+    await wait(1000);
+    const cd=$('pbCard'),mg=scene.querySelector('.pbmgr');
+    for(let i=0;i<size;i++){ /* each guest hands a card to Qubi */
+      $('pbName').textContent=nums[i];cd.style.transition='none';cd.style.left=(fronts[i]+(nar?6:4))+'%';cd.style.top='62%';cd.className='pbcard';void cd.offsetWidth;cd.style.transition='';
+      cd.className='pbcard hand';await wait(size>1?180:300);cd.style.left=nar?'70%':'76%';cd.style.top='46%';cd.className='pbcard give';await wait(size>1?420:650)}
+    mg.classList.remove('pbhop');void mg.offsetWidth;mg.classList.add('pbhop');say(size>1?'Let me see these…':'Let me see…');sfx.tap();await wait(500);$('pbSay').className='pbsay';
+    if(size===1){$('pbName').textContent=nums[0];cd.style.left=nar?'40%':'50%';cd.style.top='6%';cd.className='pbcard on';await wait(600);
+      $('pbAsk').innerHTML=`${patUI()}<p class="qt">Only prime numbers are allowed. Let <b>${nums[0]}</b> in?</p><div class="pbbtns"><button class="btn" id="pbIn">✅ Let in</button><button class="btn" id="pbOut">🚫 Turn away</button></div>`+hintUI();
+      $('pbIn').onclick=()=>decide(true);$('pbOut').onclick=()=>decide(false)}
+    else{cd.className='pbcard';
+      $('pbAsk').innerHTML=`${patUI()}<p class="qt">Tap the guests who may enter.</p><div class="pbcards" style="--n:${size}">${nums.map((n,i)=>`<button class="pbgc" data-i="${i}" aria-pressed="false"><span>🪪 Guest ${i+1}</span><b>${n}</b><em>🚫 Stays out</em></button>`).join('')}</div>
+        <div class="pbbtns" style="grid-template-columns:1fr"><button class="btn primary" id="pbDone">Done ✅</button></div>`+hintUI();
+      $('pbAsk').querySelectorAll('.pbgc').forEach(b=>b.onclick=()=>{if(st.busy)return;const i=+b.dataset.i,on=!st.pick.has(i);on?st.pick.add(i):st.pick.delete(i);b.setAttribute('aria-pressed',on);b.querySelector('em').textContent=on?'✅ Let in':'🚫 Stays out';sfx.tap()});
+      $('pbDone').onclick=()=>decide(true)}
+    $('pbHint').onclick=hint;patience()};
+  const hintUI=()=>`<button class="btn" id="pbHint" style="font-size:14px">💡 Hint</button><div id="pbHints" style="display:grid;gap:8px;width:100%;justify-items:center"></div>`;
+  const hint=()=>{if(st.k>=3||st.busy||!$('pbHint'))return;const k=st.k;st.k++;st.hints++;ctx.hint=(ctx.hint||0)+1;sfx.tap();const box=document.createElement('div');box.className='pbhintbox';
+    if(size===1){const H=pbHint(st.nums[0],k);box.innerHTML=H.h+(H.tool?'<div class="pbrt"></div>':'');$('pbHints').appendChild(box);if(H.tool)pbRowsTool(box.querySelector('.pbrt'),st.nums[0])}
+    else{box.innerHTML=k===0?'<b>Hint 1:</b> check each card on its own. A prime is a whole number <b>greater than 1</b> with exactly two different factors. Anything less than 2 stays out.'
+      :k===1?'<b>Hint 2:</b> quick tests for each card:<br>'+st.nums.map(n=>n<2?`${n}: less than 2`:`${n}: ${n%2===0?'even':'odd'}, digit sum ${String(n).split('').reduce((a,b)=>a+ +b,0)}${n%10===5||n%10===0?', ends in '+n%10:''}`).join('<br>')
+      :'<b>Hint 3:</b><br>'+st.nums.map(n=>n<2?`${n}: not prime (less than 2)`:isPrime(n)?`${n}: test ${pbList(PBP(n).length?PBP(n):[2])}. Do any of them divide it?`:`${n}: try dividing by ${pbSmall(n)}`).join('<br>');$('pbHints').appendChild(box)}
+    $('pbHint').textContent=st.k>=3?'No more hints':`💡 Another hint (${3-st.k} left)`;if(st.k>=3)$('pbHint').disabled=true};
+  pbQueue.hint=hint; /* Ask Qubi uses the same hints */
+  const decide=async letIn=>{if(api.answered||st.busy)return;st.busy=true;stopPat();const quick=secs&&!late&&Date.now()-t0<secs*1000;
+    $('pbAsk').querySelectorAll('button').forEach(b=>b.disabled=true);$('pbCard').className='pbcard';
+    const nums=st.nums,ins=size===1?[letIn]:nums.map((_,i)=>st.pick.has(i)),timeout=letIn===null;
+    const wrong=timeout?nums.map((_,i)=>i):nums.map((n,i)=>ins[i]!==isPrime(n)).map((w,i)=>w?i:-1).filter(i=>i>=0);
+    if(!wrong.length){ /* everyone judged right */
+      nums.forEach((n,i)=>{const g=st.guys[i];g.classList.remove('tip');g.classList.add(isPrime(n)?'happy':'sad');if(isPrime(n))g.classList.add('jump')});
+      say(nums.every(n=>!isPrime(n))?'Good call! None of them get in.':pick(['Welcome in, primes!','Perfect door work!','Nice! Only the primes get in.']));await wait(900);
+      nums.forEach((n,i)=>{const g=st.guys[i];if(isPrime(n)){g.style.left='84%';g.style.opacity='0'}else g.style.left='-24%'});await wait(800);
+      const pts=bonus?0:Math.min(st.misses===0?base+(quick?2:0):st.misses===1?5:2,st.hints?6:10);
+      const work=nums.map(n=>`${pbWhy(n)}<br><span style="color:#5f50ec;font-weight:800">${pbFacts(n)}</span>`);
+      api.done(true,`${size===1?(isPrime(nums[0])?`${nums[0]} is prime, so it's in.`:`${nums[0]} is not prime, so it's out.`):`Primes let in: ${nums.filter(isPrime).join(', ')||'none'}.`}${quick&&!st.misses&&!bonus?' ⏳ +2 speed bonus!':''}${st.misses?` Round complete after ${st.misses} mistake${st.misses>1?'s':''}.`:''}`,[...work,...(st.log.length?['Earlier in this round: '+st.log.join(' ')]:[])],pts);return}
+    /* a mistake: no second try. Wrong guests are dealt with, the manager scolds, and new guests come forward */
+    st.misses++;ctx.hint=(ctx.hint||0)+1;sfx.no();
+    if(!timeout){for(const i of wrong){const g=st.guys[i],n=nums[i];if(ins[i]){g.classList.add('sly','tip');g.style.left='84%';g.style.opacity='.35';st.log.push(`you let in ${n} (not prime).`)}else{g.classList.add('sad');g.style.left='-24%';st.log.push(`you turned away ${n} (prime).`)}}
+      say('Hmm…');await wait(1100);
+      for(const i of wrong)if(ins[i]){const g=st.guys[i];g.classList.remove('tip');const b=document.createElement('div');b.className='pbboom';b.textContent='💥';scene.appendChild(b);g.style.opacity='1';g.classList.add('kick','sad');g.style.left='-25%';g.style.bottom='60%'}
+      nums.forEach((n,i)=>{if(!wrong.includes(i)){const g=st.guys[i];if(ins[i]){g.classList.add('happy');g.style.left='84%';g.style.opacity='0'}else{g.classList.add('sad');g.style.left='-24%'}}});
+      const wi=wrong.filter(i=>ins[i]).map(i=>nums[i]),wo=wrong.filter(i=>!ins[i]).map(i=>nums[i]);
+      say(wi.length?`Hey! ${pbList(wi.map(n=>'<b>'+n+'</b>'))} ${wi.length>1?'aren\'t':'isn\'t'} prime. You let an impostor in!`:`Wait! ${pbList(wo.map(n=>'<b>'+n+'</b>'))} ${wo.length>1?'ARE':'IS'} prime. You turned away a real member!`,true)}
+    else{st.guys.forEach(g=>{g.classList.add('sad');g.style.left='-24%'});st.log.push('the guests ran out of patience.')}
+    qubi('gQ','oops','Do better!');const stg=$('gStage');if(stg){stg.classList.remove('shake');void stg.offsetWidth;stg.classList.add('shake')}await wait(500);
+    const why=(timeout?nums.map((_,i)=>i):wrong).map(i=>`<div class="pbwhy"><b>${nums[i]}:</b> ${pbWhy(nums[i])}<div class="pbfac">${pbFacts(nums[i])}</div></div>`).join('');
+    if(bonus){api.done(false,timeout?'The costumed guests ran out of patience and left. Here is who was who:':'Not quite! Here is who was who:',nums.map(n=>`${pbWhy(n)} <span style="color:#5f50ec;font-weight:800">${pbFacts(n)}</span>`),0,{noRetry:true});return}
+    const head=size===1?(ins[0]?`You let <b>${nums[0]}</b> in, but it is not prime.`:`You turned <b>${nums[0]}</b> away, but it is prime.`):`You got <b>${wrong.length}</b> guest${wrong.length>1?'s':''} wrong.`;
+    $('pbAsk').innerHTML=`<div class="pbwrong" role="status"><div>😠 <b>The manager is not happy.</b> ${head}</div>${why}<div><b>You need to do better!</b> This round isn't complete until you get ${size===1?'a guest':'a whole group'} right.</div></div><button class="btn primary" id="pbNext">${size===1?'Next guest →':'Next group →'}</button>`;
+    $('pbNext').onclick=()=>{sfx.tap();next()};$('pbNext').focus()};
+  next()}
+function pbQueue(api,type,T){pbRound(api,{type,T,size:T===2?3:1,patience:T===1?20:T===2?30:0})}
+addGame('s1-bouncer',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🚪',title:'Prime Bouncer',topic:'Prime and composite numbers',
+ how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away. Medium adds a patience bar; Challenge brings groups of 3 and tricky guests.',rounds:8,
+ round(api,r){api.r0=r===0;pbQueue(api,PBTYPES[r],TIER())},
+ bonus(api){api.r0=false;pbRound(api,{type:'mix',T:TIER(),size:4,patience:20,bonus:1})},
+ ownHint:()=>pbQueue.hint&&pbQueue.hint()});
+/* show it before Prime Factory in the Secondary 1 list */
+ORDER.splice(ORDER.indexOf('s1-bouncer'),1);ORDER.splice(Math.max(0,ORDER.indexOf('s1-primes')),0,'s1-bouncer');
 /* ================= P5. Pizza Party Orders — adding and subtracting fractions and mixed numbers ================= */
 const frq=(n,d)=>{const g=gcd(Math.abs(n),d)||1;return [n/g,d/g]};
 const radd=([a,b],[c,d],s=1)=>frq(a*d+s*c*b,b*d);
@@ -4138,6 +4347,7 @@ const HOWTO={
 'p6-chain':{steps:['The figure is made of squares, rectangles, rhombuses or parallelograms joined to triangles.','First find angle <b>y</b>, then use it to find angle <b>x</b>.','Look for equal sides (isosceles triangles), parallel lines and straight lines (180°).','Type each answer. The figure is not drawn to scale, so do not measure it.'],eg:'In a rhombus the opposite angles are equal, and the angles next to each other add up to 180°.'},
 'p6-average':{steps:['Towers of blocks show how many each child has.','Tap a tower to pick up its top block, then tap another tower to drop it there.','Move blocks until all the towers are the same height. That height is the <b>average</b>.','Other rounds: average = total ÷ number of items, and total = average × number of items.'],eg:'Towers of 2, 5 and 5 → total 12 → 12 ÷ 3 = 4 each.'},
 'p4-diner':{steps:['Read the order ticket. Each order uses decimals.','For adding and subtracting, first choose the layout with the <b>decimal points lined up</b> (not the last digits).','Fill empty places with 0 (3.5 → 3.50, 5 → 5.00), then work out the answer and press Check.','For × and ÷, think in tenths or hundredths first (0.4 = 4 tenths), then change back.','Wrong the first time? Qubi tells you what went wrong so you can fix it.'],eg:'3.5 + 1.25 → 3.50 + 1.25 = 4.75 (not 1.60).'},
+'s1-bouncer':{steps:['You are the bouncer at the <b>PRIMES ONLY</b> club. A prime number is a whole number <b>greater than 1</b> with <b>exactly two different factors</b>: 1 and itself.','A guest steps forward and hands its card to Qubi. The card shows its name: a number.','Tap <b>Let in</b> for a prime number, or <b>Turn away</b> for any other number.','Get it wrong and the manager scolds you, and another guest comes forward. A round is only complete when you get it right.','<b>Medium (Stretch):</b> each guest has a ⏳ <b>patience bar</b>. Decide before it runs out for +2 bonus points. <b>Challenge:</b> guests come in <b>groups of 3</b>, with tricky guests like 0 and negative numbers. Tap every prime, then press Done.','Stuck? Tap <b>💡 Hint</b> (up to 3). Score 80% or more in Solo to unlock a secret round!'],eg:'91 is odd and ends in 1, but 91 = 7 × 13, so turn it away. 97: test 2, 3, 5 and 7 (11 × 11 = 121 is too big). None divide it, so let it in.'},
 's1-primes':{steps:['A prime number has exactly two factors: 1 and itself.','To factorise, keep dividing by primes (2, 3, 5, 7…) until you reach 1. Write repeated primes with an index: 2 × 2 × 2 = 2³.','<b>HCF</b>: primes that appear in every number, with the lowest index. <b>LCM</b>: every prime, with the highest index.','Word problems: equal parts with nothing left over → HCF. Things that repeat and meet again → LCM.','Square root: halve every index. Cube root: divide every index by 3.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'72 = 2³ × 3² and 60 = 2² × 3 × 5. HCF = 2² × 3 = 12. LCM = 2³ × 3² × 5 = 360.'},
 's1-integers':{steps:['On the number line, numbers get bigger to the right. So −8 is smaller than −3.','Adding a negative moves left. Subtracting a negative is the same as adding: 5 − (−3) = 5 + 3.','Multiplying or dividing: same signs give a positive answer, different signs give a negative answer.','−3² means −(3²) = −9. Only (−3)² equals 9.','On a phone, tap the ± button to make your answer negative.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'−2 − 3 = −5, but (−2) × (−3) = 6.'},
 's1-estimate':{steps:['Decimal places: count digits after the decimal point. The next digit decides: 5 or more rounds up.','Significant figures: start counting at the first non-zero digit. Zeros in front never count.','Keep the place value: 34 567 to 2 significant figures is 35 000, not 35.','A zero at the end can matter: 2.996 to 3 significant figures is 3.00.','To estimate, round every number to 1 significant figure first, then calculate.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'48.7 × 5.12 ≈ 50 × 5 = 250.'},
@@ -5191,7 +5401,7 @@ function secView(){const labs=SECLAB.filter(a=>a[1]===secLevel);
   $('view').innerHTML=`<div style="display:grid;gap:22px">
     <div class="hero"><div class="ht"><h1>${[...'Secondary '].map((c,i)=>c===' '?' ':`<span class="hl" style="--i:${i}">${c}</span>`).join('')}<span>${[...'Maths'].map((c,i)=>`<span class="hl" style="--i:${i+10}">${c}</span>`).join('')}</span></h1></div><div class="mbox" id="secQ"><div class="mbubble">${pick(['Pick a level, then dive in.','What are you working on today?'])}</div>${qmini(QTEEN,'teen')}</div></div>
     <div class="levels" role="group" aria-label="Level">${SECLV.map(([k,n])=>`<button aria-pressed="${k===secLevel}" data-l="${k}">${n}</button>`).join('')}<a href="#start" style="margin-left:auto;align-self:center;display:inline-flex;align-items:center;justify-content:center;font:800 15px var(--body);color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:6px 16px;line-height:1.2;white-space:nowrap;text-decoration:none">⇄ Primary / Secondary</a></div>${hubPlayerBar()}
-    <section class="strand" style="--c:var(--teal)"><h2>Games · Number and Algebra</h2>${(()=>{const gs=Object.entries(GAMES).filter(([,g])=>g.sec===secLevel);return gs.length?`<div class="cards">${gs.map(([id,g],ci)=>`<a class="gcard" href="#${id}" style="--c:var(--teal);--i:${ci}"><span class="gl" aria-hidden="true">${g.glyph}</span><span><b>${g.title}</b><small>${g.topic}</small><span class="d">${g.how}</span></span></a>`).join('')}</div><p style="margin:10px 0 0;color:var(--muted);font-size:.92rem"><b>Three levels in every game:</b> Core, Stretch and Challenge. All three cover the same skills; the numbers get harder. Start with Core and move up when it feels easy.</p>`:`<div class="empty"><b>${SECLV.find(l=>l[0]===secLevel)[1]} games are on the way.</b> Secondary 1 is being built first.</div>`})()}</section>
+    <section class="strand" style="--c:var(--teal)"><h2>Games · Number and Algebra</h2>${(()=>{const gs=ORDER.map(id=>[id,GAMES[id]]).filter(([,g])=>g.sec===secLevel);return gs.length?`<div class="cards">${gs.map(([id,g],ci)=>`<a class="gcard" href="#${id}" style="--c:var(--teal);--i:${ci}"><span class="gl" aria-hidden="true">${g.glyph}</span><span><b>${g.title}</b><small>${g.topic}</small><span class="d">${g.how}</span></span></a>`).join('')}</div><p style="margin:10px 0 0;color:var(--muted);font-size:.92rem"><b>Three levels in every game:</b> Core, Stretch and Challenge. All three cover the same skills; the numbers get harder. Start with Core and move up when it feels easy.</p>`:`<div class="empty"><b>${SECLV.find(l=>l[0]===secLevel)[1]} games are on the way.</b> Secondary 1 is being built first.</div>`})()}</section>
     <section class="strand" style="--c:var(--violet)"><h2>Visual Lab · explore, then take the challenge</h2><div class="cards">${labs.map((a,ci)=>`<a class="gcard" href="secondary.html#${a[0]}" style="--c:var(--${a[6]==='geo'?'tomato':'violet'});--i:${ci}"><span class="gl" aria-hidden="true">${a[2]}</span><span><b>${a[3]}</b><small>${a[4]}</small><span class="d">${a[5]}</span></span></a>`).join('')}</div></section></div>`;
   $('view').querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{secLevel=b.dataset.l;try{localStorage.setItem('arcSecLevel',secLevel)}catch(e){}sfx.tap();secView()});wireHubPlayer()}
 let level='P4';try{level=localStorage.getItem('arcLevel')||'P4'}catch(e){}
@@ -5212,6 +5422,165 @@ function hub(){
 function route(){document.body.classList.remove('atstart');{const hh=location.hash.slice(1);if(ONLINE.room&&!ONLINE.pending&&!hh.startsWith('join/')&&hh!==ONLINE.gid){if(olInGame()&&!confirm(OL_ASK)){history.replaceState(null,'','#'+ONLINE.gid);return}onlineLeave()}}if(MUSIC.timer||MUSIC.key)playMusic(musicKey());document.body.classList.toggle('ingame',!!GAMES[location.hash.slice(1)]);const h=location.hash.slice(1);if(h.startsWith('join/')&&olSaved()&&olSaved().code===(h.split('/')[1]||'').toLowerCase()&&!ONLINE.room&&Date.now()-olSaved().at>15000){const s=olSaved();history.replaceState(null,'','#');olRejoin(s);return}if(h.startsWith('join/')){const [,code,gid]=h.split('/'),g=olCan(gid)?gid:'p4-rounding';cleanup();ONLINE.autoCode=/^[a-z0-9]{4}$/i.test(code||'')?code.toLowerCase():null;MODE='online';history.replaceState(null,'','#'+g);document.body.classList.add('ingame');playGame(g,{setup:true});window.scrollTo(0,0);return}if(h.startsWith('leaderboard')){cleanup();boardView(h.split('/')[1]);window.scrollTo(0,0)}else if(GAMES[h]){if(ONLINE.pending){const g=ONLINE.pending;ONLINE.pending=null;g()}else playGame(h);window.scrollTo(0,0)}else{cleanup();if(h==='start'||(h===''&&!START_SEEN))startView();else if(h==='secondary')secView();else hub()}}
 addEventListener('hashchange',route);route();
 
+/* ================= ASK QUBI: a scripted helper in the bottom-left corner =================
+   No AI and no data leaves the page. Pupils tap choices; Qubi answers from the text below.
+   "I'm stuck" gives hints one at a time (nudge -> method -> one worked step), never the final answer,
+   only in Solo mode, and a round where a hint was used is recorded as "helped" on the teacher tracker.
+   To add hints for another game: QHINTS['game-id']=[ [hint1,hint2,hint3], ... one list per question type, in the
+   same order as the game's round types ]. Games without their own hints get the general thinking steps. */
+const QHINTS={
+  's1-integers':[
+    /* order */ ['On a number line, numbers get bigger as you move right. Where do the negative numbers sit?',
+      'Every negative number is smaller than 0, and every positive number is bigger than 0. Sort the negatives first.',
+      'For negatives, the one further from 0 is smaller: −9 is further left than −2, so −9 < −2. Now place the rest.'],
+    /* temp */ ['Picture a thermometer. Does the temperature go up or down? By how many degrees?',
+      'Going up means adding, going down means subtracting. Count the steps on the number line, crossing 0 if you need to.',
+      'Example: from −3 °C going up 5 degrees: −3 → 0 is 3 steps, then 2 more steps reaches 2 °C. Try yours the same way.'],
+    /* add */ ['Are the two numbers the same sign or different signs?',
+      'Same signs: add the sizes and keep the sign. Different signs: take the smaller size from the bigger one, and keep the sign of the bigger one.',
+      'Example: −8 + 3. Different signs, 8 − 3 = 5, and 8 is bigger, so the answer is −5. Check yours the same way.'],
+    /* sub */ ['Subtracting a negative number is the tricky one. Is there a "minus a negative" in this question?',
+      'Subtracting a number is the same as adding its opposite: a − (−b) = a + b, and a − b = a + (−b).',
+      'Example: 4 − (−6) = 4 + 6 = 10. And −4 − 6 = −4 + (−6) = −10. Rewrite yours as an addition first.'],
+    /* muldiv */ ['Work out the size first, then decide the sign separately.',
+      'Same signs give a positive answer. Different signs give a negative answer. This works for × and ÷.',
+      'Example: (−12) ÷ 3: 12 ÷ 3 = 4, and the signs are different, so −4. Do the size, then the sign.'],
+    /* ops */ ['Which part do you work out first? Brackets, then powers, then × and ÷, then + and −.',
+      'Watch the power: −3² means −(3 × 3) = −9, but (−3)² means (−3) × (−3) = 9. The bracket decides.',
+      'Write each step on its own line, and do one operation at a time. Check the sign after every step.'],
+    /* story */ ['What do the positive and negative numbers stand for in this story (above or below, gain or loss)?',
+      'Write the story as a number sentence first, using + for up or gain and − for down or loss.',
+      'Example: a diver at −12 m rises 5 m: −12 + 5 = −7, so 7 m below the surface. Write yours the same way.'],
+    /* missing */ ['What operation would undo the one in the question?',
+      'Use the inverse: if ? + 5 = −2, then ? = −2 − 5. If ? × (−3) = 12, then ? = 12 ÷ (−3).',
+      'Work it out, then put your answer back into the question to check that both sides match.']
+  ]
+};
+const QGENERAL=['Read the question again slowly. What exactly is it asking you to find? Point to the key numbers and words.',
+  'Choose a tool: a model or bar diagram, a number line, a table, or a quick sketch. Which one fits this question?',
+  'Do one small step at a time and write it down. Then check: is your answer sensible? Estimate first and compare.'];
+const QLEVELS={pri:'<b>Easy</b> has the basic question types. <b>Medium</b> mixes in harder ones. <b>Hard</b> uses the trickiest types and bigger numbers. Start on Easy for a new topic, and move up once you score 6 or more out of 8.',
+  sec:'Every level has the same 8 question types. <b>Core</b> uses friendly numbers, <b>Stretch</b> uses bigger or trickier numbers, and <b>Challenge</b> adds harder twists. Start on Core for a new topic, and move up once you score 6 or more out of 8.'};
+let qhOpen=false,qhHint=0,qhPick=null;
+function qhWhere(){const h=location.hash.slice(1),g=GAMES[h];if(g)return{game:h,G:g};if(h==='secondary')return{home:'sec'};if(h==='start'||(h===''&&typeof START_SEEN!=='undefined'&&!START_SEEN))return{home:'start'};return{home:'pri'}}
+function qhLevelNow(){const w=qhWhere();if(w.G)return w.G.level;if(w.home==='sec')return({s1:'Sec 1',s2:'Sec 2',s3:'Sec 3',am:'Additional Maths'})[typeof secLevel==='string'?secLevel:'s1']||'Sec 1';return typeof level==='string'?level:'P4'}
+function qhGames(lv){return ORDER.filter(id=>{const g=GAMES[id];return g.level===lv&&g.strand!=='party'&&g.strand!=='rev'})}
+function qhInRound(){return !!(typeof ctx!=='undefined'&&ctx&&ctx.G&&ctx.id===location.hash.slice(1)&&document.body.classList.contains('playing')&&!ctx.answered)}
+function qhSay(html,chips){const b=$('qhBody');if(!b)return;
+  b.innerHTML=`<div class="qhmsg">${html}</div>${chips&&chips.length?`<div class="qhchips">${chips.map((c,i)=>`<button class="qhchip" data-i="${i}">${c[0]}</button>`).join('')}</div>`:''}`;
+  b.querySelectorAll('.qhchip').forEach(x=>x.onclick=()=>{sfx.tap&&sfx.tap();chips[+x.dataset.i][1]()});b.scrollTop=0}
+function qhMenu(){const w=qhWhere(),c=[];
+  if(w.G){c.push(['🎮 How do I play this game?',qhHow]);c.push(['🤔 I\'m stuck on this question',qhStuck])}
+  else c.push(['🧭 Which game should I play?',qhWhich]);
+  c.push(['📶 What do the levels mean?',qhLv],['☁️ How do I save my score?',qhSave],['🔊 The music is too loud',qhSound]);c.push(['💬 Send feedback to the teacher',qhFeedback]);
+  if(w.G)c.push(['🏠 Back to all the games',()=>{qhClose();location.hash=homeHref().slice(1)}]);
+  qhSay(w.G?`Hi! You're playing <b>${esc(w.G.title)}</b>. What do you need help with?`:'Hi, I\'m Qubi! What do you need help with?',c)}
+const qhBack=()=>['← Something else',qhMenu];
+function qhHow(){const w=qhWhere();if(!w.G)return qhMenu();
+  qhSay(`<b>${esc(w.G.title)}</b><br>${esc(w.G.how||'Answer each round as well as you can.')}<br><br>There are ${w.G.rounds||8} rounds. Wrong the first time? You get one more try for fewer points. In two-step questions, Step 1 must be right before Step 2 appears.`,[['🤔 I\'m stuck on this question',qhStuck],qhBack()])}
+function qhStuck(){const w=qhWhere();
+  if(!w.G)return qhMenu();
+  if(!qhInRound())return qhSay('Start a round first, then tap me when you\'re stuck on a question. I\'ll give you a hint, one step at a time.',[qhBack()]);
+  if(ctx.mode!=='solo')return qhSay('Hints are only in <b>Solo</b> mode, so games against a robot or a friend stay fair. You can do it. Read the question once more!',[qhBack()]);
+  if(ctx.G.ownHint){qhClose();return ctx.G.ownHint()} /* games with their own hint button */
+  if(qhPick!==ctx.r+':'+ctx.try+':'+ctx.id){qhPick=ctx.r+':'+ctx.try+':'+ctx.id;qhHint=0}
+  qhNextHint()}
+function qhNextHint(again){if(!qhInRound())return qhStuck();
+  const list=(!ctx.inBonus&&QHINTS[ctx.id]&&QHINTS[ctx.id][ctx.rr])||QGENERAL;if(!again){ctx.hint=(ctx.hint||0)+1;qhHint=Math.min(qhHint+1,list.length)}
+  const steps=list.slice(0,qhHint).map((h,i)=>`<div class="qhhint"><span class="qhn">Hint ${i+1}</span>${esc(h)}</div>`).join('');
+  const more=qhHint<list.length,c=[];if(more)c.push(['💡 Another hint',qhNextHint]);
+  c.push(['✏️ I\'ll try now (tap Ask Qubi to see these hints again)',()=>{qhClose();const f=document.querySelector('#gStage input:not([disabled]), #gStage button:not([disabled])');if(f)f.focus()}]);
+  qhSay(`${steps}${more?'':'<p class="qhnote">That\'s all my hints for this one. I can\'t tell you the answer, but you\'re close. Have a go!</p>'}`,c);
+  if($('qhBtn'))$('qhBtn').classList.add('qhused')}
+function qhWhich(pick){if(!pick&&qhWhere().home==='start')return qhSay('Which level are you in?',['P4','P5','P6','Sec 1'].map(l=>[l.startsWith('P')?'Primary '+l[1]:'Secondary 1',()=>qhWhich(l)]).concat([qhBack()]));
+  const lv=pick||qhLevelNow(),ids=qhGames(lv);
+  if(!ids.length)return qhSay(`There are no games for ${esc(lv)} yet. Try the Visual Lab on the Secondary page!`,[qhBack()]);
+  const topics={};ids.forEach(id=>{const k=STRANDS[GAMES[id].strand]?STRANDS[GAMES[id].strand].name:'Other';(topics[k]=topics[k]||[]).push(id)});
+  const c=Object.keys(topics).map(k=>[k,()=>qhList(lv,topics[k],pick)]);
+  c.push(['🎲 Surprise me!',()=>{qhClose();location.hash=ids[Math.floor(Math.random()*ids.length)]}],qhBack());
+  qhSay(`Games for <b>${esc(lv)}</b>. Which area do you want to practise?${pick?'':' <span class="qhnote">(Change the level with the buttons at the top of the page.)</span>'}`,c)}
+function qhList(lv,ids,pick){qhSay(`Pick a topic you're learning in class, or one you found hard:`,ids.map(id=>[`${esc(GAMES[id].title)} <small>${esc(GAMES[id].topic||'')}</small>`,()=>{qhClose();location.hash=id}]).concat([['← Other areas',()=>qhWhich(pick)]]))}
+function qhLv(){const w=qhWhere();if(w.home==='start')return qhSay(QLEVELS.pri.replace('<b>Easy</b>','<b>Primary:</b> <b>Easy</b>')+'<br><br><b>Secondary:</b> '+QLEVELS.sec,[qhBack()]);const s=w.G?!!w.G.sec:w.home==='sec';qhSay(QLEVELS[s?'sec':'pri'],[qhBack()])}
+function qhSave(){const u=window.ARCB&&window.ARCB.user;
+  qhSay(u?'You\'re signed in, so your scores are saved and you can be on the leaderboard. Your teacher can see how you did in each game, to help you improve.':'Right now you\'re playing as a <b>guest</b>, so scores aren\'t saved. Tap <b>Sign in with Google</b> at the top of the home page to make a profile: your scores are saved and you can join the leaderboard.',[qhBack()])}
+function qhSound(){qhSay('Tap <b>🔊 Sound</b> at the top right. Slide <b>Music</b> and <b>Sound effects</b> separately, all the way left to turn them off.',[qhBack()])}
+function qhClose(){qhOpen=false;const p=$('qhPanel');if(p)p.hidden=true;const b=$('qhBtn');if(b)b.setAttribute('aria-expanded','false')}
+function qhToggle(){if(qhOpen)return qhClose();qhOpen=true;$('qhPanel').hidden=false;$('qhBtn').setAttribute('aria-expanded','true');
+  const w=qhWhere();if(w.G&&qhInRound()&&ctx.mode==='solo'){if(qhHint&&qhPick===ctx.r+':'+ctx.try+':'+ctx.id)qhNextHint(true);else qhStuckMenu()}else qhMenu()}
+function qhStuckMenu(){const w=qhWhere();qhSay(`Stuck on this question in <b>${esc(w.G.title)}</b>? I can give you a hint, one small step at a time.`,[['💡 Give me a hint',qhStuck],['🎮 How do I play?',qhHow],qhBack()])}
+/* ---------- Send feedback (inside Ask Qubi). Text plus up to 2 pictures or small files, saved for the admin to read on the tracker. ---------- */
+const FBKINDS=[['bug','🐞 Something isn\'t working'],['unclear','❓ A question is confusing'],['idea','💡 I have an idea'],['other','💬 Something else']];
+let fbFiles=[],fbKind='bug';
+function fbShrink(file){return new Promise((ok,no)=>{const r=new FileReader();r.onerror=()=>no(new Error('read'));r.onload=()=>{
+  if(!/^image\//.test(file.type)){if(file.size>450000)return no(new Error('big'));return ok({name:file.name,type:file.type||'application/octet-stream',data:r.result})}
+  const im=new Image();im.onerror=()=>no(new Error('image'));im.onload=()=>{const tryAt=(px,q)=>{const k=Math.min(1,px/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)};
+    let d=tryAt(1200,.72);if(d.length>600000)d=tryAt(900,.6);if(d.length>600000)d=tryAt(700,.5);
+    ok({name:(file.name||'picture').replace(/\.[^.]+$/,'')+'.jpg',type:'image/jpeg',data:d})};im.src=r.result};r.readAsDataURL(file)})}
+function fbRecent(){try{const t=JSON.parse(localStorage.getItem('arcFb')||'[]').filter(x=>Date.now()-x<36e5);return t}catch(e){return[]}}
+function qhFeedback(){fbFiles=[];const b=$('qhBody');if(!b)return;
+  b.innerHTML=`<div class="qhmsg">Thanks for helping make Maths Arcade better! What is it about?</div>
+   <div class="fbkinds" role="radiogroup">${FBKINDS.map(([k,n])=>`<button type="button" class="qhchip fbk" role="radio" aria-checked="${k===fbKind}" data-k="${k}">${n}</button>`).join('')}</div>
+   <label class="fblbl" for="fbMsg">Tell us more <span class="qhnote">(which game and question helps a lot)</span></label>
+   <textarea id="fbMsg" maxlength="1000" rows="4" placeholder="e.g. In Below Zero round 3, the answer I typed was right but it said wrong."></textarea>
+   <div class="fbrow"><label class="qhchip fbadd" tabindex="0">📎 Add a picture or file<input id="fbFile" type="file" accept="image/*,.pdf,.doc,.docx,.txt,.ppt,.pptx" multiple hidden></label><span class="qhnote" id="fbCount">Up to 2. Screenshots are great!</span></div>
+   <div id="fbList" class="fblist"></div>
+   <p class="qhnote">Please don't include your full name, address, phone number or photos of people. ${window.ARCB&&window.ARCB.user?'Your nickname and class are sent with this.':'You are a guest, so no name is sent.'} We also send which page you were on, to help find the problem.</p>
+   <div id="fbMsgOut" class="qhnote" role="status"></div>
+   <div class="qhchips"><button type="button" class="qhchip fbsend" id="fbSend">📨 Send feedback</button><button type="button" class="qhchip" id="fbBack">← Back</button></div>`;
+  b.querySelectorAll('.fbk').forEach(x=>x.onclick=()=>{fbKind=x.dataset.k;b.querySelectorAll('.fbk').forEach(y=>y.setAttribute('aria-checked',y===x))});
+  const inp=$('fbFile'),add=b.querySelector('.fbadd');add.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inp.click()}};
+  inp.onchange=async()=>{const out=$('fbMsgOut');out.textContent='';for(const f of [...inp.files]){if(fbFiles.length>=2){out.textContent='You can add up to 2 files.';break}
+      try{fbFiles.push(await fbShrink(f))}catch(e){out.textContent=e.message==='big'?`"${f.name}" is too big. Files must be under 450 KB (pictures are made smaller for you).`:`Couldn't read "${f.name}". Try a PNG or JPG screenshot.`}}
+    inp.value='';fbDraw()};
+  $('fbBack').onclick=()=>{sfx.tap&&sfx.tap();qhMenu()};$('fbSend').onclick=fbSend;fbDraw();b.scrollTop=0}
+function fbDraw(){const l=$('fbList');if(!l)return;l.innerHTML=fbFiles.map((f,i)=>`<div class="fbitem">${/^image\//.test(f.type)?`<img src="${f.data}" alt="">`:'<span class="fbdoc">📄</span>'}<span>${esc(f.name)}<br><small>${Math.round(f.data.length*.75/1024)} KB</small></span><button type="button" aria-label="Remove ${esc(f.name)}" data-i="${i}">✕</button></div>`).join('');
+  l.querySelectorAll('button').forEach(x=>x.onclick=()=>{fbFiles.splice(+x.dataset.i,1);fbDraw()});const c=$('fbCount');if(c)c.textContent=fbFiles.length?`${fbFiles.length} of 2 added`:'Up to 2. Screenshots are great!'}
+async function fbSend(){const out=$('fbMsgOut'),msg=($('fbMsg').value||'').trim(),btn=$('fbSend');
+  if(!msg&&!fbFiles.length){out.textContent='Write a message or add a picture first.';$('fbMsg').focus();return}
+  if(fbRecent().length>=5){out.textContent='Thanks! You have sent a lot of feedback this hour. Please try again later.';return}
+  if(!window.ARCB||!window.ARCB.feedback){out.textContent='Feedback can\'t be sent right now (no connection to the server). Please try again later.';return}
+  const w=qhWhere(),g=w.G,inG=g&&typeof ctx!=='undefined'&&ctx&&ctx.id===w.game;
+  btn.disabled=true;out.textContent='Sending…';
+  try{await window.ARCB.feedback({kind:fbKind,msg,page:location.hash||'#home',game:g?g.title:'',round:inG?(ctx.inBonus?'bonus round':`round ${ctx.r+1}${ctx.try===2?' (second try)':''}`):'',
+      level:inG?String(lvn(ctx.level)||''):(g?g.level:''),mode:inG?String(ctx.mode||''):'',screen:innerWidth+'×'+innerHeight,files:fbFiles});
+    try{localStorage.setItem('arcFb',JSON.stringify(fbRecent().concat(Date.now())))}catch(e){}
+    fbFiles=[];qhSay('📨 <b>Sent! Thank you.</b> Your teacher will read it. 😊',[['💬 Send more feedback',qhFeedback],qhBack()])}
+  catch(e){btn.disabled=false;out.textContent='Sorry, that didn\'t send. '+(e&&/size|large|exceeds/i.test(e.message||'')?'The files are too big together. Remove one and try again.':'Please check your internet and try again.')}}
+(function(){const st=document.createElement('style');st.textContent=`
+#qhBtn{position:fixed;left:12px;bottom:12px;z-index:41;display:flex;align-items:center;gap:6px;padding:4px 14px 4px 4px;border:2.5px solid var(--ink);border-radius:999px;background:var(--surface);color:var(--ink);font:800 14px var(--body);cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+#qhBtn .qhhead{width:40px;height:40px;border-radius:50%;background:#fff4e8;border:2.5px solid var(--ink);overflow:hidden;display:grid;place-items:center}
+#qhBtn .qhhead svg{width:36px;height:auto}#qhBtn .qhface .q-stars,#qhBtn .qhface .q-qm,#qhBtn .qhface .q-shadow{display:none}
+#qhBtn:hover{transform:translateY(-2px)}#qhBtn.qhused{background:#fff3cc}
+#qhPanel{position:fixed;left:12px;bottom:70px;z-index:41;width:min(360px,calc(100vw - 24px));max-height:min(70vh,560px);display:flex;flex-direction:column;background:var(--surface);color:var(--ink);border:2.5px solid var(--ink);border-radius:18px;box-shadow:5px 5px 0 var(--ink);overflow:hidden;animation:stdrop .35s ease both}
+#qhPanel[hidden]{display:none!important}
+#qhPanel .qhtop{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--violet);color:#fff}
+#qhPanel .qhtop svg{width:40px;height:auto;flex:none}#qhPanel .qhtop b{font:700 1.15rem var(--display)}#qhPanel .qhtop small{display:block;font-weight:600;opacity:.85}
+#qhPanel .qhx{margin-left:auto;background:none;border:0;color:#fff;font:700 22px var(--body);cursor:pointer;padding:0 4px}
+#qhBody{padding:12px;overflow:auto;display:grid;gap:10px}
+.qhmsg{font:600 15px/1.45 var(--body)}.qhmsg b{font-weight:800}
+.qhchips{display:grid;gap:6px}
+.qhchip{text-align:left;font:700 14px var(--body);color:var(--ink);background:var(--bg);border:2px solid var(--ink);border-radius:12px;padding:8px 12px;cursor:pointer}
+.qhchip small{display:block;font-weight:600;opacity:.7}.qhchip:hover{background:var(--soft,#e6f5f2)}
+.qhhint{border-left:4px solid var(--sun,#ffb81f);background:var(--bg);padding:8px 10px;border-radius:8px;margin-bottom:6px}
+.qhn{display:block;font:800 11px var(--body);letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.qhnote{font-size:13px;opacity:.8;font-weight:600}
+.fbkinds{display:grid;grid-template-columns:1fr 1fr;gap:6px}.fbk{font-size:13px;padding:6px 8px}.fbk[aria-checked="true"]{background:var(--ink);color:var(--bg)}
+.fblbl{font:800 14px var(--body)}#fbMsg{width:100%;box-sizing:border-box;font:600 14px var(--body);color:var(--ink);background:var(--bg);border:2px solid var(--ink);border-radius:12px;padding:8px 10px;resize:vertical;min-height:88px}
+.fbrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fbadd{display:inline-block}.fbsend{background:var(--teal,#0b968b);color:#fff}.fbsend:disabled{opacity:.6}
+.fblist{display:grid;gap:6px}.fbitem{display:flex;align-items:center;gap:8px;border:2px solid var(--line,#cfe3df);border-radius:10px;padding:4px 6px;font:600 13px var(--body)}
+.fbitem img{width:44px;height:44px;object-fit:cover;border-radius:6px}.fbdoc{font-size:28px}.fbitem button{margin-left:auto;background:none;border:0;font:800 16px var(--body);color:var(--ink);cursor:pointer}
+@media (max-width:420px){.fbkinds{grid-template-columns:1fr}}
+@media (max-width:600px){#qhBtn .qhlbl{display:none}#qhBtn{padding:4px}body{padding-bottom:64px}#qhPanel{bottom:64px}}
+@media print{#qhBtn,#qhPanel{display:none!important}}`;document.head.appendChild(st);
+  const head=QUBI.replace('class="qubi"','class="qubi idle"'),face=QUBI.replace('viewBox="0 -18 120 168"','viewBox="14 0 92 118"').replace('class="qubi"','class="qubi qhface"');
+  const b=document.createElement('button');b.id='qhBtn';b.type='button';b.setAttribute('aria-expanded','false');b.setAttribute('aria-controls','qhPanel');b.title='Ask Qubi for help';
+  b.innerHTML=`<span class="qhhead">${face}</span><span class="qhlbl">Ask Qubi</span>`;b.onclick=()=>{sfx.tap&&sfx.tap();qhToggle()};
+  const p=document.createElement('div');p.id='qhPanel';p.hidden=true;p.setAttribute('role','dialog');p.setAttribute('aria-label','Ask Qubi');
+  p.innerHTML=`<div class="qhtop">${head}<div><b>Ask Qubi</b><small>Your maths helper</small></div><button class="qhx" aria-label="Close">×</button></div><div id="qhBody"></div>`;
+  p.querySelector('.qhx').onclick=qhClose;document.body.appendChild(p);document.body.appendChild(b);
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&qhOpen)qhClose()});
+  addEventListener('hashchange',()=>{qhPick=null;if(qhOpen)qhMenu();const x=$('qhBtn');if(x)x.classList.remove('qhused')})})();
 </script>
 <script type="module" src="backend.js?v=7"></script>
 </body></html>

@@ -32,7 +32,7 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, getDocs, getDoc, query, where, orderBy, limit, deleteDoc, doc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, query, where, orderBy, limit, deleteDoc, updateDoc, doc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, teacherEmails } from "./firebase-config.js";
 const TITLES=/*TITLES*/{};
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -59,6 +59,28 @@ function topicsOf(ps){const T={};ps.forEach(p=>{const v=pct(p);if(v==null)return
 /* accuracy per question type inside one game (from the round-by-round results) */
 function typesOf(ps){const Q={};ps.forEach(p=>{const r=p.res||'',rt=(p.rt||'').split(',');for(let i=0;i<r.length;i++){const k=rt[i]!==undefined&&rt[i]!==''?+rt[i]+1:i+1,q=Q[k]=Q[k]||{n:0,pts:0};q.n++;q.pts+=+r[i]}});
   return Object.entries(Q).map(([k,q])=>({k:+k,n:q.n,acc:Math.round(q.pts/(q.n*2)*100)})).sort((a,b)=>a.k-b.k)}
+/* ---------- Feedback inbox (admin only): messages, pictures and files sent from Ask Qubi ---------- */
+let FB=[],fbShow='new',FBERR='';
+const FBK={bug:'🐞 Not working',unclear:'❓ Confusing question',idea:'💡 Idea',other:'💬 Other'};
+async function loadFeedback(){FBERR='';try{const s=await getDocs(query(collection(db,'feedback'),orderBy('ts','desc'),limit(300)));FB=s.docs.map(d=>{const x=d.data();return{id:d.id,...x,t:x.ts?x.ts.toMillis():Date.now()}})}
+  catch(e){FB=[];FBERR='Could not load feedback ('+e.code+'). Deploy the latest firestore.rules, then press Refresh.'}}
+function feedbackCard(){const n=FB.filter(f=>f.status!=='done').length,list=FB.filter(f=>fbShow==='all'||(fbShow==='new'?f.status!=='done':f.status==='done'));
+  return `<div class="card" id="fbCard"><div class="row" style="justify-content:space-between"><h2>Feedback inbox <span class="pill">${n} new</span></h2>
+   <div class="row">${[['new','New'],['done','Done'],['all','All']].map(([k,l])=>`<button class="btn sm" data-fbs="${k}" ${k===fbShow?'style="background:var(--ink);color:var(--bg)"':''}>${l}</button>`).join('')}</div></div>
+   ${FBERR?`<p class="muted">${esc(FBERR)}</p>`:''}<p class="muted" style="margin:0 0 8px">Sent by pupils and visitors from Ask Qubi. Only you can see these.</p>
+   <div style="display:grid;gap:10px">${list.map(f=>`<div style="border:2px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px${f.status==='done'?';opacity:.65':''}">
+     <div class="row" style="justify-content:space-between;gap:8px"><div><b>${esc(FBK[f.kind]||f.kind||'Feedback')}</b> <span class="muted">· ${fmtD(f.t)} · ${f.signed?esc((f.nick||'Signed-in pupil')+(f.cls?' · '+f.cls:'')):'Guest'}</span></div>
+      <div class="row"><button class="btn sm" data-fbd="${esc(f.id)}">${f.status==='done'?'Reopen':'✓ Mark done'}</button><button class="btn sm" data-fbx="${esc(f.id)}">Delete</button></div></div>
+     ${f.game||f.page?`<div class="muted" style="font-size:13px">${esc([f.game,f.round,f.level,f.mode].filter(Boolean).join(' · ')||({'#home':'Primary home page','#':'Primary home page','#secondary':'Secondary home page','#start':'Start screen'})[f.page]||f.page)}${f.screen?' · screen '+esc(f.screen):''}</div>`:''}
+     ${f.msg?`<div style="white-space:pre-wrap">${esc(f.msg)}</div>`:''}
+     ${(f.files||[]).length?`<div class="row" style="gap:8px">${f.files.map((x,i)=>/^image\//.test(x.type)?`<img src="${x.data}" alt="${esc(x.name)}" data-fbi="${esc(f.id)}:${i}" title="Click to open full size" style="max-width:220px;max-height:160px;border:2px solid var(--line);border-radius:8px;cursor:zoom-in">`:`<a class="btn sm" href="${x.data}" download="${esc(x.name)}">📄 ${esc(x.name)}</a>`).join('')}</div>`:''}
+   </div>`).join('')||`<p class="muted">${fbShow==='done'?'Nothing marked done yet.':'No new feedback. 🎉'}</p>`}</div></div>`}
+function wireFeedback(){document.querySelectorAll('[data-fbs]').forEach(b=>b.onclick=()=>{fbShow=b.dataset.fbs;draw();const c=$('fbCard');if(c)c.scrollIntoView({block:'start'})});
+  document.querySelectorAll('[data-fbd]').forEach(b=>b.onclick=async()=>{const f=FB.find(x=>x.id===b.dataset.fbd);if(!f)return;const st=f.status==='done'?'new':'done';b.disabled=true;
+    try{await updateDoc(doc(db,'feedback',f.id),{status:st});f.status=st;draw();const c=$('fbCard');if(c)c.scrollIntoView({block:'start'})}catch(e){b.disabled=false;alert('Could not update: '+e.message)}});
+  document.querySelectorAll('[data-fbx]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this feedback for good?'))return;b.disabled=true;
+    try{await deleteDoc(doc(db,'feedback',b.dataset.fbx));FB=FB.filter(x=>x.id!==b.dataset.fbx);draw()}catch(e){b.disabled=false;alert('Could not delete: '+e.message)}});
+  document.querySelectorAll('[data-fbi]').forEach(im=>im.onclick=async()=>{try{const bl=await (await fetch(im.src)).blob(),u=URL.createObjectURL(bl);window.open(u,'_blank')}catch(e){}})}
 function studentsCard(){const us=U.filter(x=>!cls||x.cls===cls),by={};PL.forEach(p=>{(by[p.uid]=by[p.uid]||[]).push(p)});
   const rows=us.map(u=>{const ps=by[u.id]||[],tp=topicsOf(ps);return{u,n:ps.length,avg:avgOf(ps.map(pct).filter(v=>v!=null)),weak:tp.length&&tp[0].avg<70?tp[0]:null}}).sort((a,b)=>b.u.last-a.u.last);
   return `<div class="card" id="studCard"><div class="row" style="justify-content:space-between"><h2>Students who signed in <span class="muted" style="font-size:14px">(${rows.length})</span></h2><input id="sfind" placeholder="Search name, email or nickname"></div>
@@ -89,6 +111,7 @@ async function load(){const cut=Timestamp.fromMillis(Date.now()-days*864e5);SERR
   if(!ROLE.admin){V=[];S=[];U=[];PL=[];const cl=ROLE.classes;if(!cl.length){SERR='No classes have been assigned to you yet.';return}
     const [us,ps]=await Promise.all([getDocs(query(collection(db,'users'),where('cls','in',cl),limit(1000))),getDocs(query(collection(db,'plays'),where('cls','in',cl),limit(3000)))]);
     U=us.docs.map(mapU);PL=ps.docs.map(mapP).filter(p=>p.t>=cut.toMillis()).sort((a,b)=>b.t-a.t);return}
+  await loadFeedback();
   try{const [us,ps]=await Promise.all([getDocs(query(collection(db,'users'),orderBy('last','desc'),limit(1000))),getDocs(query(collection(db,'plays'),where('ts','>=',cut),orderBy('ts','desc'),limit(3000)))]);U=us.docs.map(mapU);PL=ps.docs.map(mapP)}
   catch(e){U=[];PL=[];SERR='Could not load the student profiles ('+e.code+'). Deploy the latest firestore.rules, then press Refresh.'}
   const [v,s]=await Promise.all([getDocs(query(collection(db,'visits'),where('ts','>=',cut),orderBy('ts','desc'),limit(VMAX))),getDocs(query(collection(db,'scores'),orderBy('ts','desc'),limit(1500)))]);
@@ -116,7 +139,8 @@ function draw(){if(!ROLE.admin){$('body').innerHTML=`<div style="display:grid;ga
   s.forEach(x=>{const p=P[who(x)];if(p){p.best=p.best||{};p.best[x.game]=Math.max(p.best[x.game]||0,x.score)}});
   const pl=Object.values(P).sort((a,b)=>b.last-a.last);const fmtT=t=>new Date(t).toLocaleString('en-SG',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
   $('body').innerHTML=`<div style="display:grid;gap:12px">${V.length>=VMAX?`<p class="muted">Showing the latest ${VMAX} events only, to stay within Firebase's free daily limit. Pick a shorter period for full numbers.</p>`:''}
-  <div class="kpis">${[['Signed-in students',U.filter(x=>!cls||x.cls===cls).length],['Named players',players.size],['Devices / visits',devices.size],['Games started',starts.length],['Games finished',fin.length],['Leaderboard entries',s.length]].map(([a,b])=>`<div class="card kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+  <div class="kpis">${[['New feedback',FB.filter(f=>f.status!=='done').length],['Signed-in students',U.filter(x=>!cls||x.cls===cls).length],['Named players',players.size],['Devices / visits',devices.size],['Games started',starts.length],['Games finished',fin.length],['Leaderboard entries',s.length]].map(([a,b])=>`<div class="card kpi"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+  ${feedbackCard()}
   ${studentsCard()}
   <div class="card"><h2>Games started per day</h2><div class="bars">${D.map(d=>`<div><i style="height:${Math.max(2,d.n/mx*140)}px"><em>${d.n||''}</em></i><small>${N>14?d.k.split(' ')[0]:d.k}</small></div>`).join('')}</div></div>
   <div class="grid2"><div class="card"><h2>Most played games</h2><div class="scroll"><table><tr><th>Game</th><th class="n">Started</th><th class="n">Finished</th><th class="n">Avg score</th></tr>${games.map(([g,o])=>`<tr><td>${esc(title(g))} <span class="pill">${esc(lvl(g))}</span></td><td class="n">${o.s}</td><td class="n">${o.f}</td><td class="n">${o.sc.length?Math.round(o.sc.reduce((a,b)=>a+b,0)/o.sc.length):'—'}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No games yet</td></tr>'}</table></div></div>
@@ -124,7 +148,7 @@ function draw(){if(!ROLE.admin){$('body').innerHTML=`<div style="display:grid;ga
   <div class="card"><div class="row" style="justify-content:space-between"><h2>Players</h2><input id="find" placeholder="Search nickname"></div><div class="scroll"><table id="ptab"><tr><th>Nickname</th><th>Class</th><th class="n">Started</th><th class="n">Finished</th><th>Most played</th><th>Last seen</th></tr>${pl.map(p=>{const top=Object.entries(p.g).sort((a,b)=>b[1]-a[1])[0];return `<tr data-n="${esc(p.nick.toLowerCase())}"><td><b>${esc(p.nick)}</b></td><td>${esc(p.cls)}</td><td class="n">${p.s}</td><td class="n">${p.f}</td><td>${top?esc(title(top[0]))+` ×${top[1]}`:'—'}</td><td>${fmtT(p.last)}</td></tr>`}).join('')||'<tr><td colspan="6" class="muted">No named players yet</td></tr>'}</table></div></div>
   <div class="grid2"><div class="card"><h2>Recent activity</h2><div class="scroll"><table><tr><th>When</th><th>Who</th><th>What</th></tr>${v.slice(0,80).map(x=>`<tr><td>${fmtT(x.t)}</td><td>${x.nick?esc(x.nick)+(x.cls?' · '+esc(x.cls):''):'<span class="muted">guest ('+esc(x.device)+')</span>'}</td><td>${{open:'Opened the arcade',start:'Started '+esc(title(x.game)),finish:'Finished '+esc(title(x.game))+(x.score>=0?` (score ${x.score})`:''),join:'Added a nickname'}[x.event]||esc(x.event)}</td></tr>`).join('')}</table></div></div>
   <div class="card"><h2>Leaderboard scores <span class="muted" style="font-size:14px">(delete rude names or test entries)</span></h2><div class="scroll"><table><tr><th>Player</th><th>Game</th><th>Level</th><th class="n">Score</th><th></th></tr>${s.slice(0,150).map(x=>`<tr><td><b>${esc(x.nick)}</b> ${esc(x.cls)}</td><td>${esc(x.title||title(x.game))}</td><td>${({easy:'Easy',mixed:'Medium',hard:'Hard'})[x.diff]||(x.diff?'—':'Older')}</td><td class="n">${x.score}</td><td><button class="btn sm" data-del="${x.id}">Delete</button></td></tr>`).join('')}</table></div></div></div></div>`;
-  wireStudents();
+  wireStudents();wireFeedback();
   $('find').oninput=()=>{const q=$('find').value.trim().toLowerCase();document.querySelectorAll('#ptab tr[data-n]').forEach(r=>r.hidden=!!q&&!r.dataset.n.includes(q))};
   document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this score from the leaderboard?'))return;await deleteDoc(doc(db,'scores',b.dataset.del));S=S.filter(x=>x.id!==b.dataset.del);draw()})}
 function csv(){const rows=[['time','event','game','nickname','class','device','visit id'],...V.map(x=>[new Date(x.t).toISOString(),x.event,title(x.game),x.nick,x.cls,x.device,x.sid])];

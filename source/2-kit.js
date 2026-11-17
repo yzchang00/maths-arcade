@@ -89,7 +89,7 @@ const api={
     if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
     if(c.inBonus){c.bonusOk=ok;pts=0}
-    else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
+    else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2||c.hint?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
     if(ok&&c.keep&&c.keep.pen&&pts>6)pts=6;
     let extra='';
     if(c.mode==='pass'){const p=c.players[c.r%c.players.length];p.score+=pts}else c.score+=pts;
@@ -169,7 +169,7 @@ function mulberry(a){return ()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,
 /* Each round is built from a saved random seed, so a second try rebuilds exactly the same question with a fresh board.
    In an online room every player derives the same seeds from the host's game seed, so everyone gets identical questions. */
 function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach(clearTimeout);c.timers=[];if(c.mode==='online'&&!retry)olResSave({r:c.r,score:c.score});
-  if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1;c.keep={}}
+  if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1;c.keep={};c.hint=0}
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
   $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;

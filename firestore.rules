@@ -36,7 +36,7 @@ service cloud.firestore {
         'p6-fdiv': 80, 'p6-pchange': 80, 'p6-ratio': 80, 'p6-algebra': 80, 'p6-circle': 80, 'p6-cuberoot': 80,
         'p6-chain': 80, 'p6-average': 80, 'p4-diner': 80, 'p4-train': 80, 'p4-compass': 80, 'p5-pizza': 80,
         'p5-pshop': 80, 'p6-pie': 80, 'party-tug': 1000, 'party-bingo': 1000, 'party-wall': 1000, 'p6-quest': 100,
-        'party-team': 1000, 'sg-journeys': 80, 'sg-journeys-2': 80, 'world-journeys': 80, 's1-primes': 80, 's1-integers': 80, 's1-estimate': 80
+        'party-team': 1000, 'sg-journeys': 80, 'sg-journeys-2': 80, 'world-journeys': 80, 's1-primes': 80, 's1-integers': 80, 's1-estimate': 80, 's1-bouncer': 80
       };
     }
     // Class: empty, or letters/numbers/dash starting with a letter or number (5B, P5-2, 6E1).
@@ -81,6 +81,31 @@ service cloud.firestore {
         && request.resource.data.ts == request.time;
       allow read, delete: if isTeacher();
       allow update: if false;
+    }
+
+    // Feedback sent from Ask Qubi. Anyone on the site (guest or signed in) can send it; only the admin can read it,
+    // mark it done or delete it. Pictures and small files are stored inside the document itself (Cloud Storage needs the
+    // paid plan), so a whole feedback document must stay under Firestore's 1 MB limit.
+    match /feedback/{id} {
+      function okFile(f) {
+        return f is map && f.keys().hasOnly(['name','type','data']) && shortText(f.name, 80) && shortText(f.type, 80)
+          && f.data is string && f.data.size() <= 700000;
+      }
+      function okFb() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['uid','kind','msg','page','game','round','level','mode','nick','cls','signed','screen','files','status','ts'])
+          && d.uid == request.auth.uid && shortText(d.kind, 20) && shortText(d.msg, 1000)
+          && shortText(d.page, 60) && shortText(d.game, 60) && shortText(d.round, 40) && shortText(d.level, 20) && shortText(d.mode, 12)
+          && shortText(d.nick, 14) && shortText(d.cls, 8) && d.signed is bool && shortText(d.screen, 20)
+          && d.files is list && d.files.size() <= 2
+          && (d.files.size() < 1 || okFile(d.files[0])) && (d.files.size() < 2 || okFile(d.files[1]))
+          && (d.msg.size() > 0 || d.files.size() > 0)
+          && d.status == 'new' && d.ts == request.time;
+      }
+      allow create: if request.auth != null && okFb();
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['new', 'done'];
     }
 
     // Staff list. Only the admin can change it; a teacher can read their own entry.

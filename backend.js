@@ -69,6 +69,13 @@ if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("PASTE")) {
   };
 
   window.ARCB = {
+    // Feedback from Ask Qubi (guests too). Files arrive already shrunk by the page: [{name, type, data (a data: URL)}].
+    feedback: async (f) => { const u = await ensureAuth(); const me = user ? myNick() : null;
+      return addDoc(collection(db, "feedback"), {
+        uid: u.uid, kind: clean(f.kind, 20), msg: clean(f.msg, 1000), page: clean(f.page, 60), game: clean(f.game, 60), round: clean(f.round, 40),
+        level: clean(f.level, 20), mode: clean(f.mode, 12), nick: clean(me && me.nick, 14), cls: clean(me && me.cls, 8), signed: !!user,
+        screen: clean(f.screen, 20), files: (f.files || []).slice(0, 2).map(x => ({ name: clean(x.name, 80), type: clean(x.type, 80), data: String(x.data) })),
+        status: "new", ts: serverTimestamp() }); },
     // One finished game of a signed-in pupil (guests are never recorded here).
     play: async (p) => { if (!user) return; return addDoc(collection(db, "plays"), {
       uid: user.uid, nick: clean(p.nick, 14), cls: clean(p.cls, 8), game: clean(p.game, 40), title: clean(p.title, 60), level: clean(p.level, 12),
