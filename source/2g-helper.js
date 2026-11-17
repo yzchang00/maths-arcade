@@ -94,6 +94,28 @@ function fbShrink(file){return new Promise((ok,no)=>{const r=new FileReader();r.
     let d=tryAt(1200,.72);if(d.length>600000)d=tryAt(900,.6);if(d.length>600000)d=tryAt(700,.5);
     ok({name:(file.name||'picture').replace(/\.[^.]+$/,'')+'.jpg',type:'image/jpeg',data:d})};im.src=r.result};r.readAsDataURL(file)})}
 function fbRecent(){try{const t=JSON.parse(localStorage.getItem('arcFb')||'[]').filter(x=>Date.now()-x<36e5);return t}catch(e){return[]}}
+/* ---------- Moderation: block vulgar words and obvious spam before feedback is sent. ----------
+   Reuses the nickname word list (BADWORDS / OKWORDS in 2-kit.js) so there is only one list to maintain.
+   Look-alike characters are turned into letters ("sh1t", "f.u.c.k"), and runs of single letters are joined
+   ("s h i t") so spacing a word out does not get past it. Whole-message squashing is avoided so innocent
+   pairs like "is explained" are never flagged. */
+let fbModStrikes=0;
+function fbModLeet(s){return String(s||'').toLowerCase().replace(/[0-9@$!|*+]/g,c=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','!':'i','|':'i','+':'t'}[c]||''));}
+/* Innocent words that merely CONTAIN a bad fragment (BADWORDS matches substrings, so "grape"/"trapezium" hold
+   "rape", "scrape" holds "crap", "homogeneous" holds "homo"). Stripped before testing. Bare "homo" is NOT listed,
+   so it is still caught; concatenations like "grapefuck" still leave "fuck" behind and are caught. */
+const fbModOK=/(grapes?|grapefruit|drapes?|scrapes?|scrap(book|py|s)?|trapez(e|es|ium|iums|oid|oids|ia)|therap(y|ies|ist|ists|eutic|eutics)|homo(geneous|graph|phone|nym|nyms|logous|logy))/g;
+function fbModHit(w){if(!w)return false;const strip=x=>x.replace(OKWORDS,'').replace(fbModOK,'');const c=w.replace(/(.)\1+/g,'$1');return BADWORDS.test(strip(c))||BADWORDS.test(strip(w));}
+function fbModVulgar(text){const m=fbModLeet(text),toks=m.split(/[^a-z]+/).filter(Boolean);for(const t of toks)if(fbModHit(t))return true;let run=[];for(const t of toks){if(t.length===1)run.push(t);else{if(run.length>=3&&fbModHit(run.join('')))return true;run=[]}}if(run.length>=3&&fbModHit(run.join('')))return true;return false}
+function fbModSpam(text){const t=String(text||'').trim(),letters=(t.match(/[a-z]/gi)||[]).length;
+  if(t.length<2||letters<2)return 'Please write a little more so we understand your feedback.';
+  if(/(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|xyz|io|co|ru|info|biz|shop|link|me)\b|t\.me\/|wa\.me\/|whats?app|telegram|discord\.gg|casino|crypto|bitcoin|promo ?code|click here|buy now|free money|earn \$|cheap|\bviagra\b|follow me|dm me|@[a-z0-9_]{3,})/i.test(t))return 'Links, adverts and contact details are not allowed here. Please tell us about the games instead.';
+  if(/(.)\1{7,}/.test(t))return 'That looks like random typing. Please write a real sentence.';
+  if(t.length>=6&&letters/t.length<0.3)return 'Please write your feedback in words.';
+  const words=t.toLowerCase().match(/[a-z]{2,}/g)||[];if(words.length>=5){const u=new Set(words);if(u.size<=Math.max(1,Math.floor(words.length*0.3)))return 'That looks repetitive. Please write what you really think.'}
+  const sq=t.toLowerCase().replace(/[^a-z]/g,'');if(sq.length>=8){const vo=(sq.match(/[aeiou]/g)||[]).length,mash=/(asdf|sdfg|dfgh|fghj|ghjk|hjkl|qwer|wert|erty|rtyu|tyui|yuiop|zxcv|xcvb|cvbn|vbnm|qazwsx|jkjk|lkjl|hjhj)/.test(sq),div=new Set(sq).size/sq.length;if(mash||vo/sq.length<0.12||(sq.length>=12&&div<0.18))return 'That looks like random typing. Please write a real sentence.'}
+  return ''}
+function fbModCheck(text){if(fbModVulgar(text))return{status:'vulgar'};const r=fbModSpam(text);return r?{status:'spam',reason:r}:{status:'clean'}}
 function qhFeedback(){fbFiles=[];const b=$('qhBody');if(!b)return;
   b.innerHTML=`<div class="qhmsg">Thanks for helping make Maths Arcade better! What is it about?</div>
    <div class="fbkinds" role="radiogroup">${FBKINDS.map(([k,n])=>`<button type="button" class="qhchip fbk" role="radio" aria-checked="${k===fbKind}" data-k="${k}">${n}</button>`).join('')}</div>
@@ -114,6 +136,9 @@ function fbDraw(){const l=$('fbList');if(!l)return;l.innerHTML=fbFiles.map((f,i)
   l.querySelectorAll('button').forEach(x=>x.onclick=()=>{fbFiles.splice(+x.dataset.i,1);fbDraw()});const c=$('fbCount');if(c)c.textContent=fbFiles.length?`${fbFiles.length} of 2 added`:'Up to 2. Screenshots are great!'}
 async function fbSend(){const out=$('fbMsgOut'),msg=($('fbMsg').value||'').trim(),btn=$('fbSend');
   if(!msg&&!fbFiles.length){out.textContent='Write a message or add a picture first.';$('fbMsg').focus();return}
+  if(msg){const mod=fbModCheck(msg);
+    if(mod.status==='vulgar'){fbModStrikes++;sfx.no&&sfx.no();out.textContent=fbModStrikes>=2?'Please stop using that kind of language. Remove it and write a kind, proper message.':'Please keep it kind — that kind of language is not allowed here. Please remove it and write a proper message.';$('fbMsg').focus();return}
+    if(mod.status==='spam'&&!fbFiles.length){sfx.no&&sfx.no();out.textContent=mod.reason;$('fbMsg').focus();return}}
   if(fbRecent().length>=5){out.textContent='Thanks! You have sent a lot of feedback this hour. Please try again later.';return}
   if(!window.ARCB||!window.ARCB.feedback){out.textContent='Feedback can\'t be sent right now (no connection to the server). Please try again later.';return}
   const w=qhWhere(),g=w.G,inG=g&&typeof ctx!=='undefined'&&ctx&&ctx.id===w.game;
