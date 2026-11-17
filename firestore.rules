@@ -95,6 +95,7 @@ service cloud.firestore {
         let d = request.resource.data;
         return d.keys().hasOnly(['uid','kind','msg','page','game','round','level','mode','nick','cls','signed','screen','files','status','ts'])
           && d.uid == request.auth.uid && shortText(d.kind, 20) && shortText(d.msg, 1000)
+          && cleanName(d.msg) && cleanName(d.nick) && cleanName(d.cls)
           && shortText(d.page, 60) && shortText(d.game, 60) && shortText(d.round, 40) && shortText(d.level, 20) && shortText(d.mode, 12)
           && shortText(d.nick, 14) && shortText(d.cls, 8) && d.signed is bool && shortText(d.screen, 20)
           && d.files is list && d.files.size() <= 2
