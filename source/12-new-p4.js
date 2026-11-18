@@ -718,50 +718,6 @@ function nLine(lo,hi,a,b){const nar=innerWidth<600,W=nar?400:660,H=110,x0=26,x1=
 function pfGen(T){const lim=[[20,150],[100,600],[400,3000]][T],P=T===2?[2,3,5,7,11]:[2,3,5,7];for(let k=0;k<500;k++){const f={};shuffle(P).slice(0,R(2,3)).forEach(p=>f[p]=R(1,p===2?(T?4:3):p===3?(T?3:2):1+(T===2&&p===5?1:0)));const n=fromF(f);if(n>=lim[0]&&n<=lim[1]&&Object.values(f).some(e=>e>1))return f}return {2:2,3:1,5:1}}
 function hlGen(T,three){for(let k=0;k<500;k++){const g=T===0?pick([2,3,4,5,6,8,10,12]):T===1?pick([6,8,9,10,12,14,15,18]):pick([12,15,18,20,24,28,30,36]),xs=shuffle([1,2,3,4,5,7,9]).slice(0,three?3:2);
   if(xs.includes(1)&&T)continue;let ok=true;for(let i=0;i<xs.length;i++)for(let j=i+1;j<xs.length;j++)if(gcdN(xs[i],xs[j])>1)ok=false;if(!ok)continue;const ns=xs.map(x=>g*x).sort((a,b)=>a-b),l=ns.reduce(lcm2);if(ns[ns.length-1]>[72,180,300][T]||l>[200,900,2400][T]||l===ns[ns.length-1])continue;return{ns,g,l}}return{ns:[12,18],g:6,l:36}}
-addGame('s1-primes',{level:'Sec 1',sec:'s1',strand:'num',glyph:'2·3',title:'Prime Factory',topic:'Primes, prime factorisation, HCF and LCM',
- how:'Break numbers into prime factors, then use them to find the HCF, the LCM, square roots and cube roots.',rounds:8,
- round(api,r){const T=TIER(),type=['prime','missing','form','hcf','lcm','word','root','square'][r];
-  if(type==='prime'){const rg=[[10,40],[40,80],[80,130]][T],ps=[],cs=[];for(let n=rg[0];n<=rg[1];n++){if(isPrime(n))ps.push(n);else if(n%2&&n%5)cs.push(n)}
-    const p=pick(ps),c=shuffle(cs).slice(0,3);api.q(`<p class="qt">Which of these is a <b>prime number</b>?</p><p class="qs">A prime number has exactly two factors: 1 and itself.</p>`);
-    secChoice(api,'pfP',[{t:String(p),ok:1},...c.map(n=>{const d=Object.keys(PF(n))[0];return{t:String(n),why:`${n} = ${d} × ${n/d}, so it has more than two factors. It is not prime.`}})],[`${p} cannot be divided exactly by 2, 3, 5 or 7${p>121?' or 11':''}, so it is prime.`,...c.map(n=>{const d=Object.keys(PF(n))[0];return `${n} = ${d} × ${n/d}`})],`${p} is prime.`);return}
-  if(type==='missing'){const f=pfGen(T),N=fromF(f),ks=Object.keys(f).sort((a,b)=>a-b),big=ks[ks.length-1],useIdx=T>0&&f[2]>1;
-    const shown=ks.map(p=>useIdx&&p==='2'?'2<sup>▢</sup>':!useIdx&&p===big?'▢'+sup(f[p]):`${p}${sup(f[p])}`).join(' × '),ans=useIdx?f[2]:+big;
-    api.q(`<p class="qt">Complete the prime factorisation: <b>${fmt(N)} = ${shown}</b>. What number goes in the box?</p>`);
-    askOne(api,{id:'pfM',w:4,right:ans,traps:useIdx?[[f[2]+1,`2<sup>${f[2]+1}</sup> is too many 2s. Keep dividing ${fmt(N)} by 2 and count how many times it works.`],[2,'The box is the <b>index</b>: how many 2s are multiplied together.']].filter(([x])=>x!==ans):[[N,'Divide by the prime factors you already know. What is left?']],
-      hint:`Divide ${fmt(N)} by the prime factors you can see. Keep going until you reach 1.`,ok:`${fmt(N)} = ${pfs(f)}.`,bad:`${fmt(N)} = ${pfs(f)}.`,work:[divSteps(N),`So ${fmt(N)} = ${pfs(f)}`]});return}
-  if(type==='form'){const f=pfGen(T),N=fromF(f),ks=Object.keys(f).sort((a,b)=>a-b),opts=[{t:pfs(f),ok:1}];
-    if(f[2]>=2){const g={...f};g[2]-=2;if(!g[2])delete g[2];opts.push({t:`4 × ${pfs(g)}`.replace(/ × $/,''),why:'That multiplies to the right number, but 4 is not prime (4 = 2 × 2). Every factor must be prime.'})}
-    else{const g={...f},a=ks[0],b=ks[1];[a,b].forEach(p=>{g[p]--;if(!g[p])delete g[p]});opts.push({t:`${a*b}${Object.keys(g).length?' × '+pfs(g):''}`,why:`That multiplies to the right number, but ${a*b} is not prime (${a*b} = ${a} × ${b}). Every factor must be prime.`})}
-    const h={...f};h[ks[0]]++;opts.push({t:pfs(h),why:`That multiplies to ${fmt(fromF(h))}, not ${fmt(N)}. Check the index of ${ks[0]}.`});
-    const e={};ks.forEach(p=>e[p]=1);opts.push(fromF(e)!==N?{t:pfs(e),why:`That multiplies to ${fmt(fromF(e))}, not ${fmt(N)}. Some primes are used more than once.`}:{t:`1 × ${pfs(f)}`,why:'1 is not a prime number, so it does not belong in a prime factorisation.'});
-    api.q(`<p class="qt">Which is the <b>prime factorisation</b> of <b>${fmt(N)}</b>?</p>`);secChoice(api,'pfF',opts,[divSteps(N),`So ${fmt(N)} = ${pfs(f)}`],`${fmt(N)} = ${pfs(f)}.`);return}
-  if(type==='hcf'||type==='lcm'){const{ns,g,l}=hlGen(T,T===2&&Math.random()<.5),isH=type==='hcf',ans=isH?g:l,list=ns.map(fmt).join(', ').replace(/, ([^,]*)$/,' and $1');
-    api.q(`<p class="qt">Find the <b>${isH?'highest common factor (HCF)':'lowest common multiple (LCM)'}</b> of <b>${list}</b>.</p>`);
-    api.body.innerHTML=board(ns.map(n=>[fmt(n),pfs(PF(n))]),'Prime factorisations','🏭');
-    askOne(api,{id:'pfH',w:6,right:ans,traps:[[isH?l:g,isH?`${fmt(l)} is the <b>LCM</b> (a multiple of them all). The HCF is the biggest number that <b>divides</b> them all.`:`${fmt(g)} is the <b>HCF</b> (it divides them all). The LCM is the smallest number that they <b>all divide into</b>.`],...(!isH&&ns.length===2&&ns[0]*ns[1]!==l?[[ns[0]*ns[1],`${fmt(ns[0])} × ${fmt(ns[1])} is a common multiple, but not the <b>lowest</b> one.`]]:[])],
-      hint:isH?'For the HCF, take each prime that appears in <b>every</b> number, with its <b>lowest</b> index.':'For the LCM, take <b>every</b> prime that appears, with its <b>highest</b> index.',ok:`The ${isH?'HCF':'LCM'} is ${fmt(ans)}.`,bad:`The ${isH?'HCF':'LCM'} is ${fmt(ans)}.`,
-      work:[...ns.map(n=>`${fmt(n)} = ${pfs(PF(n))}`),isH?`HCF: common primes, lowest index → ${pfs(PF(g))} = <b>${fmt(g)}</b>`:`LCM: every prime, highest index → ${pfs(PF(l))} = <b>${fmt(l)}</b>`]});return}
-  if(type==='word'){const isH=Math.random()<.5;let H=hlGen(Math.max(1,T),T===2&&isH);if(!isH){const LP=[];[4,6,8,9,10,12,15,18,20,24,30].forEach((x,i,A)=>A.slice(i+1).forEach(y=>{const l=lcm2(x,y);if(l<=180&&l!==y&&gcdN(x,y)>1&&(T>0||l<=60))LP.push({ns:[x,y],g:gcdN(x,y),l})}));H=pick(LP)}
-    const{ns,g,l}=H,[a,b]=ns,ans=isH?g:l,[kid]=pick(SGKIDS);
-    const Q=isH?pick([[`${kid} has ${ns.map(n=>`a ribbon ${n} cm long`).join(ns.length>2?', ':' and ')}. ${kid} cuts them all into pieces of the <b>same length</b>, with nothing left over. What is the <b>longest</b> each piece can be?`,'cm'],
-        ...(ns.length===2?[[`A rectangular floor is ${a} cm by ${b} cm. It is covered with identical <b>square</b> tiles, with no cutting. What is the side of the <b>largest</b> tile that fits?`,'cm']]:[])]):
-      pick([[`Bus ${R(10,99)} leaves the interchange every <b>${a} min</b> and bus ${R(100,199)} every <b>${b} min</b>. They leave together at 06 00. After how many minutes do they <b>next</b> leave together?`,'min'],[`One light flashes every <b>${a} s</b> and another every <b>${b} s</b>. They flash together now. After how many seconds do they <b>next</b> flash together?`,'s']]);
-    api.q(`<p class="qt">${Q[0]}</p>`);
-    askOne(api,{id:'pfW',unit:Q[1],w:6,right:ans,traps:[[isH?l:g,isH?`${fmt(l)} is the LCM. Each piece must <b>divide</b> every length exactly, so you need the <b>HCF</b>.`:`${fmt(g)} is the HCF. The time must be a <b>multiple</b> of both, so you need the <b>LCM</b>.`]],
-      hint:isH?'Splitting into equal parts with nothing left over: is that a factor or a multiple?':'Things that repeat and meet again: is that a factor or a multiple?',ok:`${isH?'HCF':'LCM'} = ${fmt(ans)} ${Q[1]}.`,bad:`The answer is ${fmt(ans)} ${Q[1]}.`,
-      work:[isH?'Equal parts with nothing left over → the answer must divide every number → <b>HCF</b>':'Events that repeat and meet again → the answer is a multiple of both → <b>LCM</b>',...ns.slice(0,isH?3:2).map(n=>`${n} = ${pfs(PF(n))}`),`${isH?'HCF':'LCM'} = ${pfs(PF(ans))} = <b>${fmt(ans)}</b>`]});return}
-  if(type==='root'){const cube=T===2,m=cube?pick([6,10,12,15,14,18,20,21]):T===1?pick([30,42,36,45,60,70,84,90]):pick([6,10,12,14,15,18,20,21]),N=cube?m*m*m:m*m,f=PF(N);
-    api.q(`<p class="qt"><b>${fmt(N)} = ${pfs(f)}</b>. Use the prime factorisation to find <b>${cube?'∛':'√'}${fmt(N)}</b>.</p>`);
-    askOne(api,{id:'pfR',w:5,right:m,traps:[[N/(cube?3:2),`Don't divide the <b>number</b> by ${cube?3:2}. Divide each <b>index</b> by ${cube?3:2}.`]],hint:`Divide each index by ${cube?3:2}.`,ok:`${cube?'∛':'√'}${fmt(N)} = ${m}.`,bad:`${cube?'∛':'√'}${fmt(N)} = ${m}.`,
-      work:[`${fmt(N)} = ${pfs(f)}`,`Divide each index by ${cube?3:2}: ${pfs(PF(m))}`,`= <b>${m}</b>`]});return}
-  /* smallest k to make a perfect square (Challenge: perfect cube) */
-  const cube=T===2;let f={2:3,3:1},k=cube?9:6;for(let q=0;q<300;q++){const f2=pfGen(Math.max(T,1)),o=Object.keys(f2).filter(p=>f2[p]%(cube?3:2));if(!o.length||(T===0&&o.length!==1))continue;const k2=o.reduce((a,p)=>a*Math.pow(+p,cube?3-f2[p]%3:1),1);if(k2<=60){f=f2;k=k2;break}}
-  const N=fromF(f),g={...f};Object.entries(PF(k)).forEach(([p,e])=>g[p]=(g[p]||0)+e);
-  api.q(`<p class="qt"><b>${fmt(N)} = ${pfs(f)}</b>. Find the <b>smallest</b> whole number <b>k</b> so that ${fmt(N)} × k is a <b>perfect ${cube?'cube':'square'}</b>.</p>`);
-  askOne(api,{id:'pfK',pre:'<span class="askunit">k =</span>',w:5,right:k,traps:[[N,`${fmt(N)} × ${fmt(N)} is a perfect square, but k = ${fmt(N)} is not the <b>smallest</b>.`]].filter(([x])=>x!==k),
-    hint:`In a perfect ${cube?'cube, every index is a multiple of 3':'square, every index is even'}. Which primes need more?`,ok:`k = ${k}.`,bad:`k = ${k}.`,
-    work:[`A perfect ${cube?'cube has indices that are multiples of 3':'square has even indices'}.`,`${pfs(f)} needs ${pfs(PF(k))} more.`,`k = ${pfs(PF(k))} = <b>${k}</b>, giving ${pfs(g)}`]})}});
-
 /* ---------- Sec 1 · Below Zero: negative numbers and the four operations ---------- */
 addGame('s1-integers',{level:'Sec 1',sec:'s1',strand:'num',glyph:'−5',title:'Below Zero',topic:'Negative numbers: ordering and the four operations',
  how:'Order negative numbers, then add, subtract, multiply and divide them. Use the number line to see what is happening.',rounds:8,

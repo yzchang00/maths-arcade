@@ -9,14 +9,14 @@ const QTEEN=QUBI.replace('<g class="q-hat">','<g class="q-teen"><rect x="0" y="6
 const qmini=(svg,cls,col)=>svg.replace('class="qubi"',`class="qubi idle ${cls}"`).replace(/#ff8a3d/g,col||'#ff8a3d');
 /* the three home pages: start screen, primary hub, secondary hub */
 const isHome=()=>['','start','secondary'].includes(location.hash.slice(1));
-function homeView(quiet){const h=location.hash.slice(1);if(h==='start'||(h===''&&!START_SEEN)){if(quiet&&$('stBar')){$('stBar').innerHTML=hubPlayerBar();wireHubPlayer();return}startView()}else if(h==='secondary')secView();else hub()}
+function homeView(quiet){const h=location.hash.slice(1);if(h==='start'||(h===''&&!START_SEEN)){if(quiet&&document.querySelector('.start'))return;startView()}else if(h==='secondary')secView();else hub()}
 function startView(){document.body.classList.add('atstart');
   const word=(w,o)=>[...w].map((c,i)=>`<span class="hl" style="--i:${i+o}">${c}</span>`).join('');
   $('view').innerHTML=`<div class="start"><div class="st-top">${qubiBox('stQ','Hi! I\u2019m Qubi. Where shall we go?','wave')}<h1 class="st-title">${word('Maths',0)} <span>${word('Arcade',5)}</span></h1><p class="st-sub">Games that make maths click.</p></div>
     <div class="st-opts">
       <button class="st-opt pri" id="stPri"><span class="st-pop" aria-hidden="true">${qmini(QUBI,'k1')}${qmini(QUBI,'k2','#45d08a')}${qmini(QUBI,'k3','#6aa5ff')}</span><b>Primary Mathematics</b><small>Primary 4 to 6 · ages 10 to 12</small><span class="st-go">Let\u2019s play →</span></button>
       <a class="st-opt sec" id="stSec" href="#secondary"><span class="st-pop" aria-hidden="true">${qmini(QTEEN,'teen')}</span><b>Secondary Mathematics</b><small>Secondary 1 to 4 · ages 13 to 16</small><span class="st-go">Let\u2019s go →</span></a>
-    </div><div id="stBar" style="margin-top:26px;animation:stfade .7s 2s both">${hubPlayerBar()}</div></div>`;wireHubPlayer();
+    </div></div>`;
   $('stPri').onclick=()=>{sfx.pop();START_SEEN=true;try{sessionStorage.setItem('arcStart','1')}catch(e){}document.body.classList.remove('atstart');if(location.hash.slice(1)==='start')history.replaceState(null,'','#');hub();window.scrollTo(0,0);if(window.MUSICREADY&&(MUSIC.timer||MUSIC.key))playMusic(musicKey())};
   $('stSec').onclick=()=>sfx.pop()}
 /* ================= SECONDARY HUB: level tabs, games (coming) and the Visual Lab applets ================= */

@@ -69,7 +69,12 @@ function cleanup(){if(typeof ONLINE!=='undefined')ONLINE.hook=null;if($('rqCalc'
 const BADWORDS=/(n[i1]g(?:er|a|ah|uh|az|ers)|fuk|fuc|fck|fvk|fvc|phuk|shit|sht|bitch|bich|biatch|cunt|dick|pusy|puss|sex|porn|fag|cock|slut|whore|rape|penis|vagina|boob|tits|tity|wank|retard|ashole|arse|bastard|idiot|stupid|dumb|bodoh|knn|kanina|ccb|lanji|lanjio|chibai|cibai|cheebai|pukimak|puki|nabeh|sohai|diulei|hitler|nazi|kys|kilyour|suicid|damn|crap|bastad|motherf|stfu|wtf|gay|lesbian|homo|negro|chink|paki|kling|keling)/;
 function squashNick(s){return String(s||'').toLowerCase().replace(/[0-9@$!|]/g,c=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','!':'i','|':'i'}[c]||'')).replace(/[^a-z]/g,'').replace(/(.)\1+/g,'$1')}
 const OKWORDS=/(nigam|nigamm|sussex|essex|middlesex|dickson|dicksen|dickens|benedick|susex|esex|midlesex|peacock|hancock|cockato|cockpit|cockerel|scunthorpe|shitake|shiitake|pakistan|klingon|sexton|titus|titan)/g;
-function isBadNick(s){const a=squashNick(s).replace(OKWORDS,''),b=String(s||'').toLowerCase().replace(/[^a-z]/g,'').replace(OKWORDS,'');return BADWORDS.test(a)||BADWORDS.test(b)}
+/* Innocent words that merely CONTAIN a bad fragment: "grape"/"trapezium" hold "rape", "scrape" holds "crap", "shuttlecock" holds "cock".
+   Removed before checking, for nicknames and feedback alike. Bare words like "homo" are not listed, so they are still caught. */
+const NICEWORDS=/(grapes?|grapefruit|drapes?|scrapes?|scrap(book|py|s)?|trapez(e|es|ium|iums|oid|oids|ia)|therap(y|ies|ist|ists|eutic|eutics)|homo(geneous|graph|phone|nym|nyms|logous|logy)|shut+lecocks?|peacocks?|cockatoos?|cockroach(es)?|cocktails?)/g;
+/* Mild words: rude in a nickname, but fair and useful in feedback ("this level is stupid"). Allowed in feedback only. */
+const MILDWORDS=/(stupid|dumb|idiot)/g;
+function isBadNick(s){const a=squashNick(s).replace(OKWORDS,'').replace(NICEWORDS,''),b=String(s||'').toLowerCase().replace(/[^a-z]/g,'').replace(OKWORDS,'').replace(NICEWORDS,'');return BADWORDS.test(a)||BADWORDS.test(b)}
 const safeNick=s=>isBadNick(s)?'Player':String(s||'');
 /* Play modes: solo, vs robot, pass & play on one device, online room. */
 const MODES=[['solo','Solo'],['bot','vs Robot'],['pass','Pass & play'],['online','Online room']];

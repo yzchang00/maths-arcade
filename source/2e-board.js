@@ -107,7 +107,7 @@ function champRows(rows){const P=new Map();
     .sort((a,b)=>b.score-a.score||b.hard-a.hard||a.t-b.t)}
 async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','#leaderboard');setTimeout(()=>lbPopup(gid),50)}
   const me=arcMe()||{};let cls='',rows=null;const ids=ORDER.filter(id=>GAMES[id]);
-  $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="#">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Arcade Champions</h2>
+  $('view').innerHTML=`<div style="display:grid;gap:14px"><div class="gbar"><a class="back" href="${homeHref()}">← All games</a></div><h2 style="margin:0;font:700 2rem var(--display)">🏆 Arcade Champions</h2>
     <div class="howcard champhow"><b>How to earn Champion points</b><ol class="howlist"><li>Play a game in <b>Solo</b> and get <b>3 stars</b>.</li><li>⭐ Easy = <b>1 point</b>, ⚡ Medium = <b>2 points</b>, 🔥 Hard = <b>3 points</b>.</li><li>🗺️ <b>PSLE Quest</b>: 3 stars = <b>3 points</b>. Scores saved before levels were added count as Easy.</li><li>Each game counts once, at the hardest level you got 3 stars on. Master more games to climb!</li><li class="qs" style="list-style:none">Party games, Vault Cracker and multiplayer games have their own leaderboards but don't give Champion points.</li></ol></div>
     <div class="row"><select id="lbC" class="num" style="width:auto"><option value="">All classes</option>${me.cls?`<option value="${esc(me.cls)}">Only ${esc(me.cls)}</option>`:''}</select>
     <select id="lbG" class="num" style="width:auto"><option value="">See one game's leaderboard…</option>${['P4','P5','P6','All levels'].map(l=>`<optgroup label="${l}">${ids.filter(id=>GAMES[id].level===l).map(id=>`<option value="${id}">${esc(GAMES[id].title)}</option>`).join('')}</optgroup>`).join('')}</select></div>
@@ -118,4 +118,7 @@ async function boardView(gid){if(gid&&GAMES[gid]){history.replaceState(null,'','
   if(!window.ARCB){$('lbList').innerHTML='<p>The leaderboard is only available on the class website.</p>';return}
   try{rows=await window.ARCB.champs();draw()}catch(e){$('lbList').innerHTML='<p>Could not load the leaderboard. Check your internet connection.</p>'}}
 addEventListener('arcb-ready',()=>{const h=location.hash.slice(1);if(GAMES[h]&&!$('gLb')){const r=document.querySelector('.gbar .row');if(r){r.insertAdjacentHTML('afterbegin','<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>');$('gLb').onclick=()=>{sfx.tap();lbPopup(h)}}}if(isHome())homeView(true);else if(h.startsWith('leaderboard'))boardView(h.split('/')[1]);arcLog('open');
-  const me=arcMe();if(!me&&(!h||h===''))setTimeout(()=>{if(!arcMe()&&!signedIn()&&!document.querySelector('.lbmodal'))playerPrompt()},400)});
+  arcAsk()});
+/* ask "guest or sign in?" once per visit, when a pupil first reaches the Primary or Secondary page (never over the start screen) */
+function arcAsk(){const h=location.hash.slice(1),atHub=(h===''&&typeof START_SEEN!=='undefined'&&START_SEEN)||h==='secondary';let asked=false;try{asked=!!sessionStorage.getItem('arcAsked')}catch(e){}
+  if(!atHub||asked||!window.ARCB||arcMe()||signedIn())return;setTimeout(()=>{if(document.querySelector('.lbmodal')||arcMe()||signedIn())return;try{sessionStorage.setItem('arcAsked','1')}catch(e){}playerPrompt()},400)}

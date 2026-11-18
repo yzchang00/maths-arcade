@@ -5,6 +5,26 @@
    To add hints for another game: QHINTS['game-id']=[ [hint1,hint2,hint3], ... one list per question type, in the
    same order as the game's round types ]. Games without their own hints get the general thinking steps. */
 const QHINTS={
+  's1-split':[
+    ['Tap a blue number and pick any factor pair. It doesn\'t matter which: you always end with the same primes.','Keep splitting every blue number. Stop only when every member is gold (prime).','Count how many times each prime appears. That number becomes its index, e.g. 2, 2, 2 → 2³.'],
+    ['Check each member: can it still be split into two smaller factors?','Even numbers bigger than 2, and numbers like 9, 15 or 25, are not prime.','Split the member that isn\'t prime, then rewrite the whole list using only primes.'],
+    ['Every number in a prime factorisation must be prime. Is 1 prime? Is 4?','Multiply each choice out. Only one gives exactly the right number with only primes.','Write the number as a factor tree first, then count each prime.'],
+    ['An index tells you how many times to multiply the prime by itself.','2³ means 2 × 2 × 2 = 8, not 2 × 3.','Work out each power first, then multiply the results together.'],
+    ['The members of a number are multiplied, not added.','Multiply the small primes first, e.g. 2 × 2 = 4, then 4 × 3 = 12…','Check: the product should be a composite number made only of those primes.'],
+    ['Write both lists of primes in order from smallest to largest.','Compare them: are the same primes there the same number of times?','Every whole number greater than 1 has only one prime factorisation.'],
+    ['Tap a blue number and pick any factor pair. It doesn\'t matter which: you always end with the same primes.','Keep splitting every blue number. Stop only when every member is gold (prime).','Count how many times each prime appears. That number becomes its index, e.g. 2, 2, 2 → 2³.'],
+    ['Tap a blue number and pick any factor pair. It doesn\'t matter which: you always end with the same primes.','Keep splitting every blue number. Stop only when every member is gold (prime).','Count how many times each prime appears. That number becomes its index, e.g. 2, 2, 2 → 2³.']
+  ],
+  's1-tables':[
+    ['Look for a prime that appears in both teams. Tap it in one team, then in the other.','Each matching pair takes one shared seat. Keep going until no prime appears in both teams.','The HCF is one prime from each shared pair, multiplied.'],
+    ['Pair up the shared primes first, then look at every column.','The LCM takes one prime from every column: shared pairs count once.','Don\'t multiply the two numbers: that counts the shared primes twice.'],
+    ['HCF: only primes that appear in every number.','Take the lowest power of each shared prime.','Example: 2³ and 2² share 2², so use 2².'],
+    ['LCM: every prime that appears in any of the numbers.','Take the highest power of each prime.','Example: 2³ and 2² → use 2³.'],
+    ['Do the two numbers share any prime members?','If they share none, the only common factor is 1.','With nothing shared, the LCM is the two numbers multiplied together.'],
+    ['Splitting things into identical groups with nothing left over → HCF.','Write both numbers as products of primes, then multiply the shared primes.','For the second step, divide by the number of groups.'],
+    ['Things that repeat until they happen together again → LCM.','List the multiples of each number, or use prime factorisation.','For the second step, divide the LCM by how often the event happens.'],
+    ['Ask yourself: am I sharing into equal groups (HCF) or waiting for things to line up (LCM)?','Then write both numbers as products of primes.','HCF: shared primes, lowest powers. LCM: all primes, highest powers.']
+  ],
   's1-integers':[
     /* order */ ['On a number line, numbers get bigger as you move right. Where do the negative numbers sit?',
       'Every negative number is smaller than 0, and every positive number is bigger than 0. Sort the negatives first.',
@@ -104,8 +124,8 @@ function fbModLeet(s){return String(s||'').toLowerCase().replace(/[0-9@$!|*+]/g,
 /* Innocent words that merely CONTAIN a bad fragment (BADWORDS matches substrings, so "grape"/"trapezium" hold
    "rape", "scrape" holds "crap", "homogeneous" holds "homo"). Stripped before testing. Bare "homo" is NOT listed,
    so it is still caught; concatenations like "grapefuck" still leave "fuck" behind and are caught. */
-const fbModOK=/(grapes?|grapefruit|drapes?|scrapes?|scrap(book|py|s)?|trapez(e|es|ium|iums|oid|oids|ia)|therap(y|ies|ist|ists|eutic|eutics)|homo(geneous|graph|phone|nym|nyms|logous|logy))/g;
-function fbModHit(w){if(!w)return false;const strip=x=>x.replace(OKWORDS,'').replace(fbModOK,'');const c=w.replace(/(.)\1+/g,'$1');return BADWORDS.test(strip(c))||BADWORDS.test(strip(w));}
+const fbModOK=NICEWORDS; /* the allow-list now lives in 2-kit.js, so nicknames use it too */
+function fbModHit(w){if(!w)return false;const strip=x=>x.replace(OKWORDS,'').replace(fbModOK,'').replace(MILDWORDS,'');const c=w.replace(/(.)\1+/g,'$1');return BADWORDS.test(strip(c))||BADWORDS.test(strip(w));}
 function fbModVulgar(text){const m=fbModLeet(text),toks=m.split(/[^a-z]+/).filter(Boolean);for(const t of toks)if(fbModHit(t))return true;let run=[];for(const t of toks){if(t.length===1)run.push(t);else{if(run.length>=3&&fbModHit(run.join('')))return true;run=[]}}if(run.length>=3&&fbModHit(run.join('')))return true;return false}
 function fbModSpam(text){const t=String(text||'').trim(),letters=(t.match(/[a-z]/gi)||[]).length;
   if(t.length<2||letters<2)return 'Please write a little more so we understand your feedback.';
@@ -182,3 +202,9 @@ async function fbSend(){const out=$('fbMsgOut'),msg=($('fbMsg').value||'').trim(
   p.querySelector('.qhx').onclick=qhClose;document.body.appendChild(p);document.body.appendChild(b);
   addEventListener('keydown',e=>{if(e.key==='Escape'&&qhOpen)qhClose()});
   addEventListener('hashchange',()=>{qhPick=null;if(qhOpen)qhMenu();const x=$('qhBtn');if(x)x.classList.remove('qhused')})})();
+/* About: a button in the top bar opens a panel describing the site (its text is written into the page for search engines and web filters) */
+(function(){const p=$('aboutPanel'),b=$('aboutBtn');if(!p||!b)return;document.body.appendChild(p); /* above everything, including Ask Qubi */const set=on=>{p.hidden=!on;b.setAttribute('aria-expanded',on);if(on)$('aboutX').focus();else b.focus()};
+  b.onclick=()=>{sfx.tap&&sfx.tap();set(p.hidden)};$('aboutX').onclick=()=>set(false);p.addEventListener('click',e=>{if(e.target===p)set(false)});
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&!p.hidden)set(false)})})();
+/* after the Primary or Secondary page is drawn, offer the guest / sign-in choice once */
+(function(){const h0=hub,s0=secView;hub=function(){const r=h0.apply(this,arguments);arcAsk();return r};secView=function(){const r=s0.apply(this,arguments);arcAsk();return r}})();

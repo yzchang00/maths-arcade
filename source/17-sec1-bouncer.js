@@ -205,5 +205,5 @@ addGame('s1-bouncer',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🚪',title:'Pr
  round(api,r){api.r0=r===0;pbQueue(api,PBTYPES[r],TIER())},
  bonus(api){api.r0=false;pbRound(api,{type:'mix',T:TIER(),size:4,patience:20,bonus:1})},
  ownHint:()=>pbQueue.hint&&pbQueue.hint()});
-/* show it before Prime Factory in the Secondary 1 list */
-ORDER.splice(ORDER.indexOf('s1-bouncer'),1);ORDER.splice(Math.max(0,ORDER.indexOf('s1-primes')),0,'s1-bouncer');
+/* show it first in the Secondary 1 list */
+ORDER.splice(ORDER.indexOf('s1-bouncer'),1);ORDER.splice(Math.max(0,ORDER.indexOf('s1-integers')),0,'s1-bouncer');

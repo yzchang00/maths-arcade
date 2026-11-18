@@ -1,4 +1,6 @@
-<title>Maths Arcade</title>
+<title>Maths Arcade · Maths learning games for Primary 4–6 and Secondary 1</title>
+<meta name="description" content="Maths Arcade is a free maths learning website for Singapore pupils in Primary 4 to 6 and Secondary 1. Short practice games on fractions, decimals, percentage, time, speed, area, angles, data, prime numbers, integers and estimation, built around the mistakes pupils commonly make.">
+<meta name="keywords" content="maths, mathematics, education, learning, practice, Singapore, primary school, secondary school, PSLE, fractions, percentage, prime numbers">
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#5f50ec">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -749,11 +751,31 @@ body.playing .gbtn{display:none}
 <div class="app">
   <div class="topbar">
     <a class="brand" href="#start" title="Back to the start screen"><i>+</i>Maths Arcade</a>
-    <div class="row" style="gap:8px"><button class="btn" id="theme">🌓 Theme: auto</button><button class="btn" id="music" aria-pressed="true" hidden style="display:none">♪ Music: on</button><button class="btn" id="mute" aria-pressed="true" hidden style="display:none">🔊 Sound effects: on</button><span style="position:relative"><button class="btn" id="vol" aria-expanded="false" aria-controls="volPanel" title="Set how loud the music and sound effects are, or turn them off">🔊<span class="tl"> Sound</span></button>
+    <div class="row" style="gap:8px"><button class="btn" id="aboutBtn" aria-expanded="false" aria-controls="aboutPanel" title="What is Maths Arcade?">ℹ️<span class="tl"> About</span></button><button class="btn" id="theme">🌓 Theme: auto</button><button class="btn" id="music" aria-pressed="true" hidden style="display:none">♪ Music: on</button><button class="btn" id="mute" aria-pressed="true" hidden style="display:none">🔊 Sound effects: on</button><span style="position:relative"><button class="btn" id="vol" aria-expanded="false" aria-controls="volPanel" title="Set how loud the music and sound effects are, or turn them off">🔊<span class="tl"> Sound</span></button>
       <div id="volPanel" hidden style="position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(280px,86vw);background:var(--surface);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:14px 16px;box-shadow:0 6px 0 var(--ink);display:grid;gap:10px;text-align:left">
         <label style="display:grid;gap:4px;font-weight:800"><span>♪ Music <span id="vol_mv" style="float:right;font-weight:700"></span></span><input type="range" id="vol_m" min="0" max="150" step="5" style="width:100%"></label>
         <label style="display:grid;gap:4px;font-weight:800"><span>🔊 Sound effects <span id="vol_sv" style="float:right;font-weight:700"></span></span><input type="range" id="vol_s" min="0" max="150" step="5" style="width:100%"></label>
         <small style="color:var(--muted)">Slide to 0 to turn it off. 100% is the normal loudness.</small></div></span></div>
   </div>
   <main id="view"></main>
+  <div class="aboutpanel" id="aboutPanel" hidden role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="aboutcard"><div class="abouthead"><h2 id="aboutTitle">ℹ️ About Maths Arcade</h2><button class="btn" id="aboutX" aria-label="Close">✕</button></div>
+      <div class="aboutbody">
+        <p><b>Maths Arcade</b> is a free <b>maths learning website</b> for Singapore pupils in <b>Primary 4 to 6</b> and <b>Secondary 1</b>. Each game practises one topic from school mathematics, such as fractions, decimals, percentage, time, speed, area and volume, angles, data, prime numbers, negative numbers and estimation, in short rounds with instant feedback.</p>
+        <h3>How it helps pupils learn</h3>
+        <ul>
+          <li><b>Built around common mistakes.</b> Wrong options are the mistakes pupils really make, and the feedback explains <i>why</i> an answer is wrong, not just that it is wrong.</li>
+          <li><b>Pitched at the right level.</b> Every game has three levels (Easy, Medium and Hard, or Core, Stretch and Challenge), so pupils can start gently and move up.</li>
+          <li><b>Thinking first, hints on request.</b> In two-step questions, Step 1 must be right before Step 2. <b>Ask Qubi</b> (bottom-left) gives hints one small step at a time and never gives away the answer.</li>
+          <li><b>Real contexts.</b> Questions use Singapore settings such as MRT and bus journeys, shops and hawker prices.</li>
+        </ul>
+        <h3>For teachers and parents</h3>
+        <ul>
+          <li>Pupils can play as a <b>guest</b> (nothing is saved) or <b>sign in with Google</b> to save their scores and join the class leaderboard.</li>
+          <li>For signed-in pupils, teachers can see which topics each pupil has practised and where they need more help.</li>
+          <li>No adverts and nothing to buy. Questions or ideas? Open <b>Ask Qubi → Send feedback</b>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>
