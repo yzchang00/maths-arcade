@@ -5,19 +5,42 @@
 const MUSIC={on:true,key:null,timer:null,gain:null,song:null,n:0,next:0,noise:null};
 try{MUSIC.on=localStorage.getItem('arcMusic')!=='0'}catch(e){}
 function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
-function compose(key){const rnd=mulberry(hashStr(key)),pk=a=>a[Math.floor(rnd()*a.length)];
+function compose(key){const base=key.replace('~secret',''),G0=GAMES[base];
+  if(G0&&G0.music==='news')return newsSong(key.endsWith('~secret'));
+  const rnd=mulberry(hashStr(key)),pk=a=>a[Math.floor(rnd()*a.length)];
   const secret=key.endsWith('~secret'),chill=key==='secondary'||!!(GAMES[key]&&GAMES[key].sec),minor=!secret&&rnd()<.3,scale=chill?[0,2,3,5,7,9,10]:minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11],root=pk([0,2,3,5,7,-3,-2]),bpm=secret?150:chill?84:pk([100,108,116,124,132]);
   const prog=chill?[0,3,6,4]:pk(minor?[[0,5,2,6],[0,3,4,0],[0,6,5,4],[0,3,6,4]]:[[0,4,5,3],[0,5,3,4],[5,3,0,4],[0,3,4,3],[0,3,5,4],[0,4,3,4]]);
   const motif=()=>{const ev=[];let s=0;while(s<16){const len=pk([2,2,2,4,1,1,3,4]);if(rnd()<.18){s+=len;continue}ev.push({s,len:Math.min(len,16-s),d:pk([0,2,4,4,7,1,3,5,2])});s+=len}return ev};
   const A=motif(),B=motif(),C=motif();
+  /* secondary games: same laid-back feel, but each game picks its own tempo, chords and lead sound (a separate seed, so primary songs don't change) */
+  if(chill&&!secret&&G0){const r2=mulberry(hashStr(key+'#sec')),p2=a=>a[Math.floor(r2()*a.length)];
+    return {bpm:p2([80,86,92,98,104]),root,scale,prog:p2([[0,3,6,4],[0,5,3,4],[0,4,5,3],[5,3,0,4],[0,6,5,4]]),form:[A,B,A,C,A,B,C,A],chill,lead:p2(['triangle','sine','triangle']),arp:r2()<.8,hat:true,secret,bassPat:p2([[0,8],[0,6,8,14],[0,10],[0,3,8,11]])}}
   return {bpm,root,scale,prog,form:[A,B,A,C,A,B,C,A],chill,lead:secret?'square':chill?'triangle':pk(['square','triangle','square','sawtooth']),arp:secret||rnd()<.7,hat:secret||rnd()<.85,secret,bassPat:pk([[0,8],[0,6,8,14],[0,4,8,12],[0,10]])}}
+/* Fake News Desk: a breaking-news theme. Driving beat, typewriter clicks with a bell at the end of each line,
+   3-3-2 brass stabs and a short fanfare. The secret round adds a siren and goes faster. */
+function newsSong(secret){const n=(s,len,d)=>({s,len,d});
+  return {news:true,secret,bpm:secret?152:132,root:-3,scale:[0,2,3,5,7,8,10],prog:[0,5,3,6],lead:'sawtooth',bassPat:[],
+    form:[[n(0,3,0),n(3,3,2),n(6,2,4),n(8,6,7)],[n(0,2,7),n(2,2,6),n(4,2,4),n(6,10,2)],[n(0,3,4),n(3,3,6),n(6,2,7),n(8,6,9)],[n(0,4,7),n(4,4,4),n(8,8,0)],
+          [n(0,3,0),n(3,3,2),n(6,2,4),n(8,6,7)],[n(0,2,7),n(2,2,9),n(4,2,7),n(6,10,4)],[],[n(0,2,4),n(2,2,4),n(4,4,6),n(8,8,7)]]}}
+function mslide(t,f1,f2,dur,vol){const c=AC,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(f1,t);o.frequency.linearRampToValueAtTime(f2,t+dur/2);o.frequency.linearRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.05);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(MUSIC.gain);o.start(t);o.stop(t+dur+.05)}
+const TYPE=[1,0,1,1,0,1,1,0,1,0,1,1,1,0,1,0];
+function newsStep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
+  if(s===0||s===6||s===8||(S.secret&&s===14))mtone(t,120,.16,'sine',.17),mtone(t,55,.18,'sine',.12);   /* kick */
+  if(s===4||s===12)mnoise(t,.1,.07,2000);                                                                /* snare */
+  if(TYPE[(s+bar*3)%16])mnoise(t,.018,s%4===0?.05:.03,5000);                                             /* typewriter keys */
+  if(bar%2===1&&s===15)mtone(t,2093,.5,'sine',.05),mtone(t,3136,.35,'sine',.025);                       /* the carriage-return bell */
+  if(s===0||s===3||s===6)[0,2,4].forEach(k=>mtone(t,midiF(mnote(S,ch+k,0)),st*1.4,'square',.022));       /* 3-3-2 news stabs */
+  if(s%2===0)mtone(t,midiF(mnote(S,ch,-2)),st*1.6,'square',.05);                                         /* pulsing bass */
+  if(S.secret&&s===0&&bar%2===0)mslide(t,660,880,st*14,.035);                                            /* siren */
+  S.form[bar].forEach(ev=>{if(ev.s===s)mtone(t,midiF(mnote(S,ch+ev.d,1)),ev.len*st*.85,S.lead,.03)})}
 const midiF=m=>440*Math.pow(2,(m-69)/12);
 function mnote(S,d,oct){const o=Math.floor(d/7),i=((d%7)+7)%7;return 60+S.root+S.scale[i]+12*(o+oct)}
 function mtone(t,f,dur,type,vol){const c=AC,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.01);
   g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(MUSIC.gain);o.start(t);o.stop(t+dur+.05)}
 function mnoise(t,dur,vol,hp){const c=AC;if(!MUSIC.noise){const b=c.createBuffer(1,c.sampleRate*.5,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MUSIC.noise=b}
   const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=MUSIC.noise;f.type='highpass';f.frequency.value=hp;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f).connect(g).connect(MUSIC.gain);s.start(t);s.stop(t+dur+.02)}
-function mstep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
+function mstep(S,n,t){if(S.news)return newsStep(S,n,t);const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
   if(S.chill){ /* the secondary theme: slower, laid-back beat with soft chords */
     if(s===0||s===10)mtone(t,90,.22,'sine',.18),mtone(t,55,.24,'sine',.13);if(s===8)mnoise(t,.14,.06,1500);if(s%4===2)mnoise(t,.03,.022,8000);
     if(s===0)[0,2,4,6].forEach(k=>mtone(t,midiF(mnote(S,ch+k,0)),st*15,'sine',.034))}

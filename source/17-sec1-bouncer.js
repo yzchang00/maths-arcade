@@ -19,6 +19,12 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .pbguy.happy .m0{display:none}.pbguy.happy .m1{display:inline}.pbguy.happy .e1{display:none}.pbguy.happy .e2.hp{display:inline}
 .pbguy.sad .m0{display:none}.pbguy.sad .m2{display:inline}.pbguy.sad .tear{display:inline}
 .pbguy.sly .m0{display:none}.pbguy.sly .m3{display:inline}.pbguy.sly .e1{display:none}.pbguy.sly .e2.sl{display:inline}
+.pbguy.p1 .m0,.pbguy.p2 .m0,.pbguy.p3 .m0{display:none}.pbguy.p1 .m4,.pbguy.p1 .br1{display:inline}.pbguy.p2 .m2,.pbguy.p2 .br2{display:inline}
+.pbguy.p3 .m5,.pbguy.p3 .br2,.pbguy.p3 .rage,.pbguy.p3 .fume{display:inline}.pbguy.p2{animation:pbtap .55s ease-in-out infinite}.pbguy.p3{animation:pbfume .16s linear infinite}
+@keyframes pbtap{50%{transform:translateY(-4px)}}@keyframes pbfume{25%{transform:translateX(-2px) rotate(-3deg)}75%{transform:translateX(2px) rotate(3deg)}}
+.pbguy.storm{transition:left 1.1s cubic-bezier(.5,0,.8,.6),opacity .5s}
+.pbmgr.scold{animation:pbscold .5s ease 3}.pbmgr.scold:after{content:'💦';position:absolute;right:-6px;top:-4px;font-size:18px;animation:pbsweat 1.4s ease both}
+@keyframes pbscold{30%{transform:scale(.88) rotate(-5deg)}70%{transform:scale(.9) rotate(5deg)}}@keyframes pbsweat{from{opacity:0;transform:translateY(-6px)}30%{opacity:1}to{opacity:0;transform:translateY(14px)}}
 .pbguy.jump{animation:pbjump .45s ease 2}.pbguy.tip{animation:pbtip .3s ease-in-out infinite}
 .pbguy.kick{transition:left .7s cubic-bezier(.2,.8,.3,1),bottom .7s ease,transform .7s;transform:rotate(-540deg) scale(.8)}
 @keyframes pbjump{50%{transform:translateY(-34px)}}@keyframes pbtip{50%{transform:translateY(-5px) rotate(-4deg)}}
@@ -65,6 +71,12 @@ const pbGuySvg=(c,o)=>`<svg viewBox="0 -24 80 120" aria-hidden="true"><ellipse c
  <path class="m m1" d="M28 52 q12 16 24 0 z" fill="#16233a"/>
  <path class="m m2" d="M30 60 q10 -9 20 0" stroke="#16233a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
  <path class="m m3" d="M30 56 q12 6 22 -4" stroke="#16233a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+ <path class="m br1" d="M23 31 l11 2 M57 31 l-11 2" stroke="#16233a" stroke-width="3.5" stroke-linecap="round"/>
+ <path class="m br2" d="M22 28 l12 6 M58 28 l-12 6" stroke="#16233a" stroke-width="4" stroke-linecap="round"/>
+ <path class="m m4" d="M29 57 q3.5 -4 7 0 q3.5 4 7 0 q3.5 -4 7 0" stroke="#16233a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+ <g class="m m5"><rect x="29" y="51" width="22" height="10" rx="3" fill="#fff" stroke="#16233a" stroke-width="3"/><path d="M36 51 v10 M44 51 v10" stroke="#16233a" stroke-width="2"/></g>
+ <rect class="m rage" x="8" y="14" width="64" height="66" rx="30" fill="#ef5240" opacity=".38"/>
+ <text class="m fume" x="54" y="20" font-size="22">💢</text>
  <path class="tear" d="M52 46 q4 7 0 9 q-4 -2 0 -9z" fill="#7cc8ff"/>${o?(PBHATS[o]||'')+(o%2?PBGLASS:'')+(o>2?PBBOW:''):''}</svg>`;
 /* why a number is or isn't prime, aimed at the mistake a pupil probably made */
 function pbWhy(n){if(n===0)return '<b>0 is not prime</b> (and not composite either). Every whole number divides 0 (0 = 0 × 5 = 0 × 7…), so 0 has endless factors. A prime must be a whole number <b>greater than 1</b> with exactly two factors.';
@@ -123,7 +135,7 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const lead=bonus?`<p class="qt">🎭 <b>Surprise outfit party!</b> Four guests in costume arrive together, and they are <b>very impatient</b>. Tap every guest who may enter, then press <b>Done</b>.</p>`
     :size>1?`<p class="qt">A group of <b>${size}</b> guests arrives. Tap <b>every</b> guest who may enter (only prime numbers), then press <b>Done</b>.</p><p class="qs">House rule: a prime is a whole number <b>greater than 1</b> with exactly two different factors. Watch out for tricky guests like 0 and negative numbers!</p>`
     :`<p class="qt">You're the bouncer at the <b>PRIMES ONLY</b> club. Check each guest's card. Only <b>prime numbers</b> may enter.</p>`;
-  const banner=(api.r0&&!bonus)?(T===1?`<p class="pbnote">⏳ <b>Medium level: guests have a patience bar.</b> Decide before it runs out for <b>+2 bonus points</b>. If it runs out, you lose nothing but the bonus.</p>`:T===2?`<p class="pbnote">👥 <b>Challenge level: guests come in groups of 3.</b> Each group has a patience bar for <b>+2 bonus points</b>.</p>`:''):'';
+  const banner=(api.r0&&!bonus)?(T===1?`<p class="pbnote">⏳ <b>Medium level: guests have a patience bar.</b> Decide quickly for <b>+2 bonus points</b>. Watch their faces: they get crosser as the bar runs down. If it runs out, they storm off, Qubi gets told off, and you'll need to serve another guest.</p>`:T===2?`<p class="pbnote">👥 <b>Challenge level: guests come in groups of 3.</b> Each group has a patience bar: decide quickly for <b>+2 bonus points</b>. If it runs out, the whole group storms off and you'll need to serve another group.</p>`:''):'';
   api.q(lead+banner);
   const W=[[30,20,10,0,-10],[28,18,8,-2,-12]][nar?1:0]; /* queue slots, front of the line first */
   api.body.innerHTML=`<div class="pbscene" id="pbScene"><div class="pbneon">PRIMES ONLY</div><div class="pbdoor"></div><div class="pbmgr">${QUBI.replace('class="qubi"','class="qubi idle"')}</div><div class="pbsay" id="pbSay"></div>
@@ -135,15 +147,18 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const say=(t,mad)=>{const x=$('pbSay');if(x){x.innerHTML=t;x.className='pbsay on'+(mad?' mad':'')}};
   const wait=ms=>new Promise(r=>api.later(r,calm?Math.min(ms,150):ms));
   const fronts=size===1?[nar?44:57]:size===3?(nar?[20,36,52]:[36,46,56]):(nar?[2,18,34,50]:[30,40,50,60]);
-  let timer=null,t0=0,late=false;
+  let timer=null,t0=0,late=false,moods=[];
+  /* faces get crosser as the patience bar runs down: impatient (half gone), annoyed (3/4 gone), fuming (nearly gone) */
+  const mood=k=>{(st.guys||[]).forEach(g=>{g.classList.remove('p1','p2','p3');if(k)g.classList.add('p'+k)})};
   const patience=()=>{if(!secs)return;const b=$('pbBar');late=false;b.style.transition='none';b.style.width='100%';b.className='';void b.offsetWidth;b.style.transition=`width ${secs}s linear`;b.style.width='0%';t0=Date.now();
-    clearTimeout(timer);timer=setTimeout(()=>{if(st.busy||api.answered)return;late=true;b.className='out';st.guys.forEach(g=>g.classList.add('tip'));
-      if(bonus){say('We\'re leaving! This party is boring!',true);decide(null)}else say(size>1?'Hurry up! We\'ve been waiting ages!':'Hurry up! I\'m waiting!',true)},secs*1000);ctx.timers.push(timer)};
-  const stopPat=()=>{clearTimeout(timer);const b=$('pbBar');if(b){const w=getComputedStyle(b).width;b.style.transition='none';b.style.width=w}};
+    clearTimeout(timer);moods.forEach(clearTimeout);mood(0);
+    moods=[[.5,1,''],[.75,2,size>1?'Come on…':'Come on…'],[.9,3,size>1?'Hurry UP! We\'re leaving soon!':'Hurry UP!']].map(([f,k,t])=>{const id=setTimeout(()=>{if(st.busy||api.answered)return;mood(k);if(t)say(t,k===3);if(k===3)sfx.tick&&sfx.tick()},secs*1000*f);ctx.timers.push(id);return id});
+    timer=setTimeout(()=>{if(st.busy||api.answered)return;late=true;b.className='out';decide(null)},secs*1000);ctx.timers.push(timer)};
+  const stopPat=()=>{clearTimeout(timer);moods.forEach(clearTimeout);const b=$('pbBar');if(b){const w=getComputedStyle(b).width;b.style.transition='none';b.style.width=w}};
   const patUI=()=>secs?`<div class="pbpat" id="pbPat"><span>⏳ ${bonus?'Very impatient!':'Patience'}</span><i><b id="pbBar"></b></i></div>`:'';
   const next=async()=>{if(api.answered)return;(st.guys||[]).forEach(g=>g.remove());st.k=0;st.busy=false;late=false;
     const nums=size===1?[pbNumber(o.type,T)]:pbGroup(o.type,T,size,bonus);st.nums=nums;st.pick=new Set();
-    $('pbSay').className='pbsay';$('pbCard').className='pbcard';$('pbAsk').innerHTML='';
+    $('pbSay').className='pbsay';$('pbCard').className='pbcard';$('pbAsk').innerHTML='';{const q=scene.querySelector('.pbmgr .qubi');if(q){q.classList.remove('oops');q.classList.add('idle')}scene.querySelector('.pbmgr').classList.remove('scold')}
     /* the front of the queue steps up to the door, everyone behind shuffles forward, and new guests join the back */
     const guys=Q.splice(0,size);st.guys=guys;
     guys.forEach((g,i)=>{g.classList.remove('wait');g.style.zIndex=8+i;g.style.bottom='3%';g.style.left=fronts[i]+'%'});
@@ -175,6 +190,7 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const decide=async letIn=>{if(api.answered||st.busy)return;st.busy=true;stopPat();const quick=secs&&!late&&Date.now()-t0<secs*1000;
     $('pbAsk').querySelectorAll('button').forEach(b=>b.disabled=true);$('pbCard').className='pbcard';
     const nums=st.nums,ins=size===1?[letIn]:nums.map((_,i)=>st.pick.has(i)),timeout=letIn===null;
+    if(!timeout)mood(0);
     const wrong=timeout?nums.map((_,i)=>i):nums.map((n,i)=>ins[i]!==isPrime(n)).map((w,i)=>w?i:-1).filter(i=>i>=0);
     if(!wrong.length){ /* everyone judged right */
       nums.forEach((n,i)=>{const g=st.guys[i];g.classList.remove('tip');g.classList.add(isPrime(n)?'happy':'sad');if(isPrime(n))g.classList.add('jump')});
@@ -191,17 +207,20 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       nums.forEach((n,i)=>{if(!wrong.includes(i)){const g=st.guys[i];if(ins[i]){g.classList.add('happy');g.style.left='84%';g.style.opacity='0'}else{g.classList.add('sad');g.style.left='-24%'}}});
       const wi=wrong.filter(i=>ins[i]).map(i=>nums[i]),wo=wrong.filter(i=>!ins[i]).map(i=>nums[i]);
       say(wi.length?`Hey! ${pbList(wi.map(n=>'<b>'+n+'</b>'))} ${wi.length>1?'aren\'t':'isn\'t'} prime. You let an impostor in!`:`Wait! ${pbList(wo.map(n=>'<b>'+n+'</b>'))} ${wo.length>1?'ARE':'IS'} prime. You turned away a real member!`,true)}
-    else{st.guys.forEach(g=>{g.classList.add('sad');g.style.left='-24%'});st.log.push('the guests ran out of patience.')}
+    else{ /* out of patience: the guests tell Qubi off, then storm off; new guests come forward */
+      const mg=scene.querySelector('.pbmgr');mood(3);say(bonus?'We\'re leaving! This party is boring!':size>1?'We\'ve waited FOREVER! We\'re going to another club!':'Too slow! I\'m going somewhere else!',true);
+      if(mg){mg.classList.remove('scold');void mg.offsetWidth;mg.classList.add('scold');const q=mg.querySelector('.qubi');if(q){q.classList.remove('idle');q.classList.add('oops')}}await wait(1500);
+      st.guys.forEach((g,i)=>api.later(()=>{g.classList.add('storm');g.style.left='-26%'},i*150));st.log.push(size>1?'the group ran out of patience and left.':'a guest ran out of patience and left.');await wait(900)}
     qubi('gQ','oops','Do better!');const stg=$('gStage');if(stg){stg.classList.remove('shake');void stg.offsetWidth;stg.classList.add('shake')}await wait(500);
     const why=(timeout?nums.map((_,i)=>i):wrong).map(i=>`<div class="pbwhy"><b>${nums[i]}:</b> ${pbWhy(nums[i])}<div class="pbfac">${pbFacts(nums[i])}</div></div>`).join('');
     if(bonus){api.done(false,timeout?'The costumed guests ran out of patience and left. Here is who was who:':'Not quite! Here is who was who:',nums.map(n=>`${pbWhy(n)} <span style="color:#5f50ec;font-weight:800">${pbFacts(n)}</span>`),0,{noRetry:true});return}
-    const head=size===1?(ins[0]?`You let <b>${nums[0]}</b> in, but it is not prime.`:`You turned <b>${nums[0]}</b> away, but it is prime.`):`You got <b>${wrong.length}</b> guest${wrong.length>1?'s':''} wrong.`;
-    $('pbAsk').innerHTML=`<div class="pbwrong" role="status"><div>😠 <b>The manager is not happy.</b> ${head}</div>${why}<div><b>You need to do better!</b> This round isn't complete until you get ${size===1?'a guest':'a whole group'} right.</div></div><button class="btn primary" id="pbNext">${size===1?'Next guest →':'Next group →'}</button>`;
+    const head=timeout?(size===1?`<b>${nums[0]}</b> waited too long and stormed off.`:'The group waited too long and stormed off.'):size===1?(ins[0]?`You let <b>${nums[0]}</b> in, but it is not prime.`:`You turned <b>${nums[0]}</b> away, but it is prime.`):`You got <b>${wrong.length}</b> guest${wrong.length>1?'s':''} wrong.`;
+    $('pbAsk').innerHTML=`<div class="pbwrong" role="status"><div>${timeout?'😤 <b>Qubi got told off!</b>':'😠 <b>The manager is not happy.</b>'} ${head}${timeout?' Here is who was who:':''}</div>${why}<div><b>You need to do better!</b> This round isn't complete until you get ${size===1?'a guest':'a whole group'} right${timeout?' before the patience bar runs out':''}.</div></div><button class="btn primary" id="pbNext">${size===1?'Next guest →':'Next group →'}</button>`;
     $('pbNext').onclick=()=>{sfx.tap();next()};$('pbNext').focus()};
   next()}
 function pbQueue(api,type,T){pbRound(api,{type,T,size:T===2?3:1,patience:T===1?20:T===2?30:0})}
 addGame('s1-bouncer',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🚪',title:'Prime Bouncer',topic:'Prime and composite numbers',
- how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away. Medium adds a patience bar; Challenge brings groups of 3 and tricky guests.',rounds:8,
+ how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away. Medium adds a patience bar: guests get crosser and storm off if you take too long. Challenge brings groups of 3 and tricky guests.',rounds:8,
  round(api,r){api.r0=r===0;pbQueue(api,PBTYPES[r],TIER())},
  bonus(api){api.r0=false;pbRound(api,{type:'mix',T:TIER(),size:4,patience:20,bonus:1})},
  ownHint:()=>pbQueue.hint&&pbQueue.hint()});

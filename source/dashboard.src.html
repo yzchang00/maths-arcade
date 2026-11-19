@@ -9,6 +9,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Nunito,system-ui,sans-serif}
 main{max-width:1100px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:18px}
 h1{font:700 2rem Fredoka,system-ui;margin:0}h2{font:600 1.25rem Fredoka,system-ui;margin:0 0 10px}
+.backarc{display:inline-flex;align-items:center;gap:6px;font:800 15px Nunito,system-ui;color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:6px 14px;text-decoration:none;margin-bottom:10px}.backarc:hover{background:var(--ink);color:var(--surface)}
 .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .btn{font:800 15px Nunito,system-ui;color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:12px;padding:7px 14px;cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--bg)}.btn.sm{padding:3px 10px;font-size:13px;border-width:1.5px}
@@ -28,7 +29,7 @@ th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 .pill{display:inline-block;font:800 12px Nunito;border:1.5px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted)}
 [hidden]{display:none!important}
 </style></head>
-<body><main id="app"><div class="signin card"><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1><p class="muted" id="msg">Loading…</p><button class="btn primary" id="go" hidden>Sign in with Google</button></div></main>
+<body><main id="app"><div class="signin card"><a class="backarc" href="index.html" title="Go back to the Maths Arcade games">← Back to Maths Arcade</a><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1><p class="muted" id="msg">Loading…</p><button class="btn primary" id="go" hidden>Sign in with Google</button></div></main>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -116,7 +117,7 @@ async function load(){const cut=Timestamp.fromMillis(Date.now()-days*864e5);SERR
   catch(e){U=[];PL=[];SERR='Could not load the student profiles ('+e.code+'). Deploy the latest firestore.rules, then press Refresh.'}
   const [v,s]=await Promise.all([getDocs(query(collection(db,'visits'),where('ts','>=',cut),orderBy('ts','desc'),limit(VMAX))),getDocs(query(collection(db,'scores'),orderBy('ts','desc'),limit(1500)))]);
   V=v.docs.map(d=>({id:d.id,...d.data(),t:d.data().ts?d.data().ts.toMillis():Date.now()}));S=s.docs.map(d=>({id:d.id,...d.data(),t:d.data().ts?d.data().ts.toMillis():Date.now()}))}
-function start(u){$('app').innerHTML=`<div class="top"><div><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1></div><div class="row"><select id="days"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select>
+function start(u){$('app').innerHTML=`<a class="backarc" href="index.html" title="Go back to the Maths Arcade games">← Back to Maths Arcade</a><div class="top"><div><span class="tag">Maths Arcade</span><h1>Teacher tracker</h1></div><div class="row"><select id="days"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select>
   <select id="cls"><option value="">All classes</option></select>${ROLE.admin?'<button class="btn" id="csv">Download CSV</button>':''}<button class="btn" id="re">Refresh</button><button class="btn sm" id="out">Sign out ${esc(u.email)}</button></div></div><div id="body"><p class="muted">Loading data…</p></div>`;
   $('out').onclick=()=>signOut(auth).then(()=>location.reload());$('days').onchange=()=>{days=+$('days').value;refresh()};$('cls').onchange=()=>{cls=$('cls').value;draw()};$('re').onclick=refresh;if($('csv'))$('csv').onclick=csv;refresh()}
 async function refresh(){$('body').innerHTML='<p class="muted">Loading data…</p>';try{await load()}catch(e){$('body').innerHTML=`<p>Could not load data: ${esc(e.message)}</p><p class="muted">If it mentions an index, open the link in the browser console once to create it.</p>`;return}

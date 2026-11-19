@@ -137,10 +137,15 @@ const PRAISE={3:'Nice!',5:'On fire!',8:'Unstoppable!',10:'Maths Legend!',15:'Gen
 function showStreak(){const t=streakEl.querySelector('.t'),m=streakEl.querySelector('.m b');t.textContent=streak+' in a row'+(best>streak?'':' · best!');
   m.style.width=Math.min(100,(streak%5||5)*20)+'%';streakEl.classList.add('on');streakEl.classList.remove('pump');void streakEl.offsetWidth;streakEl.classList.add('pump');
   clearTimeout(hideT);hideT=setTimeout(()=>streakEl.classList.remove('on'),3500)}
-function onRight(){streak++;best=Math.max(best,streak);const x=PX||innerWidth/2,y=PY||innerHeight/2;
-  burst(x,y,18+Math.min(streak,10)*3,1+Math.min(streak,10)*.06);flash('g');floatTxt(streak>1?'+1  ×'+streak:'+1',x,y-10);
-  if(streak>=2)showStreak();if(PRAISE[streak]){banner(PRAISE[streak]);setTimeout(()=>burst(innerWidth/2,innerHeight*.4,60,1.6),150)}}
-function onWrong(){if(streak>=3)floatTxt('Streak lost',PX,PY-10,'#de3f46');streak=0;flash('b');streakEl.classList.remove('on');
+/* The streak counts ROUNDS answered right first time (event 'arc:round' from the game shell), not every "correct" sound:
+   one round can play several (e.g. Prime Bouncer's guest reaction, then the round result). */
+function onRight(){const x=PX||innerWidth/2,y=PY||innerHeight/2;burst(x,y,18,1);flash('g')}
+addEventListener('arc:round',e=>{if(!e.detail||!e.detail.ok){roundWrong();return}streak++;best=Math.max(best,streak);const x=PX||innerWidth/2,y=PY||innerHeight/2;
+  burst(x,y,18+Math.min(streak,10)*3,1+Math.min(streak,10)*.06);floatTxt(streak>1?'+1  ×'+streak:'+1',x,y-10);
+  if(streak>=2)showStreak();if(PRAISE[streak]){banner(PRAISE[streak]);setTimeout(()=>burst(innerWidth/2,innerHeight*.4,60,1.6),150)}})
+/* a small slip inside a round: a soft red flash only */
+function onWrong(){flash('b')}
+function roundWrong(){if(streak>=2)floatTxt('Streak lost',PX,PY-10,'#de3f46');streak=0;streakEl.classList.remove('on');
   const v=document.getElementById('view')||document.querySelector('main')||document.body;if(!RM){v.classList.remove('imShake');void v.offsetWidth;v.classList.add('imShake');setTimeout(()=>v.classList.remove('imShake'),500)}}
 function onWin(){for(let i=0;i<4;i++)setTimeout(()=>burst(innerWidth*(.2+.2*i),innerHeight*.35,50,1.8),i*160)}
 function hook(){const S=(typeof sfx!=='undefined')?sfx:window.sfx;if(!S||S.__imm)return!!S;S.__imm=1;
@@ -152,20 +157,24 @@ window.IMM={burst,banner,floatTxt};
 /* view transitions, reveals, hub search */
 const view=document.getElementById('view');
 const io='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('imIn');e.target.classList.remove('imPre');io.unobserve(e.target)}}),{rootMargin:'0px 0px -8% 0px'}):null;
-function enhance(){if(!view)return;const f=view.firstElementChild;if(f&&!f.__imm){f.__imm=1;if(!RM){f.classList.remove('imEnter');void f.offsetWidth;f.classList.add('imEnter')}streak=0;streakEl.classList.remove('on')}
-  if(io&&!RM)view.querySelectorAll('.strand:not(.imPre):not(.imIn)').forEach((s,i)=>{if(i===0){s.classList.add('imIn');return}s.classList.add('imPre');io.observe(s)});
+/* animate only when the page really changes (a new #hash); switching level tabs on the same page redraws quietly */
+let lastHash=null;
+function enhance(){if(!view)return;const f=view.firstElementChild,quiet=location.hash===lastHash&&document.body.classList.contains('quietswap');lastHash=location.hash;
+  if(f&&!f.__imm){f.__imm=1;if(!RM&&!quiet){f.classList.remove('imEnter');void f.offsetWidth;f.classList.add('imEnter')}streak=0;streakEl.classList.remove('on')}
+  if(quiet){view.querySelectorAll('.strand').forEach(s=>{s.classList.add('imIn');s.classList.remove('imPre')})}
+  else if(io&&!RM)view.querySelectorAll('.strand:not(.imPre):not(.imIn)').forEach((s,i)=>{if(i===0){s.classList.add('imIn');return}s.classList.add('imPre');io.observe(s)});
   const lv=view.querySelector('.levels');if(lv&&!view.querySelector('.imSearch')&&view.querySelectorAll('.gcard').length>3)addSearch(lv)}
 function addSearch(lv){const w=document.createElement('div');w.className='imSearch';
-  w.innerHTML='<span aria-hidden="true">🔎</span><input type="search" placeholder="Find a game: fractions, angles, time…" aria-label="Search games"><span class="imCount"></span><kbd title="Press / to search">/</kbd><button type="button" class="imSurprise" title="Open a random game">🎲 Surprise me</button>';
+  w.innerHTML='<span aria-hidden="true">🔎</span><input type="search" placeholder="Find a game: fractions, angles, time…" aria-label="Search games"><span class="imCount"></span><kbd title="Press / to search">/</kbd><button type="button" class="imSurprise" title="Open a random game (games only, not the Visual Lab)">🎲 Surprise me</button>';
   lv.after(w);const inp=w.querySelector('input'),cnt=w.querySelector('.imCount');
   const cards=[...view.querySelectorAll('.gcard')];cards.forEach(c=>{const b=c.querySelector('b');if(b&&!b.dataset.t)b.dataset.t=b.textContent});
   inp.oninput=()=>{const q=inp.value.trim().toLowerCase();let n=0;
-    cards.forEach(c=>{const hit=!q||c.textContent.toLowerCase().includes(q);c.classList.toggle('imHide',!hit);if(hit)n++;
+    cards.forEach(c=>{const hay=(c.textContent+' '+(c.dataset.tags||'')).toLowerCase(),words=hay.split(/[^a-z0-9%²³]+/),hit=!q||q.split(/\s+/).every(w=>words.some(x=>x.startsWith(w))||(w.length>3&&hay.includes(w)));c.classList.toggle('imHide',!hit);if(hit)n++;
       const b=c.querySelector('b');if(b){const t=b.dataset.t,i=q?t.toLowerCase().indexOf(q):-1;b.innerHTML=i<0?esc(t):esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length))}});
     view.querySelectorAll('.strand').forEach(s=>{s.classList.toggle('imEmpty',!s.querySelector('.gcard:not(.imHide)'));if(q){s.classList.add('imIn');s.classList.remove('imPre')}});
     cnt.textContent=q?n+' found':''};
   inp.onkeydown=e=>{if(e.key==='Enter'){const f=cards.find(c=>!c.classList.contains('imHide'));if(f)f.click()}if(e.key==='Escape'){inp.value='';inp.oninput();inp.blur()}};
-  w.querySelector('.imSurprise').onclick=()=>{const vis=cards.filter(c=>!c.classList.contains('imHide'));if(!vis.length)return;let k=0;const order=[...vis].sort(()=>Math.random()-.5).slice(0,8);
+  w.querySelector('.imSurprise').onclick=()=>{/* games only: never land on a Visual Lab or other tool */const isGame=c=>c.dataset.kind?c.dataset.kind==='game':(c.getAttribute('href')||'').startsWith('#');let vis=cards.filter(c=>isGame(c)&&!c.classList.contains('imHide'));if(!vis.length)vis=cards.filter(isGame);if(!vis.length)return;let k=0;const order=[...vis].sort(()=>Math.random()-.5).slice(0,8);
     const step=()=>{order.forEach(c=>untilt(c));const c=order[k];c.classList.add('imHot');c.scrollIntoView({block:'center',behavior:RM?'auto':'smooth'});
       if(typeof sfx!=='undefined'&&sfx.tap)sfx.tap();if(++k<order.length)setTimeout(step,110+k*25);else setTimeout(()=>{const r=c.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,30);setTimeout(()=>c.click(),450)},300)};step()}}
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

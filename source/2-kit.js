@@ -91,14 +91,15 @@ const api={
   log(t){const c=ctx;if(!c)return;c.log=c.log||{};const k=c.mode==='pass'?c.r%c.players.length:0;(c.log[k]=c.log[k]||[]).push(t)},
   later(fn,ms){const c=ctx;const t=setTimeout(()=>{if(c&&!c.dead)fn()},ms);c.timers.push(t)},
   done(ok,msg,work=[],pts,opt={}){const c=ctx;if(!c||c.answered)return;c.answered=true;if(pts===undefined)pts=ok?10:0;
-    if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
+    const roundEv=v=>{try{dispatchEvent(new CustomEvent('arc:round',{detail:{ok:v}}))}catch(e){}}; /* one event per round result, for the streak bar */
+    if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;roundEv(false);sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
     if(c.inBonus){c.bonusOk=ok;pts=0}
     else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2||c.hint?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
     if(ok&&c.keep&&c.keep.pen&&pts>6)pts=6;
     let extra='';
     if(c.mode==='pass'){const p=c.players[c.r%c.players.length];p.score+=pts}else c.score+=pts;
-    c.streak=ok&&c.try===1?c.streak+1:0;
+    c.streak=ok&&c.try===1?c.streak+1:0;roundEv(ok&&c.try===1);
     if(c.mode==='bot'){const b=BOT[c.level],roll=Math.random(),bp=roll<b.acc?10:roll<b.acc+.15?5:0;c.botScore+=bp;
       extra=`<p class="botline">🤖 ${b.name} ${bp===10?'got it right first time (+10)':bp===5?'got it on the second try (+5)':'got it wrong (+0)'}.</p>`}
     if(c.mode==='online')onlineReport();

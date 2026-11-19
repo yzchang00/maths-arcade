@@ -52,6 +52,7 @@ const QHINTS={
       'Work it out, then put your answer back into the question to check that both sides match.']
   ]
 };
+if(typeof FNHINTS!=='undefined')QHINTS['s1-news']=FNHINTS;
 const QGENERAL=['Read the question again slowly. What exactly is it asking you to find? Point to the key numbers and words.',
   'Choose a tool: a model or bar diagram, a number line, a table, or a quick sketch. Which one fits this question?',
   'Do one small step at a time and write it down. Then check: is your answer sensible? Estimate first and compare.'];
