@@ -3501,6 +3501,18 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .pbtiles{display:grid;gap:8px;justify-items:center;margin-top:6px}.pbtiles svg{width:100%;max-width:440px;height:auto;display:block;background:#eef6ff;border:2.5px solid #2c3446;border-radius:12px}
 .pbctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}.pbctl .btn{min-height:34px;padding:4px 10px;font-size:13px}.pbctl .btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .pbmsg{font:800 14px var(--body);text-align:center;margin:0}
+.pbev{display:grid;gap:8px;justify-items:center;width:100%;max-width:640px}.pbev .qt{margin:0}.pbst{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pbst .btn{min-width:66px;font-size:1.05rem;padding:8px 10px}.pbst .btn.ok{background:#45d08a;color:#16233a;border-color:#16233a}.pbst .btn.tried{opacity:.55}.pbst .btn.need{box-shadow:0 0 0 3px #ffd257}
+.pblog{display:grid;gap:4px;font:700 15px/1.45 var(--body);text-align:left;width:100%}.pblog .y{color:#0b968b}.pblog .n{color:#c2410c}.pblog .i{color:var(--ink)}
+.pbsc{margin-top:6px}.pbsc summary{cursor:pointer;font-weight:800;color:#5f50ec}.pbsc p{margin:4px 0}
+.pbgsay{position:absolute;right:88%;top:30%;width:max-content;max-width:min(165px,42vw);background:#fff;color:#16233a;border:2.5px solid #16233a;border-radius:12px;padding:4px 9px;font:800 12px/1.3 var(--body);text-align:center;z-index:20;transform-origin:100% 50%;animation:pbgpop .3s cubic-bezier(.3,1.5,.5,1) both}
+.pbgsay:after{content:'';position:absolute;left:100%;top:50%;margin-top:-7px;border:7px solid transparent;border-left-color:#16233a}.pbgsay.mad{background:#ffe1dc;border-color:#c2410c}.pbgsay.mad:after{border-left-color:#c2410c}
+@keyframes pbgpop{from{opacity:0;transform:scale(.5)}}
+@media (max-width:600px){.pbgsay{right:auto;left:50%;top:auto;bottom:80%;max-width:150px;font-size:11px;transform:translateX(-50%);transform-origin:50% 100%;animation:none}
+ .pbgsay:after{left:50%;top:100%;margin-top:0;margin-left:-7px;border-left-color:transparent;border-top-color:#16233a}.pbgsay.mad:after{border-left-color:transparent;border-top-color:#c2410c}}
+.svg{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;width:100%;max-width:440px}.svg span{display:grid;place-items:center;aspect-ratio:1;border:1.5px solid var(--line,#c9cfdb);border-radius:6px;font:800 clamp(10px,2.6vw,14px) var(--body);cursor:pointer;background:var(--surface);color:var(--ink);position:relative;transition:background .25s,opacity .25s}
+#svWP{grid-template-columns:1fr!important}
+.svg span.x{opacity:.35;text-decoration:line-through;cursor:default}.svg span.now{background:#ffd6d2}.svg span.pr{background:#ffd257;color:#16233a;border-color:#b07d00;opacity:1;text-decoration:none}
 .pbnote{background:#fff3cc;color:#16233a;border:2px solid #ffb81f;border-radius:12px;padding:6px 10px;font:600 14px/1.4 var(--body);margin:6px 0 0}
 .pbpat{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;font:800 14px var(--body)}.pbpat i{flex:1;height:14px;border:2.5px solid var(--ink);border-radius:99px;overflow:hidden;background:var(--surface)}
 .pbpat b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ef5240,#ffd257 40%,#45d08a)}.pbpat b.out{background:#ef5240}.pbpat span{white-space:nowrap}
@@ -3581,10 +3593,16 @@ function pbNumber(type,T){const seen=ctx.pbSeen=ctx.pbSeen||new Set();
 /* the hint ladder for one guest: equal rows → quick tests → a nudge */
 function pbHint(n,k){if(n<=0)return {h:['<b>Hint 1:</b> read the house rule: a prime must be a whole number <b>greater than 1</b>.',`<b>Hint 2:</b> is ${n} greater than 1?`,'<b>Hint 3:</b> numbers less than 2 (like 0, 1 and negatives) are never prime.'][Math.min(k,2)]};const ps=PBP(n),dg=String(n).split(''),sum=dg.reduce((a,b)=>a+ +b,0);
   if(k===0)return n<4?{h:`<b>Hint 1:</b> list every factor of ${n}. A prime has <b>exactly two different</b> factors: 1 and itself.`}:{h:`<b>Hint 1:</b> could <b>${n}</b> guests stand in <b>equal rows</b> (at least 2 rows, the same number in every row)? If yes, ${n} is not prime. Try it:`,tool:1};
-  if(k===1)return {h:`<b>Hint 2:</b> quick tests. Is ${n} even? Do its digits add up to a multiple of 3${dg.length>1?` (${dg.join(' + ')} = ${sum})`:''}? Does it end in 0 or 5? If none of those work, keep testing 7, 11, 13…`};
+  if(k===1){const why3=dg.length===2?`${n} = ${dg[0]} tens + ${dg[1]} = ${dg[0]} × 9 + ${dg[0]} + ${dg[1]}. ${dg[0]} × 9 is always a multiple of 3, so only ${dg[0]} + ${dg[1]} = ${sum} decides.`:dg.length===3?`${n} = ${dg[0]} × 99 + ${dg[1]} × 9 + (${dg.join(' + ')}). 99 and 9 are multiples of 3, so only ${dg.join(' + ')} = ${sum} decides.`:'';
+    return {h:`<b>Hint 2:</b> divide ${n} by the small primes one at a time: <b>2, 3, 5, 7…</b> If one divides it exactly (no remainder), the guest is not prime.<details class="pbsc"><summary>Shortcuts some teachers use (and why they work)</summary>
+      <p><b>÷ 2:</b> the number is even (ends in 0, 2, 4, 6 or 8). Every ten is 2 × 5, so only the last digit matters.</p><p><b>÷ 5:</b> it ends in 0 or 5. Every ten is 2 × 5, so again only the last digit matters.</p>
+      ${why3?`<p><b>÷ 3:</b> the digits add up to a multiple of 3. Why? ${why3}${sum%3===0?` ${sum} is a multiple of 3, so 3 divides ${n}.`:` ${sum} is not a multiple of 3, so 3 does not divide ${n}.`}</p>`:''}</details>`}}
   if(n===1)return {h:'<b>Hint 3:</b> how many different factors does 1 have? A prime needs exactly two.'};
   if(n===2||n===3)return {h:`<b>Hint 3:</b> the factors of ${n} are 1 and ${n}. How many is that?`};
-  return {h:isPrime(n)?`<b>Hint 3:</b> you only need to test the primes up to √${n} ≈ ${Math.sqrt(n).toFixed(1)}: ${pbList(ps)}. Try dividing ${n} by each of them.`:`<b>Hint 3:</b> try dividing ${n} by <b>${pbSmall(n)}</b>.`}}
+  if(!isPrime(n))return {h:`<b>Hint 3:</b> try dividing ${n} by <b>${pbSmall(n)}</b>.`};
+  const nx=pbNextP(ps.length?ps[ps.length-1]:1);
+  return {h:`<b>Hint 3:</b> factors come in pairs that multiply to ${n}. Because ${nx} × ${nx} = ${nx*nx} is bigger than ${n}, any pair would need a number smaller than ${nx}. So you only need to test ${pbList(ps.length?ps:[2])}. If none of them divide ${n} exactly, it is prime.`}}
+const pbNextP=p=>{let q=p+1;while(!isPrime(q))q++;return q};
 /* a group for Challenge (3) or the outfit party (4): a mix of primes and look-alikes, all different */
 function pbGroup(type,T,size,bonus){const seen=ctx.pbSeen=ctx.pbSeen||new Set(),out=[],add=n=>{if(!out.includes(n)){out.push(n);seen.add(n)}};
   if(bonus){const hi=T===2?199:99,ps=pbPrimesIn(11,hi),cs=[];for(let n=10;n<=hi;n++)if(!isPrime(n)&&n%2&&n%5)cs.push(n);const k=R(1,size-1);
@@ -3594,7 +3612,7 @@ function pbGroup(type,T,size,bonus){const seen=ctx.pbSeen=ctx.pbSeen||new Set(),
   let g=0;while(out.length<size&&g++<40){const n=pbNumber(out.length===size-1&&Math.random()<.5?'mix':type,T);add(n)}return shuffle(out)}
 /* one round: a guest (or a group) walks up from the moving queue and hands its card(s) to Qubi */
 function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patience||0,bonus=!!o.bonus;
-  const st=ctx.pbR={misses:0,hints:0,log:[],k:0},base=T>=1||bonus?8:10;
+  const st=ctx.pbR={misses:0,hints:0,evid:0,log:[],k:0},base=T>=1||bonus?8:10;
   const lead=bonus?`<p class="qt">🎭 <b>Surprise outfit party!</b> Four guests in costume arrive together, and they are <b>very impatient</b>. Tap every guest who may enter, then press <b>Done</b>.</p>`
     :size>1?`<p class="qt">A group of <b>${size}</b> guests arrives. Tap <b>every</b> guest who may enter (only prime numbers), then press <b>Done</b>.</p><p class="qs">House rule: a prime is a whole number <b>greater than 1</b> with exactly two different factors. Watch out for tricky guests like 0 and negative numbers!</p>`
     :`<p class="qt">You're the bouncer at the <b>PRIMES ONLY</b> club. Check each guest's card. Only <b>prime numbers</b> may enter.</p>`;
@@ -3607,6 +3625,9 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const scene=$('pbScene'),Q=[];
   const mk=(left,wait)=>{const g=document.createElement('div');g.className='pbguy'+(wait?' wait':'');g.style.left=left+'%';g.innerHTML=pbGuySvg(pick(PBCOL),bonus?R(1,4):0);scene.appendChild(g);return g};
   for(let i=0;i<4;i++){const g=mk(W[i],1);g.style.zIndex=5-i;Q.push(g)}
+  const gsay=(t,mad)=>{scene.querySelectorAll('.pbgsay').forEach(x=>x.remove());const gs=st.guys||[];const g=gs[Math.floor((gs.length-1)/2)];if(!g||!t)return;
+    const b=document.createElement('div');b.className='pbgsay'+(mad?' mad':'');b.innerHTML=t;g.appendChild(b)};
+  const gquiet=()=>scene.querySelectorAll('.pbgsay').forEach(x=>x.remove());
   const say=(t,mad)=>{const x=$('pbSay');if(x){x.innerHTML=t;x.className='pbsay on'+(mad?' mad':'')}};
   const wait=ms=>new Promise(r=>api.later(r,calm?Math.min(ms,150):ms));
   const fronts=size===1?[nar?44:57]:size===3?(nar?[20,36,52]:[36,46,56]):(nar?[2,18,34,50]:[30,40,50,60]);
@@ -3615,11 +3636,11 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const mood=k=>{(st.guys||[]).forEach(g=>{g.classList.remove('p1','p2','p3');if(k)g.classList.add('p'+k)})};
   const patience=()=>{if(!secs)return;const b=$('pbBar');late=false;b.style.transition='none';b.style.width='100%';b.className='';void b.offsetWidth;b.style.transition=`width ${secs}s linear`;b.style.width='0%';t0=Date.now();
     clearTimeout(timer);moods.forEach(clearTimeout);mood(0);
-    moods=[[.5,1,''],[.75,2,size>1?'Come on…':'Come on…'],[.9,3,size>1?'Hurry UP! We\'re leaving soon!':'Hurry UP!']].map(([f,k,t])=>{const id=setTimeout(()=>{if(st.busy||api.answered)return;mood(k);if(t)say(t,k===3);if(k===3)sfx.tick&&sfx.tick()},secs*1000*f);ctx.timers.push(id);return id});
+    moods=[[.5,1,''],[.75,2,size>1?'Come on…':'Come on…'],[.9,3,size>1?'Hurry UP! We\'re leaving soon!':'Hurry UP!']].map(([f,k,t])=>{const id=setTimeout(()=>{if(st.busy||api.answered)return;mood(k);if(t)gsay(t,k===3);if(k===3)sfx.tick&&sfx.tick()},secs*1000*f);ctx.timers.push(id);return id});
     timer=setTimeout(()=>{if(st.busy||api.answered)return;late=true;b.className='out';decide(null)},secs*1000);ctx.timers.push(timer)};
   const stopPat=()=>{clearTimeout(timer);moods.forEach(clearTimeout);const b=$('pbBar');if(b){const w=getComputedStyle(b).width;b.style.transition='none';b.style.width=w}};
   const patUI=()=>secs?`<div class="pbpat" id="pbPat"><span>⏳ ${bonus?'Very impatient!':'Patience'}</span><i><b id="pbBar"></b></i></div>`:'';
-  const next=async()=>{if(api.answered)return;(st.guys||[]).forEach(g=>g.remove());st.k=0;st.busy=false;late=false;
+  const next=async()=>{if(api.answered)return;gquiet();(st.guys||[]).forEach(g=>g.remove());st.k=0;st.busy=false;late=false;
     const nums=size===1?[pbNumber(o.type,T)]:pbGroup(o.type,T,size,bonus);st.nums=nums;st.pick=new Set();
     $('pbSay').className='pbsay';$('pbCard').className='pbcard';$('pbAsk').innerHTML='';{const q=scene.querySelector('.pbmgr .qubi');if(q){q.classList.remove('oops');q.classList.add('idle')}scene.querySelector('.pbmgr').classList.remove('scold')}
     /* the front of the queue steps up to the door, everyone behind shuffles forward, and new guests join the back */
@@ -3633,6 +3654,7 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       $('pbName').textContent=nums[i];cd.style.transition='none';cd.style.left=(fronts[i]+(nar?6:4))+'%';cd.style.top='62%';cd.className='pbcard';void cd.offsetWidth;cd.style.transition='';
       cd.className='pbcard hand';await wait(size>1?180:300);cd.style.left=nar?'70%':'76%';cd.style.top='46%';cd.className='pbcard give';await wait(size>1?420:650)}
     mg.classList.remove('pbhop');void mg.offsetWidth;mg.classList.add('pbhop');say(size>1?'Let me see these…':'Let me see…');sfx.tap();await wait(500);$('pbSay').className='pbsay';
+    if(size===1&&nums[0]===1)gsay('I\'m 1! I can only be divided by myself… so I\'m prime, right? Let me in!');
     if(size===1){$('pbName').textContent=nums[0];cd.style.left=nar?'40%':'50%';cd.style.top='6%';cd.className='pbcard on';await wait(600);
       $('pbAsk').innerHTML=`${patUI()}<p class="qt">Only prime numbers are allowed. Let <b>${nums[0]}</b> in?</p><div class="pbbtns"><button class="btn" id="pbIn">✅ Let in</button><button class="btn" id="pbOut">🚫 Turn away</button></div>`+hintUI();
       $('pbIn').onclick=()=>decide(true);$('pbOut').onclick=()=>decide(false)}
@@ -3650,16 +3672,50 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       :'<b>Hint 3:</b><br>'+st.nums.map(n=>n<2?`${n}: not prime (less than 2)`:isPrime(n)?`${n}: test ${pbList(PBP(n).length?PBP(n):[2])}. Do any of them divide it?`:`${n}: try dividing by ${pbSmall(n)}`).join('<br>');$('pbHints').appendChild(box)}
     $('pbHint').textContent=st.k>=3?'No more hints':`💡 Another hint (${3-st.k} left)`;if(st.k>=3)$('pbHint').disabled=true};
   pbQueue.hint=hint; /* Ask Qubi uses the same hints */
-  const decide=async letIn=>{if(api.answered||st.busy)return;st.busy=true;stopPat();const quick=secs&&!late&&Date.now()-t0<secs*1000;
+  /* EVIDENCE (20 Nov): after a right call, the bouncer proves it to Qubi, so guessing doesn't pay.
+     A guest who stays out: tap the test that busts it (a divisor, or "less than 2").
+     A single prime guest: run the division tests and decide when you have done enough (stop once prime × itself is bigger than the number). */
+  const STAMPS=[[2,3,5,7],[2,3,5,7,11],[2,3,5,7,11,13,17]][T];
+  const evPanel=(head)=>{$('pbAsk').innerHTML=`<div class="pbev"><p class="qt">🔍 <b>Prove it to Qubi.</b> ${head}</p><div class="pbst" id="pbSt"></div><div class="pblog" id="pbLog" role="status"></div><div id="pbEvB"></div></div>`};
+  const logLine=(t,c)=>{$('pbLog').insertAdjacentHTML('beforeend',`<div class="${c}">${t}</div>`)};
+  const bust=(n,who)=>new Promise(done=>{let miss=0;evPanel(`${who}<b>${n}</b> stays out. Which test <b>busts</b> ${n}?`);
+    $('pbSt').innerHTML=STAMPS.map(d=>`<button class="btn" data-d="${d}">÷ ${d}</button>`).join('')+`<button class="btn" data-d="lt">Less than 2</button>`;
+    const finish=()=>{$('pbSt').querySelectorAll('button').forEach(b=>b.disabled=true);api.later(done,1100)};
+    $('pbSt').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.disabled)return;const d=b.dataset.d;
+      if(d==='lt'){if(n<2){b.classList.add('ok');sfx.ok();logLine(n===1?'✓ 1 is less than 2. It has only <b>one</b> factor (itself), and a prime needs exactly two.':`✓ ${n} is less than 2. Primes must be whole numbers <b>greater than 1</b>.`,'y');finish()}
+        else{b.classList.add('tried');b.disabled=true;sfx.no();miss++;logLine(`❌ ${n} is not less than 2. Try dividing it.`,'n')}return}
+      const k=+d;b.disabled=true;
+      if(n<2){b.classList.add('tried');logLine(n===0?`0 ÷ ${k} = 0. True for every number, so it doesn't explain much. The real reason: 0 is less than 2.`:`${n} is negative. Negative numbers are out straight away: they are less than 2.`,'i');sfx.tap();return}
+      if(n%k===0&&n!==k){b.classList.add('ok');sfx.ok();logLine(`✓ ${n} ÷ ${k} = ${n/k} exactly. So ${n} = ${k} × ${n/k}: <b>busted!</b>`,'y');finish();return}
+      b.classList.add('tried');sfx.no();miss++;logLine(`❌ ${n} ÷ ${k} = ${Math.floor(n/k)} remainder ${n%k}. ${k} does not divide ${n} exactly.`,'n');
+      if(miss>=3){st.evid=1;const s0=pbSmall(n);logLine(`It's <b>÷ ${s0}</b>: ${n} = ${s0} × ${n/s0}.`,'i');const sb=$('pbSt').querySelector(`[data-d="${s0}"]`);if(sb)sb.classList.add('ok');finish()}})});
+  const checks=n=>new Promise(done=>{const need=PBP(n);if(!need.length){done();return}const did=new Set();let early=0;
+    evPanel(`Show that nothing splits <b>${n}</b>. Tap the division tests you need, then press <b>Enough checks</b>.`);
+    $('pbSt').innerHTML=STAMPS.filter(d=>d<n).map(d=>`<button class="btn${T===0&&need.includes(d)?' need':''}" data-d="${d}">÷ ${d}</button>`).join('');
+    if(T===0)$('pbLog').insertAdjacentHTML('beforebegin',`<p class="ptsm">💡 Core level: the tests you need are outlined in yellow.</p>`);
+    $('pbEvB').innerHTML=`<button class="btn primary" id="pbEnough">✅ Enough checks: let ${n} in</button>`;
+    $('pbSt').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.disabled)return;const k=+b.dataset.d;b.disabled=true;b.classList.add('tried');did.add(k);sfx.tap();logLine(`${n} ÷ ${k} = ${Math.floor(n/k)} remainder ${n%k}. ❌ ${k} is not a factor.`,'i')});
+    const end=()=>{$('pbSt').querySelectorAll('button').forEach(b=>b.disabled=true);$('pbEnough').disabled=true;const nx=pbNextP(need[need.length-1]);
+      const small=Array.from({length:nx-2},(_,k)=>k+2),comp=small.filter(x=>!isPrime(x));
+      logLine(`✓ Enough! Factors come in <b>pairs</b> that multiply to ${n}. If both numbers in a pair were ${nx} or more, they would multiply to at least ${nx} × ${nx} = ${nx*nx}, which is already bigger than ${n}. So one number in any pair would have to be <b>smaller than ${nx}</b>: ${pbList(small)}.${comp.length?` (${pbList(comp)} ${comp.length>1?'are':'is'} made of smaller primes, so ${comp.length>1?'they are':'it is'} already covered.)`:''} You checked those, and none of them divide ${n} exactly. So ${n} has only one factor pair, 1 × ${n}: it is prime.`,'y');sfx.ok();api.later(done,3200)};
+    $('pbEnough').onclick=()=>{const miss=need.filter(p=>!did.has(p));if(!miss.length)return end();
+      early++;sfx.no();const m=miss[0];
+      if(early>=2){st.evid=1;miss.forEach(p=>{did.add(p);const b=$('pbSt').querySelector(`[data-d="${p}"]`);if(b){b.disabled=true;b.classList.add('tried')}logLine(`${n} ÷ ${p} = ${Math.floor(n/p)} remainder ${n%p}. ❌ ${p} is not a factor.`,'i')});return end()}
+      logLine(`Not yet: try <b>÷ ${m}</b>. ${n} could still have a factor pair with ${m} in it, like ${m} × something (${m} × ${m} = ${m*m} is not bigger than ${n}).`,'n')}});
+  const evidence=async(nums,ins)=>{if(bonus)return;
+    if(size===1){const n=nums[0];if(isPrime(n))await checks(n);else await bust(n,'');return}
+    for(let i=0;i<nums.length;i++)if(!isPrime(nums[i]))await bust(nums[i],`Guest ${i+1}: `)};
+  const decide=async letIn=>{if(api.answered||st.busy)return;st.busy=true;stopPat();if(letIn!==null)gquiet();const quick=secs&&!late&&Date.now()-t0<secs*1000;
     $('pbAsk').querySelectorAll('button').forEach(b=>b.disabled=true);$('pbCard').className='pbcard';
     const nums=st.nums,ins=size===1?[letIn]:nums.map((_,i)=>st.pick.has(i)),timeout=letIn===null;
     if(!timeout)mood(0);
     const wrong=timeout?nums.map((_,i)=>i):nums.map((n,i)=>ins[i]!==isPrime(n)).map((w,i)=>w?i:-1).filter(i=>i>=0);
-    if(!wrong.length){ /* everyone judged right */
+    if(!wrong.length){ /* everyone judged right: first prove it, then the guests react */
+      await evidence(nums,ins);if(api.answered)return;
       nums.forEach((n,i)=>{const g=st.guys[i];g.classList.remove('tip');g.classList.add(isPrime(n)?'happy':'sad');if(isPrime(n))g.classList.add('jump')});
       say(nums.every(n=>!isPrime(n))?'Good call! None of them get in.':pick(['Welcome in, primes!','Perfect door work!','Nice! Only the primes get in.']));await wait(900);
       nums.forEach((n,i)=>{const g=st.guys[i];if(isPrime(n)){g.style.left='84%';g.style.opacity='0'}else g.style.left='-24%'});await wait(800);
-      const pts=bonus?0:Math.min(st.misses===0?base+(quick?2:0):st.misses===1?5:2,st.hints?6:10);
+      const pts=bonus?0:Math.min(st.misses===0?base+(quick?2:0):st.misses===1?5:2,st.hints||st.evid?6:10);
       const work=nums.map(n=>`${pbWhy(n)}<br><span style="color:#5f50ec;font-weight:800">${pbFacts(n)}</span>`);
       api.done(true,`${size===1?(isPrime(nums[0])?`${nums[0]} is prime, so it's in.`:`${nums[0]} is not prime, so it's out.`):`Primes let in: ${nums.filter(isPrime).join(', ')||'none'}.`}${quick&&!st.misses&&!bonus?' ⏳ +2 speed bonus!':''}${st.misses?` Round complete after ${st.misses} mistake${st.misses>1?'s':''}.`:''}`,[...work,...(st.log.length?['Earlier in this round: '+st.log.join(' ')]:[])],pts);return}
     /* a mistake: no second try. Wrong guests are dealt with, the manager scolds, and new guests come forward */
@@ -3671,7 +3727,7 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       const wi=wrong.filter(i=>ins[i]).map(i=>nums[i]),wo=wrong.filter(i=>!ins[i]).map(i=>nums[i]);
       say(wi.length?`Hey! ${pbList(wi.map(n=>'<b>'+n+'</b>'))} ${wi.length>1?'aren\'t':'isn\'t'} prime. You let an impostor in!`:`Wait! ${pbList(wo.map(n=>'<b>'+n+'</b>'))} ${wo.length>1?'ARE':'IS'} prime. You turned away a real member!`,true)}
     else{ /* out of patience: the guests tell Qubi off, then storm off; new guests come forward */
-      const mg=scene.querySelector('.pbmgr');mood(3);say(bonus?'We\'re leaving! This party is boring!':size>1?'We\'ve waited FOREVER! We\'re going to another club!':'Too slow! I\'m going somewhere else!',true);
+      const mg=scene.querySelector('.pbmgr');mood(3);gsay(bonus?'We\'re leaving! This party is boring!':size>1?'We\'ve waited FOREVER! We\'re going to another club!':'Too slow! I\'m going somewhere else!',true);
       if(mg){mg.classList.remove('scold');void mg.offsetWidth;mg.classList.add('scold');const q=mg.querySelector('.qubi');if(q){q.classList.remove('idle');q.classList.add('oops')}}await wait(1500);
       st.guys.forEach((g,i)=>api.later(()=>{g.classList.add('storm');g.style.left='-26%'},i*150));st.log.push(size>1?'the group ran out of patience and left.':'a guest ran out of patience and left.');await wait(900)}
     qubi('gQ','oops','Do better!');const stg=$('gStage');if(stg){stg.classList.remove('shake');void stg.offsetWidth;stg.classList.add('shake')}await wait(500);
@@ -3682,9 +3738,33 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
     $('pbNext').onclick=()=>{sfx.tap();next()};$('pbNext').focus()};
   next()}
 function pbQueue(api,type,T){pbRound(api,{type,T,size:T===2?3:1,patience:T===1?20:T===2?30:0})}
+/* ---- Sieve Night (Challenge, last round): the Sieve of Eratosthenes on the club's 100-square guest list ---- */
+function pbSieve(api){const sp=[2,3,5,7];let step=0,crossed=new Set([1]);
+  api.q(`<p class="qt">🌙 <b>Sieve Night!</b> 100 guests queue at once, far too many to check one by one. Qubi has a trick: cross out the numbers that <b>can't</b> be prime, and the ones left standing are the members.</p>`);
+  api.body.innerHTML=`<div class="ptlab2"><h4>🔢 The guest list, 1 to 100</h4><div class="svg" id="svG">${Array.from({length:100},(_,i)=>`<span data-n="${i+1}" class="${i===0?'x':''}">${i+1}</span>`).join('')}</div><p class="ptstat" id="svM" role="status">1 is crossed out already: it is not prime.</p><div id="svB"></div></div>`;
+  const cell=n=>$('svG').querySelector(`[data-n="${n}"]`);
+  const ask=()=>{if(step>=sp.length)return finale();const p=sp[step];
+    $('svB').innerHTML=`<p class="asklab" style="text-align:center">${step===0?'<b>Step 1:</b> tap the first number that is not crossed out.':`<b>Step ${step+1}:</b> tap the next number that is not crossed out.`}</p>`;
+    $('svG').querySelectorAll('span').forEach(c=>c.onclick=()=>{if(api.answered)return;const n=+c.dataset.n;if(crossed.has(n)||c.classList.contains('pr'))return;
+      if(n!==p){sfx.no();$('svM').innerHTML=`<span class="n">Not that one: ${n<p?'':'there is a smaller number still standing. '}Look for the <b>first</b> number not crossed out.</span>`;return}
+      sfx.ok();c.classList.add('pr');$('svG').querySelectorAll('span').forEach(x=>x.onclick=null);
+      $('svM').innerHTML=`<span class="y">✓ ${p} is prime: nothing smaller (except 1) divides it.</span> Every other multiple of ${p} has ${p} as a factor, so none of them can be prime.`;
+      $('svB').innerHTML=`<button class="btn primary" id="svX">✂️ Cross out every multiple of ${p}</button>`;
+      $('svX').onclick=()=>{$('svX').disabled=true;sfx.tap();const ms=[];for(let m=p*2;m<=100;m+=p)if(!crossed.has(m))ms.push(m);
+        ms.forEach((m,k)=>setTimeout(()=>{crossed.add(m);const e=cell(m);if(e){e.classList.add('x','now');setTimeout(()=>e.classList.remove('now'),400)}},k*25));
+        setTimeout(()=>{$('svM').innerHTML=`${ms.length} more numbers crossed out: ${ms.slice(0,6).join(', ')}${ms.length>6?'…':''}${step>0&&ms.length?` (some multiples of ${p} were already gone)`:''}.`;step++;ask()},ms.length*25+500)}})};
+  const finale=()=>{const left=[];for(let n=2;n<=100;n++)if(!crossed.has(n))left.push(n);
+    $('svB').innerHTML='';
+    stepPick(api,{id:'svW',keepOrder:true,label:`<b>Step 5:</b> the next number standing is 11. Do we need to cross out multiples of 11?`,options:['No: 11 × 11 = 121 is already bigger than 100','Yes: 11 is prime, so cross out its multiples too'],right:'No: 11 × 11 = 121 is already bigger than 100',pen:'svC',
+      hint:()=>'Look at 22, 33, 44… 99. Are they already crossed out? Why?',reveal:()=>'22 = 2 × 11, 33 = 3 × 11, … 77 = 7 × 11: each has a smaller factor, so it was crossed out already. The first new one would be 11 × 11 = 121. Tap the right answer.',
+      okMsg:`<p class="askok">Yes! Every multiple of 11 below 100 has a smaller factor (22 = 2 × 11, 77 = 7 × 11…), so it's already gone. The same idea is why you can stop checking at 7 for numbers up to 100.</p>`,
+      then:()=>{left.forEach((n,k)=>setTimeout(()=>{const e=cell(n);if(e)e.classList.add('pr')},k*30));
+        askOne(api,{id:'svC',label:`<b>Step 6:</b> everything still standing is prime. Count them: how many primes are there from 1 to 100?`,w:4,right:left.length,hint:'Count the yellow numbers, row by row.',
+          ok:`There are ${left.length} primes below 100. The sieve found them all without checking each one!`,bad:`There are ${left.length} primes below 100.`,work:[`Cross out 1, then multiples of 2, 3, 5 and 7`,`11 × 11 = 121 > 100, so stop`,`${left.length} primes: ${left.join(', ')}`]})}})};
+  ask()}
 addGame('s1-bouncer',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🚪',title:'Prime Bouncer',topic:'Prime and composite numbers',
- how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away. Medium adds a patience bar: guests get crosser and storm off if you take too long. Challenge brings groups of 3 and tricky guests.',rounds:8,
- round(api,r){api.r0=r===0;pbQueue(api,PBTYPES[r],TIER())},
+ how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away, then prove each call with a division test. Medium adds a patience bar: guests get crosser and storm off if you take too long. Challenge brings groups of 3, tricky guests and Sieve Night.',rounds:8,
+ round(api,r){api.r0=r===0;if(TIER()===2&&r===7)return pbSieve(api);pbQueue(api,PBTYPES[r],TIER())},
  bonus(api){api.r0=false;pbRound(api,{type:'mix',T:TIER(),size:4,patience:20,bonus:1})},
  ownHint:()=>pbQueue.hint&&pbQueue.hint()});
 /* show it first in the Secondary 1 list */
@@ -3707,6 +3787,11 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .ftv{min-width:42px;padding:6px 10px;border-radius:12px;border:2.5px solid var(--ink);background:#fff;color:#16233a;font:700 1.15rem var(--display);cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
 .ftv.cp{background:#e7f0ff;animation:ftpulse 1.4s ease-in-out infinite}.ftv.sp{background:#eef0f4;color:#5b6475;cursor:default;box-shadow:none}
 .ftv.pr{background:#ffd257;border-color:#b07d00;cursor:pointer}.ftv.pr:after{content:' ✨'}.ftv.sel{outline:4px solid #5f50ec}
+.ftv.next{position:relative;margin-bottom:24px}.ftv.next:before{content:'👆';position:absolute;left:50%;top:100%;transform:translateX(-50%);font-size:22px;animation:ftpoint .9s ease-in-out infinite;pointer-events:none}
+@keyframes ftpoint{50%{transform:translate(-50%,6px)}}
+.ftguide{margin:0 0 6px;padding:8px 12px 8px 30px;border:2px dashed var(--line,#c9cfdb);border-radius:12px;font:600 14px/1.45 var(--body);text-align:left;width:100%;max-width:560px;box-sizing:border-box;color:var(--muted)}
+.ftguide li.on{color:var(--ink);font-weight:800}.ftguide li.on::marker{color:#5f50ec}
+.ftkey{display:inline-block;padding:0 6px;border:2px solid #16233a;border-radius:8px;color:#16233a;font-weight:800}.ftkey.cp{background:#e7f0ff}.ftkey.pr{background:#ffd257}
 @keyframes ftpulse{50%{box-shadow:2px 2px 0 var(--ink),0 0 0 5px #5f50ec44}}
 .ftpanel{display:grid;gap:8px;justify-items:center;text-align:center}.ftpanel .row{justify-content:center}.ftpanel .btn{min-width:84px}
 .ftclub{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;font:800 14px var(--body)}
@@ -3753,6 +3838,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cpguy.tap{cursor:pointer}.cpguy.tap:hover{filter:brightness(1.1) drop-shadow(0 0 6px #fff)}
 .cpguy.shake{animation:cpshake .45s ease}@keyframes cpshake{25%{transform:translateX(-6px) rotate(-6deg)}75%{transform:translateX(6px) rotate(6deg)}}
 .cpguy.stopped{transform:translateY(-4px) scale(1.08)}.cpmgr.block{animation:pbjump .4s ease}
+.cpmgr{transition:right .9s ease}.cpmgr.palm:after{content:'✋';position:absolute;left:-14px;top:30%;font-size:20px;animation:pbgpop .3s both}
 .cphint{text-align:center;font:800 13px var(--body);color:#ffd257;position:absolute;left:0;right:0;bottom:3px;z-index:6;text-shadow:0 1px 2px #000}.cpguy .cpnum{position:absolute;left:50%;top:79%;transform:translate(-50%,-50%);background:#fff;color:#16233a;border:2px solid #16233a;border-radius:999px;padding:0 6px;font:700 clamp(12px,3vw,16px)/1.3 var(--display);white-space:nowrap}
 .cpguy.gold .cpnum{background:#ffd257}.cpguy.dance{animation:cpdance .6s ease-in-out infinite alternate}.cpguy.dance:nth-child(even){animation-delay:-.3s}
 @keyframes cpdance{from{transform:translateY(0) rotate(-6deg)}to{transform:translateY(-10px) rotate(6deg)}}
@@ -3770,6 +3856,33 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .vnc{display:inline-flex;align-items:center;gap:3px}.vnc .vnav{width:22px;display:inline-block}.vnc .vnav svg{width:100%;height:auto;display:block}
 .mm2{display:flex;align-items:center;gap:12px;background:radial-gradient(circle at 30% 20%,#3a2a6e,#120d29 80%);border:3px solid #d4af37;border-radius:18px;padding:10px 14px;color:#fff;max-width:760px;width:100%;box-sizing:border-box}
 .mm2 svg{width:min(120px,28vw);height:auto;flex:none}.mm2 p{margin:0;font:600 15px/1.45 var(--body)}.mm2 b{color:#ffd257}
+.ptlab2{display:grid;gap:8px;justify-items:center;width:100%;max-width:700px;margin:0 auto;background:var(--surface);color:var(--ink);border:2.5px solid var(--ink);border-radius:16px;padding:12px;box-sizing:border-box}
+.ptlab2 h4{margin:0;font:800 13px var(--body);letter-spacing:.08em;text-transform:uppercase;opacity:.75}.ptin{margin:0;font:700 1.15rem var(--body)}.ptsm{margin:0;font:600 14px/1.45 var(--body);text-align:center}
+.ptnums{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.ptnums .btn{min-width:46px;font-size:1.05rem}.ptnums .btn.ok{background:#9be7c4;color:#16233a}.ptnums .btn.tried{opacity:.6}
+.ptbags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:10px}
+.ptbin{font:800 15px var(--body)}.ptbin .y,.ptstat .y,.ptchk .y{color:#0b968b}.ptbin .n,.ptstat .n,.ptchk .n{color:#c2410c}
+.ptlog tr.cf td{background:#9be7c4;color:#16233a;font-weight:800}.ptlog{border-collapse:collapse;font:700 13px var(--body)}.ptlog th,.ptlog td{border:1.5px solid var(--line,#c9cfdb);padding:3px 8px;text-align:center}
+.ptstk{display:flex;gap:clamp(16px,6vw,48px);justify-content:center;align-items:flex-end}.ptstk .col{display:grid;justify-items:center;gap:6px}.ptstk .tot{font:800 1.2rem var(--body)}
+.ptstk .pile{display:flex;flex-direction:column-reverse;align-items:center;width:clamp(80px,22vw,120px);min-height:20px}.ptstk .pile i{display:grid;place-items:center;width:100%;border:2px solid #16233a;border-radius:5px;margin-top:2px;font:800 11px var(--body);font-style:normal;color:#16233a;box-sizing:border-box;animation:ftin .25s both}
+.ptstk .row{display:flex;gap:6px}.ptstat{margin:0;font:800 15px var(--body);text-align:center}
+.ptls{display:grid;gap:6px;width:100%;text-align:left;font:800 14px var(--body)}.ptls div{display:flex;flex-wrap:wrap;gap:5px}
+.ptc{min-width:40px;padding:5px 8px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);color:var(--ink);font:800 1rem var(--body);cursor:pointer}.ptc.both{background:#ffd257;color:#16233a}.ptc.tried{opacity:.45}
+.pttray{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.ptm{display:grid;justify-items:center;min-width:48px;padding:4px 8px;border:2.5px solid #16233a;border-radius:12px;font:800 1.2rem var(--display);color:#16233a;cursor:pointer;transition:transform .15s}
+.ptm small{font:700 10px var(--body)}.ptm.a{background:#d8d3ff}.ptm.b{background:#ffe0c7}.ptm.in{transform:translateY(-6px);box-shadow:0 0 0 4px #ffd257}.ptm.lnk{position:relative}.ptm.lnk:after{content:'🔗';position:absolute;top:-14px;right:-8px;font-size:14px}
+.ptcand{font:700 1.05rem var(--body)}.ptcand b{font-size:1.4rem}.ptchk{display:grid;gap:2px;font:700 14px var(--body)}
+.ptcols table{border-collapse:separate;border-spacing:3px 4px;font:800 1.15rem var(--body);margin:0 auto}.ptcols th{text-align:right;padding-right:6px}.ptcols td{min-width:26px;text-align:center}.ptcols td.sh{background:#ffd257;color:#16233a;border-radius:6px}.ptcols td.x{min-width:12px;opacity:.6}
+.ptkey{font:600 13px var(--body);margin:6px 0 0;text-align:center}.ptkey .sh{background:#ffd257;color:#16233a;padding:0 6px;border-radius:6px}
+.ptbw{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;width:100%;align-items:start}@media (min-width:760px){.ptbw{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}}
+.ptbl{display:grid;gap:8px;justify-items:center}.ptbr{display:grid;gap:8px;justify-items:center;border:2.5px dashed var(--line,#c9cfdb);border-radius:14px;padding:8px;min-height:150px;align-content:start}
+.ptbr h5{margin:0;font:800 12px var(--body);letter-spacing:.08em;text-transform:uppercase;opacity:.7}
+.ptbag{display:grid;gap:2px;justify-items:center;align-content:start;background:#fff6e0;color:#16233a;border:2px solid #16233a;border-radius:10px;padding:3px 4px;min-width:50px;min-height:44px;transition:box-shadow .15s,background .3s}
+.ptbag b{font:800 10px var(--body)}.ptbag .it,.ptbin .it{display:flex;flex-wrap:wrap;justify-content:center;gap:1px;max-width:92px;font-size:14px;line-height:1.1}
+.ptbag.flash{box-shadow:0 0 0 4px #ffd257}.ptbag.good{background:#dff7ec;border-color:#0b968b}
+.ptbin.box{display:grid;justify-items:center;gap:2px;padding:4px 10px;border-radius:10px;border:2.5px dashed #9aa6ba;color:#16233a;background:#f3f5f9;font:800 12px var(--body)}
+.ptbin.box.has{border-color:#c2410c;background:#ffe1dc;box-shadow:0 0 0 3px #ffb4a8}.ptbin.box.none{border-color:#0b968b;background:#dff7ec}.ptbin .it{max-width:220px;font-size:16px}
+.ptic{display:inline-block;animation:ftin .18s both}.ptcap{margin:0;font:700 14px/1.5 var(--body);text-align:center}.ptcap .y{color:#0b968b}.ptcap .n{color:#c2410c}
+.ldwrap{display:flex;justify-content:center}.ldtab{border-collapse:collapse;font:800 1.25rem var(--display)}.ldtab td{padding:3px 12px;min-width:34px;text-align:center}.ldtab td.p{border-right:3px solid currentColor;color:#5f50ec}.ldtab tr:not(:last-child) td.v{border-bottom:3px solid currentColor}.ldtab tr.new td{animation:ftin .3s both}
+.vggs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.vgg{background:#ffd257;color:#16233a;border:2.5px solid #16233a;border-radius:10px;padding:3px 10px;font:800 1rem var(--body);animation:ftin .3s both}
 </style>`);
 const supU=e=>e===1?'':String(e).split('').map(d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join(''),pfsU=f=>Object.keys(f).filter(p=>f[p]>0).sort((a,b)=>a-b).map(p=>`${p}${supU(f[p])}`).join(' × ')||'1';
 const pfArr=n=>{const a=[];for(let p=2;n>1;p++)while(n%p===0){a.push(p);n/=p}return a};
@@ -3789,9 +3902,13 @@ const QB=()=>QUBI.replace('class="qubi"','class="qubi idle"');
 function cpClub(dancers){const ds=dancers.slice(0,6),w=ds.length;return `<div class="cpscene club"><div class="cpbeam b1"></div><div class="cpbeam b2"></div><div class="cpball">🪩</div><div class="cpfloor"></div><div class="cpbooth"></div><div class="cpdj">${QB()}</div>
   ${ds.map((n,i)=>cpGuy(n,{left:28+i*(62/Math.max(w,1)),cls:'dance'})).join('')}</div>`}
 /* the back-door alley for Split to Get In. The guests are the members of the factor tree that are not in the club yet */
+/* Qubi walks from the door to a guest (left %), or back to the door */
+function cpWalk(mg,toLeft){if(!mg)return;const q=mg.querySelector('.qubi');if(q){q.classList.remove('idle');q.classList.add('walking')}
+  mg.style.right=toLeft==null?'21%':Math.max(2,100-toLeft-(innerWidth<600?26:18))+'%';setTimeout(()=>{if(q){q.classList.remove('walking');q.classList.add('idle')}},950)}
 function cpAlley(id){return `<div class="cpscene alley" id="${id}"><div class="cpdoor"></div><div class="cpmgr">${QB()}</div><div class="cpsay" id="${id}S"></div></div>`}
 function cpAlleySync(id){const sc=$(id),map=new Map(),slots=n=>{const nar=innerWidth<600,lo=2,hi=nar?52:58;return Array.from({length:n},(_,i)=>n===1?(lo+hi)/2-8:lo+i*(hi-lo)/(n-1))};
   const say=t=>{const s=$(id+'S');if(s){s.innerHTML=t;s.className='cpsay on'}};
+  let warned=false;
   return {say,sync(leaves,first){if(!sc)return;const ids=new Set(leaves.map(x=>x.id)),gone=[...map.keys()].filter(k=>!ids.has(k));let from=null;
     gone.forEach(k=>{const e=map.get(k);from=parseFloat(e.style.left);e.classList.add('pop');setTimeout(()=>e.remove(),450);map.delete(k)});
     const comps=leaves.filter(x=>!isPrime(x.v)),pos=slots(comps.length);let inNow=[];
@@ -3799,26 +3916,31 @@ function cpAlleySync(id){const sc=$(id),map=new Map(),slots=n=>{const nar=innerW
     requestAnimationFrame(()=>requestAnimationFrame(()=>{comps.forEach((x,i)=>{const g=map.get(x.id);if(g)g.style.left=pos[i]+'%'});
       inNow.forEach((g,i)=>{g.classList.add('jump');setTimeout(()=>{g.style.left='84%';g.style.opacity='0'},500+i*180)})}));
     if(inNow.length&&!first)say(inNow.length>1?`${inNow.map(g=>g.querySelector('.cpnum').textContent).join(' and ')} are prime: straight in! ✨`:`${inNow[0].querySelector('.cpnum').textContent} is prime: straight in! ✨`);
-    if(!comps.length)setTimeout(()=>say('Every member is prime. Welcome to Club Prime! 🎉'),600)}}}
+    if(!comps.length)setTimeout(()=>say('Every member is prime. Welcome to Club Prime! 🎉'),600);
+    if(first&&comps.length&&!warned){warned=true;const mg=sc.querySelector('.cpmgr'),v=comps[0].v;
+      setTimeout(()=>{if(!sc.isConnected)return;cpWalk(mg,pos[0]);setTimeout(()=>{if(!sc.isConnected)return;mg.classList.add('palm');say(`"Hold on, <b>${v}</b>! You're not prime. You need to <b>split up</b> before heading in."`);
+        setTimeout(()=>{if(!sc.isConnected)return;mg.classList.remove('palm');cpWalk(mg,null)},2600)},1000)},1500)}}}}
 const mmRoom=t=>`<div class="mm2">${MM2}<p>${t}</p></div>`;
 
 /* ---- factor tree: tap a composite member to split it; primes walk into the club ---- */
 function ftPairs(v){const ps=[];for(let a=2;a*a<=v;a++)if(v%a===0)ps.push([a,v/a]);
   if(ps.length<=5)return ps;const keep=[ps[0],ps[ps.length-1]];shuffle(ps.slice(1,-1)).slice(0,3).forEach(p=>keep.push(p));return keep.sort((x,y)=>x[0]-y[0])}
 function ftTree(api,n,done,o={}){let uid=0;const root={v:n,id:uid++,k:null},nodes={},club=[];nodes[root.id]=root;let sel=null;const prefix=o.prefix||'ft';
-  api.body.insertAdjacentHTML('beforeend',`<div class="ftwrap" id="${prefix}W"><div id="${prefix}T"></div><div class="ftclub" id="${prefix}C"><span>Inside the club:</span></div><div class="ftpanel" id="${prefix}P"></div><div class="ftmsg" id="${prefix}M" role="status"></div></div>`);
+  api.body.insertAdjacentHTML('beforeend',`<div class="ftwrap" id="${prefix}W"><ol class="ftguide" id="${prefix}G"><li class="on"><b>Tap</b> a number in a <span class="ftkey cp">blue</span> bubble. It isn't prime, so it must split.</li><li><b>Choose</b> two numbers that multiply to make it.</li><li><b>Repeat</b> until every bubble is <span class="ftkey pr">yellow ✨</span> (prime). Yellow members walk into the club.</li></ol><div id="${prefix}T"></div><div class="ftclub" id="${prefix}C"><span>Inside the club:</span></div><div class="ftpanel" id="${prefix}P"></div><div class="ftmsg" id="${prefix}M" role="status"></div></div>`);
   const leaves=()=>{const out=[];const walk=x=>x.k?x.k.forEach(walk):out.push(x);walk(root);return out};
   const draw=()=>{const d=x=>`<div class="ftn"><button class="ftv ${x.k?'sp':isPrime(x.v)?'pr':'cp'}${sel===x.id?' sel':''}" data-id="${x.id}" ${x.k?'disabled':''} aria-label="${x.v}${x.k?' (split)':isPrime(x.v)?' (prime)':' (tap to split)'}">${x.v}</button>${x.k?`<div class="ftk">${d(x.k[0])}${d(x.k[1])}</div>`:''}</div>`;
     if(o.scene)o.scene.sync(leafList(),!draw.done);draw.done=1;$(prefix+'T').innerHTML=d(root);$(prefix+'T').querySelectorAll('.ftv:not([disabled])').forEach(b=>b.onclick=()=>tap(+b.dataset.id));
     const cm=leaves().filter(x=>!isPrime(x.v));
     if(!cm.length){$(prefix+'P').innerHTML='<b style="color:var(--teal)">✓ Every member is prime. They all walk in!</b>';done&&done(pfArr(n));done=null;return}
-    if(sel===null||!nodes[sel]||nodes[sel].k||isPrime(nodes[sel].v))$(prefix+'P').innerHTML=`<span>Tap a <b>blue</b> member (not prime yet) to split it.</span>`};
+    if(sel===null||!nodes[sel]||nodes[sel].k||isPrime(nodes[sel].v)){$(prefix+'P').innerHTML=`<span>👆 <b>Tap the blue ${cm[0].v}</b> to split it.</span>`;guide(0);
+      const b=$(prefix+'T').querySelector(`[data-id="${cm[0].id}"]`);if(b)b.classList.add('next')}};
+  const guide=k=>{const g=$(prefix+'G');if(g)[...g.children].forEach((li,i)=>li.classList.toggle('on',i===k))};
   const leafList=()=>leaves().map(x=>({id:x.id,v:x.v}));
   const addClub=v=>{club.push(v);$(prefix+'C').insertAdjacentHTML('beforeend',`<i>${v}</i>`)};
   const tap=id=>{const x=nodes[id];sfx.tap();$(prefix+'M').textContent='';
     if(isPrime(x.v)){$(prefix+'M').innerHTML=`<span style="color:#b07d00">${x.v} is prime already, so it walks straight into the club. ✨</span>`;return}
     sel=id;draw();const pairs=ftPairs(x.v);
-    $(prefix+'P').innerHTML=`<span>Split <b>${x.v}</b> into two factors:</span><div class="row" style="gap:6px;flex-wrap:wrap">${[[1,x.v],...pairs].map(([a,b])=>`<button class="btn" data-a="${a}" data-b="${b}">${a} × ${b}</button>`).join('')}</div>`;
+    guide(1);$(prefix+'P').innerHTML=`<span><b>${x.v}</b> = ? × ?  Which two numbers multiply to make ${x.v}?</span><div class="row" style="gap:6px;flex-wrap:wrap">${[[1,x.v],...pairs].map(([a,b])=>`<button class="btn" data-a="${a}" data-b="${b}">${a} × ${b}</button>`).join('')}</div>`;
     $(prefix+'P').querySelectorAll('[data-a]').forEach(bt=>bt.onclick=()=>{const a=+bt.dataset.a,b=+bt.dataset.b;
       if(a===1){$(prefix+'M').innerHTML='<span style="color:#c2410c">1 is not prime, and 1 × '+x.v+' leaves '+x.v+' just as it was. Pick another split.</span>';sfx.no();return}
       x.k=[{v:a,id:uid++,k:null},{v:b,id:uid++,k:null}];x.k.forEach(c=>{nodes[c.id]=c;if(isPrime(c.v))addClub(c.v)});sel=null;sfx.tap();draw()})};
@@ -3834,9 +3956,55 @@ function pfWrongs(f){const n=fromF(f),ps=Object.keys(f).map(Number).sort((a,b)=>
   const two=ps.find(p=>f[p]>1);if(two){const w={...f};w[two]=f[two]+1;out.push({t:pfsU(w),why:`That multiplies to ${fromF(w)}, which is too big.`})}
   return out}
 function pfChoices(f){return [{t:pfsU(f),ok:1},...shuffle(pfWrongs(f)).slice(0,3)]}
+/* ---- Ladder (repeated division): divide by a prime again and again until you reach 1 ---- */
+function ftLadder(api,n,done){const rows=[];let cur=n,miss=0;
+  api.body.insertAdjacentHTML('beforeend',`<div class="ptlab2"><h4>🪜 The ladder method</h4><p class="ptsm">Divide <b>${n}</b> by a prime that divides it exactly. Keep going with the answer until you reach <b>1</b>.</p>
+   <div class="ldwrap"><table class="ldtab" id="ldT"><tr><td class="p"></td><td class="v">${n}</td></tr></table></div>
+   <div class="ptnums" id="ldP">${[2,3,5,7,11,13].map(p=>`<button class="btn" data-p="${p}">÷ ${p}</button>`).join('')}</div><p class="ptstat" id="ldM" role="status"></p></div>`);
+  const btns=[...api.body.querySelectorAll('#ldP .btn')];
+  btns.forEach(b=>b.onclick=()=>{if(api.answered||cur===1)return;const p=+b.dataset.p;
+    if(cur%p){sfx.no();miss++;$('ldM').innerHTML=`<span class="n">${cur} ÷ ${p} = ${Math.floor(cur/p)} remainder ${cur%p}: ${p} doesn't divide ${cur} exactly. Try another prime.</span>`;if(miss>=4)ctx.keep.pen=1;return}
+    sfx.tap();rows.push(p);const T=$('ldT');T.rows[T.rows.length-1].cells[0].textContent=p;cur/=p;T.insertAdjacentHTML('beforeend',`<tr class="new"><td class="p"></td><td class="v">${cur}</td></tr>`);
+    $('ldM').innerHTML=cur===1?`<span class="y">✓ Reached 1! The primes down the side are the prime factors: ${n} = ${rows.join(' × ')}.</span>`:`${n===cur*rows.reduce((a,b)=>a*b,1)?'':''}${cur} ${isPrime(cur)?`is prime, so the last step is ÷ ${cur}.`:'is not 1 yet. Keep dividing.'}`;
+    if(cur===1){btns.forEach(x=>x.disabled=true);done(rows)}})}
+/* ---- grouping tool for the VIP Squares room: tap identical primes to put them in pairs (or threes) ---- */
+function ftGroups(api,n,size,allowLeft,done){const ps=pfArr(n).map((v,i)=>({v,i,g:-1}));let sel=[],groups=0,miss=0;const word=size===2?'pair':'group of three';
+  api.body.insertAdjacentHTML('beforeend',`<div class="ptlab2"><h4>👯 VIP Squares room</h4><p class="ptsm">${n} = ${pfArr(n).join(' × ')}</p><p class="ptsm">Tap ${size} <b>identical</b> primes to make a ${word}.</p>
+   <div class="pttray" id="vgT"></div><div class="vggs" id="vgG"></div>${allowLeft?`<button class="btn" id="vgNo">No more ${word}s can be made</button>`:''}<p class="ptstat" id="vgM" role="status"></p></div>`);
+  const draw=()=>{$('vgT').innerHTML=ps.filter(c=>c.g<0).map(c=>`<button class="ptm a${sel.includes(c.i)?' in':''}" data-i="${c.i}">${c.v}</button>`).join('')||'<span class="ptsm">All grouped!</span>';
+    api.body.querySelectorAll('#vgT .ptm').forEach(b=>b.onclick=()=>tap(+b.dataset.i))};
+  const left=()=>ps.filter(c=>c.g<0);const canMore=()=>{const c={};left().forEach(x=>c[x.v]=(c[x.v]||0)+1);return Object.values(c).some(k=>k>=size)};
+  const fin=()=>{api.body.querySelectorAll('#vgT .ptm,#vgNo').forEach(b=>b.disabled=true);done(groups,left().map(x=>x.v))};
+  const tap=i=>{if(api.answered)return;sel.includes(i)?sel=sel.filter(x=>x!==i):sel.push(i);sfx.tap();
+    if(sel.length===size){const vs=sel.map(j=>ps[j].v);if(vs.every(v=>v===vs[0])){sel.forEach(j=>ps[j].g=groups);groups++;$('vgG').insertAdjacentHTML('beforeend',`<span class="vgg">${vs.join(' × ')}</span>`);sfx.ok();$('vgM').innerHTML=`<span class="y">✓ A ${word} of ${vs[0]}s.</span>`}
+      else{sfx.no();miss++;$('vgM').innerHTML=`<span class="n">A ${word} must be the <b>same</b> prime.</span>`;if(miss>=3)ctx.keep.pen=1}sel=[]}
+    draw();if(!left().length)fin()};
+  if(allowLeft)$('vgNo').onclick=()=>{if(canMore()){sfx.no();$('vgM').innerHTML=`<span class="n">Look again: there is still a prime that appears ${size} times.</span>`;miss++;return}fin()};
+  draw()}
+function vipNum(kind){const pick2=a=>a[Math.floor(Math.random()*a.length)];
+  if(kind==='sqrt'){const r=pick2([12,18,20,24,30,36,15,21,28,42]);return [r*r,r]}
+  if(kind==='cbrt'){const r=pick2([6,10,12,14,15]);return [r**3,r]}
+  if(kind==='ksq'){const n=pick2([72,48,108,50,98,180,200,147,75,28,45,63,12,20]),f=PF(n);let k=1;Object.keys(f).forEach(p=>{if(f[p]%2)k*=+p});return [n,k]}
+  const n=pick2([24,54,72,108,40,135,16,81]),f=PF(n);let k=1;Object.keys(f).forEach(p=>{const e=f[p]%3;if(e)k*=(+p)**(3-e)});return [n,k]}
 addGame('s1-split',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🌳',title:'Club Prime: Split to Get In',topic:'Prime factorisation and index notation',
- how:'Composite numbers can only enter Club Prime by splitting into their prime members. Build factor trees and write numbers as products of primes.',rounds:8,
- round(api,r){const T=TIER(),type=['tree','stop','one','index','build','same','tree','tree'][r],K=ctx.keep=ctx.keep||{};
+ how:'Composite numbers can only enter Club Prime by splitting into their prime members. Core: factor trees and index notation. Stretch adds the ladder method. Challenge opens the VIP Squares room: square roots, cube roots and perfect squares.',rounds:8,
+ round(api,r){const T=TIER(),type=[['tree','stop','one','index','build','same','tree','tree'],['tree','ladder','same','stop','one','build','ladder','index'],['ladder','sqrt','cbrt','ksq','same','kcube','index','tree']][T][r],K=ctx.keep=ctx.keep||{};
+  /* Stretch adds the ladder method and the two-trees discovery; Challenge adds the VIP Squares room (√, ∛, smallest k) */
+  if(type==='ladder'){const f=pfGen(T),n=fromF(f);
+    api.q(cpClub(pfArr(n))+`<p class="qt">🪜 Another way to split <b>${n}</b>: the <b>ladder</b>. Keep dividing by primes until you reach 1. The primes down the side are ${n}'s prime members.</p>`);
+    ftLadder(api,n,rows=>{api.body.insertAdjacentHTML('beforeend',`<p class="asklab"><b>Step 2:</b> write ${n} as a product of primes, in index notation.</p>`);
+      secChoice(api,'cpLd',pfChoices(f),[`Ladder: ${rows.join(', ')} down the side`,`${n} = ${rows.join(' × ')} = ${pfs(f)}`,'A factor tree gives the same primes.'],`Right: ${n} = ${pfs(f)}. A factor tree would give exactly the same primes.`)});return}
+  if(type==='sqrt'||type==='cbrt'){const sq=type==='sqrt',[n,r]=vipNum(type),f=PF(n);
+    api.q(cpBan('VIP SQUARES ROOM',sq?'Square roots':'Cube roots')+`<p class="qt">💎 <b>${n}</b> wants the VIP room. Only numbers whose primes come in ${sq?'<b>identical pairs</b>':'<b>identical threes</b>'} get in. Group its primes.</p>`);
+    ftGroups(api,n,sq?2:3,false,g=>askOne(api,{id:'vpR',label:`<b>Step 2:</b> every ${sq?'pair':'three'} gives <b>one</b> prime to the ${sq?'square':'cube'} root. ${sq?'√':'∛'}${n} =`,w:5,right:r,traps:[[n/2,`That halves ${n}. Take one prime from each ${sq?'pair':'group of three'} and multiply.`]],hint:`Multiply one prime from each ${sq?'pair':'three'}.`,
+      ok:`${sq?'√':'∛'}${n} = ${r}, because ${r} ${sq?'×':'×'} ${r}${sq?'':` × ${r}`} = ${n}.`,bad:`${sq?'√':'∛'}${n} = ${r}.`,work:[`${n} = ${pfs(f)}`,`${sq?'Halve':'Divide by 3'} each index: ${sq?'√':'∛'}${n} = ${pfs(Object.fromEntries(Object.entries(f).map(([p,e])=>[p,e/(sq?2:3)])))} = ${r}`]}));return}
+  if(type==='ksq'||type==='kcube'){const sq=type==='ksq',[n,k]=vipNum(type),f=PF(n),m=n*k,root=Math.round(sq?Math.sqrt(m):Math.cbrt(m));
+    api.q(cpBan('VIP SQUARES ROOM','Almost there')+`<p class="qt">💎 <b>${n}</b> is <b>not</b> a perfect ${sq?'square':'cube'}. What is the smallest whole number <b>k</b> so that ${n} × k is a perfect ${sq?'square':'cube'}?</p>`);
+    ftGroups(api,n,sq?2:3,true,(g,left)=>{api.body.insertAdjacentHTML('beforeend',`<p class="askok">Left without a ${sq?'partner':'full group'}: <b>${left.join(', ')||'none'}</b>.</p>`);
+      askOne(api,{id:'vpK',label:`<b>Step 2:</b> k must give every leftover prime ${sq?'a partner':'enough copies to make a three'}. Smallest k =`,w:5,right:k,traps:[[left.reduce((a,b)=>a*b,1),`That just multiplies the leftovers. Each needs ${sq?'one more copy':'enough copies to reach three'}.`]].filter(([v])=>v!==k),hint:sq?'Multiply one copy of each leftover prime.':'Each leftover prime needs copies until there are three of it.',
+        then:()=>askOne(api,{id:'vpK2',label:`<b>Step 3:</b> then ${n} × ${k} = ${m}. ${sq?'√':'∛'}${m} =`,w:5,right:root,hint:`Every prime now comes in ${sq?'pairs':'threes'}.`,
+          ok:`k = ${k}: ${n} × ${k} = ${m} = ${root}${sq?'²':'³'}.`,bad:`k = ${k}, and ${n} × ${k} = ${m} = ${root}${sq?'²':'³'}.`,work:[`${n} = ${pfs(f)}`,`Leftovers: ${left.join(', ')} → k = ${k}`,`${m} = ${pfs(PF(m))} = ${root}${sq?'²':'³'}`]})})});return}
+
   if(type==='tree'){const f=pfGen(r===7?Math.min(2,T+1):T),n=fromF(f);
     api.q(`<p class="qt"><b>${n}</b> isn't prime, so the bouncer turned it away. But its <b>prime members</b> can go in! Split ${n} until every member is prime.</p>`);
     api.body.insertAdjacentHTML('beforeend',cpAlley('cpA'));const scn=cpAlleySync('cpA');scn.say(`"I'm ${n}. I'm not prime… but my members are!"`);
@@ -3851,11 +4019,15 @@ addGame('s1-split',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🌳',title:'Club
     G.forEach((g,i)=>api.later(()=>{g.style.left=g.dataset.x+'%';api.later(()=>g.classList.add('bob'),850)},120+i*220));
     G.forEach(g=>g.onclick=()=>{const b=[...($('cpSP')||{children:[]}).children].find(x=>x.dataset.v===g.dataset.v&&!x.disabled);if(b)b.click()});
     const react=v=>{const g=G.find(x=>x.dataset.v===v);if(!g)return;
-      if(v===String(c)){/* right: Qubi blocks it, it splits into primes, then everyone walks in */
-        G.forEach(x=>x.classList.remove('tap'));document.querySelector('#cpSt .cphint').remove();$('cpStQ').classList.add('block');stS(`"Stop right there, <b>${c}</b>! You're not prime: ${c} = ${pfArr(c).join(' × ')}."`);g.classList.remove('bob');g.classList.add('sad','stopped');
-        api.later(()=>{const x=parseFloat(g.style.left);g.classList.add('pop');pfArr(c).forEach((p,k)=>{const d=document.createElement('div');d.innerHTML=cpGuy(p,{left:x+k*7});const ng=d.firstChild;ng.classList.add('jump');$('cpSt').appendChild(ng);G.push(ng)});
-          stS(`"That's better: ${pbList([...new Set(pfArr(c))])} ${new Set(pfArr(c)).size>1?'are':'is'} prime. Now everyone can go in!"`);
-          api.later(()=>{G.filter(x=>!x.classList.contains('pop')).forEach((x,k)=>api.later(()=>{x.classList.remove('bob','sad');x.classList.add('happy','jump');api.later(()=>{x.style.left='84%';x.style.opacity='0'},350)},k*200))},900)},900)}
+      if(v===String(c)){/* right: Qubi walks up to the composite and stops it; the primes walk past into the club; it splits, then its members go in */
+        G.forEach(x=>x.classList.remove('tap'));const h=document.querySelector('#cpSt .cphint');if(h)h.remove();const mg=$('cpStQ'),gx=parseFloat(g.style.left);
+        g.classList.remove('bob');g.classList.add('sad','stopped');
+        G.filter(x=>x!==g).forEach((x,k)=>api.later(()=>{x.classList.remove('bob');x.classList.add('happy','jump');api.later(()=>{x.style.left='84%';x.style.opacity='0'},300)},250+k*220));
+        stS(`"Primes, straight in! ✨"`);cpWalk(mg,gx);
+        api.later(()=>{mg.classList.add('block','palm');stS(`"Hold on, <b>${c}</b>! You're not prime: ${c} = ${pfArr(c).join(' × ')}. You need to <b>split up</b> before heading in."`)},1000);
+        api.later(()=>{g.classList.add('pop');mg.classList.remove('palm');pfArr(c).forEach((p,k)=>{const d=document.createElement('div');d.innerHTML=cpGuy(p,{left:gx+k*7});const ng=d.firstChild;ng.classList.add('jump');$('cpSt').appendChild(ng);G.push(ng)});
+          stS(`"That's better: ${pbList([...new Set(pfArr(c))])} ${new Set(pfArr(c)).size>1?'are':'is'} prime. In you go!"`);
+          api.later(()=>{cpWalk(mg,null);G.filter(x=>!x.classList.contains('pop')&&x.style.opacity!=='0').forEach((x,k)=>api.later(()=>{x.classList.remove('bob','sad');x.classList.add('happy','jump');api.later(()=>{x.style.left='84%';x.style.opacity='0'},350)},k*200))},1100)},3000)}
       else{g.classList.remove('bob');void g.offsetWidth;g.classList.add('shake','sad');stS(`"Hey! I'm <b>${v}</b> and I'm prime! My only factors are 1 and ${v}."`);api.later(()=>{g.classList.remove('shake','sad');g.classList.add('bob')},900)}};
     api.body.addEventListener('click',e=>{const b=e.target.closest('#cpSP button');if(b)react(b.dataset.v)});
     stepPick(api,{id:'cpS',label:'<b>Step 1:</b> which member is <b>not</b> prime, so the bouncer will stop it?',options:[...new Set(lv)].map(String),right:String(c),pen:'cpS2',
@@ -3930,44 +4102,195 @@ const cpArt=items=>`<div class="cpart">${items.map(([e,l,p])=>l===undefined?`<sp
 function stNums(T,kind){for(let k=0;k<400;k++){if(kind==='h'){const h=pick([[2,3,4,5,6],[4,6,8,9,12],[8,12,14,15,18]][T]),x=R(2,[4,6,8][T]),y=R(2,[5,7,9][T]);if(x===y||gcdN(x,y)!==1)continue;return [h*x,h*y]}
   const g=pick([[2,3,4],[2,3,4,5,6],[3,4,6,8,10]][T]),x=R(2,[5,6,8][T]),y=R(2,[6,7,9][T]);if(x===y||gcdN(x,y)!==1)continue;const a=g*x,b=g*y,L=g*x*y;if(L>[90,360,900][T])continue;return [a,b]}return kind==='h'?[24,36]:[12,18]}
 function vnAsk(api,id,label,right,traps,work,ok){askOne(api,{id,label,w:6,right,traps:traps.filter(([x])=>x!==right),hint:'Multiply the members in the right part of the diagram.',ok,bad:ok,work})}
-addGame('s1-tables',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🍹',title:'Club Prime: Party Tables',topic:'HCF and LCM using prime factorisation',
- how:'Two teams share a party table. Pair up their shared prime members and line them up in columns to find the HCF and LCM, then solve party problems.',rounds:8,
- round(api,r){const T=TIER(),type=['vhcf','vlcm','ihcf','ilcm','coprime','sh','sl','mix'][r],K=ctx.keep=ctx.keep||{};
-  if(type==='vhcf'||type==='vlcm'){const [fa,fb]=vnGen(T),A=fromF(fa),B=fromF(fb),H=fromF(fMin([fa,fb])),L=fromF(fMax([fa,fb]));
-    api.q(cpClub([...new Set([...pfArr(A),...pfArr(B)])])+`<p class="qt">🍹 <b>Party tables!</b> <b>${A}</b> = ${pfs(fa)} and <b>${B}</b> = ${pfs(fb)} want to share a table. Pair up the prime members that both teams have.</p>`);
-    vnTable(api,fa,fb,(mid,lo,ro)=>{K.vn=1;const all=[...lo,...mid,...ro];
-      if(type==='vhcf')vnAsk(api,'cpH',`<b>Step 2:</b> the <b>HCF</b> is one prime from each <b>shared</b> column, multiplied (${mid.join(' × ')}). HCF of ${A} and ${B} =`,H,
-        [[L,'That is the LCM: one from every column. The HCF uses only the shared columns.'],[mid.reduce((a,b)=>a+b,0),'Multiply the shared members, don\'t add them.'],[A*B,'That multiplies the two numbers. The HCF uses only the shared members.']],
-        [`Shared: ${mid.join(' × ')} = ${H}`,`HCF = ${H}`],`HCF = ${mid.join(' × ')} = ${H}.`);
-      else vnAsk(api,'cpL',`<b>Step 2:</b> the <b>LCM</b> is one prime from <b>every</b> column, multiplied: each shared pair counts once (${all.sort((a,b)=>a-b).join(' × ')}). LCM of ${A} and ${B} =`,L,
-        [[A*B,`That is ${A} × ${B}: the shared members (${mid.join(', ')}) were counted twice. Count each seat once.`],[H,'That is the HCF (only the shared columns). The LCM uses one from every column.']],
-        [`Everyone: ${all.join(' × ')} = ${L}`,`LCM = ${L}`],`LCM = ${L}.`)},!!K.vn);return}
-  if(type==='ihcf'||type==='ilcm'){const three=T===2,fs=vnGen(T,{three}),ns=fs.map(fromF),H=fMin(fs),Lf=fMax(fs),isH=type==='ihcf',right=isH?H:Lf,mixed={};
-    Object.keys(H).forEach(p=>mixed[p]=Lf[p]);const prod=fSum(fs);
-    const opts=[...new Set([pfsU(right),pfsU(isH?Lf:H),pfsU(isH?mixed:prod),pfsU(isH?prod:mixed)])].filter(Boolean);
-    api.q(cpClub([...new Set(ns.flatMap(pfArr))])+`<p class="qt">📋 The guest lists: ${ns.map((n,i)=>`<b>${n}</b> = ${pfs(fs[i])}`).join(three?'<br>':' and ')}</p><p class="qs">Find the ${isH?'<b>HCF</b> (highest common factor)':'<b>LCM</b> (lowest common multiple)'}${three?' of all three':''}.</p>`);
-    const why=v=>v===pfsU(isH?Lf:H)?(isH?'That takes the highest powers: that is the LCM.':'That takes only the shared primes with the lowest powers: that is the HCF.'):v===pfsU(prod)?'That multiplies the numbers together, so shared primes are counted more than once.':isH?'Only shared primes count, but take the lowest power each time.':'Every prime that appears must be included, with its highest power.';
-    stepPick(api,{id:'cpIx',label:`<b>Step 1:</b> which is the ${isH?'HCF':'LCM'} in index notation?`,options:opts,right:pfsU(right),pen:'cpIv',hint:v=>why(v),
-      reveal:v=>`${why(v)} The ${isH?'HCF':'LCM'} is <b>${pfsU(right)}</b>. Tap it to carry on.`,
-      okMsg:`<p class="askok">Yes! ${isH?'Shared primes, lowest powers':'Every prime, highest powers'}: ${pfs(right)}.</p>`,
-      then:()=>askOne(api,{id:'cpIv',label:`<b>Step 2:</b> work it out. ${isH?'HCF':'LCM'} =`,w:6,right:fromF(right),traps:[[fromF(isH?Lf:H),isH?'That is the LCM.':'That is the HCF.']],hint:'Write each power as repeated multiplication, then multiply.',
-        ok:`${pfs(right)} = ${fromF(right)}.`,bad:`${pfs(right)} = ${fromF(right)}.`,work:[`${isH?'HCF':'LCM'} = ${pfs(right)} = ${fromF(right)}`]})});return}
+/* ---------- Club Prime: Party Tables, rebuilt 20 Nov ----------
+   Meaning first (after a colleague's HCF/LCM applet, auggy98.github.io/HCF_LCM):
+   Core (G1-friendly): concrete party problems. Pack party bags with nothing left over (HCF); buy packs until both totals match (LCM);
+     list factors / multiples and spot the common ones.
+   Stretch: the concrete tools again, then BUILD the HCF and LCM from prime members with live checks, so pupils see WHY:
+     the HCF must go into both numbers, so it can only use primes both have; the LCM must contain both numbers, so it needs
+     every member of each, but a shared member only once. Then the column method as the shortcut, and stories.
+   Challenge: builders, index notation, three numbers, no shared primes, stories.
+   Every story asks first: HCF or LCM? with the reason in the choice. */
+const ptE=[['🍬','sweets'],['🎀','stickers'],['🍪','cookies'],['🧃','drinks'],['🎈','balloons'],['🏷️','badges']];
+function ptPair(){const s=shuffle(ptE.slice());return [s[0],s[1]]}
+/* Tool 1: party bags. Try a number of bags; see the share in each bag and what is left over. */
+function ptBags(api,a,b,ea,eb){const mx=Math.min(12,a,b);let run=0;
+  api.body.insertAdjacentHTML('beforeend',`<div class="ptlab2"><h4>🛍️ Party bag packer</h4><p class="ptin">${ea[0]} <b>${a}</b> ${ea[1]} &nbsp; ${eb[0]} <b>${b}</b> ${eb[1]}</p>
+   <div class="ptbw"><div class="ptbl"><p class="ptsm">How many bags? Tap a number to try. Every bag must get the <b>same</b>, with <b>nothing left over</b>.</p>
+     <div class="ptnums">${Array.from({length:mx-1},(_,i)=>i+2).map(k=>`<button class="btn" data-k="${k}">${k}</button>`).join('')}</div>
+     <table class="ptlog"><thead><tr><th>Bags</th><th>${ea[0]} each</th><th>${eb[0]} each</th><th>Left over</th></tr></thead><tbody id="ptLg"></tbody></table></div>
+    <div class="ptbr"><h5>📦 Packing</h5><div class="ptbags" id="ptBg"><p class="ptsm">Tap a number of bags to watch Qubi pack them.</p></div><div class="ptbin" id="ptBin"></div><p class="ptcap" id="ptCap" role="status"></p></div></div></div>`);
+  const btns=[...api.body.querySelectorAll('.ptnums .btn')];
+  btns.forEach(bt=>bt.onclick=()=>{const k=+bt.dataset.k,qa=Math.floor(a/k),qb=Math.floor(b/k),ra=a%k,rb=b%k,ok=!ra&&!rb,me=++run;sfx.tap();
+    btns.forEach(x=>x.setAttribute('aria-pressed',x===bt));btns.forEach(x=>x.disabled=true);
+    $('ptBg').innerHTML=Array.from({length:k},(_,i)=>`<div class="ptbag"><b>Bag ${i+1}</b><div class="it"></div></div>`).join('');
+    $('ptBin').className='ptbin box';$('ptBin').innerHTML='<b>🗑️ Left over</b><div class="it"></div>';$('ptCap').innerHTML='';
+    const bags=[...$('ptBg').children],bin=$('ptBin').querySelector('.it');
+    /* deal one at a time, round and round: first one kind of item, then the other */
+    /* deal a whole round at a time (one item into every bag), then drop the leftovers into the bin together */
+    const seq=[];[[ea[0],qa,a%k],[eb[0],qb,b%k]].forEach(([e,q,r])=>{for(let j=0;j<q;j++)seq.push([e,'all']);if(r)seq.push([e,'bin',r])});
+    const dt=TIER()===0?Math.min(260,1800/seq.length):Math.min(130,800/seq.length);let n=0;
+    const step=()=>{if(me!==run||!bags[0]||!bags[0].isConnected)return;if(n>=seq.length)return finish();const [e,t,r]=seq[n++];
+      const ic=()=>{const x=document.createElement('span');x.className='ptic';x.textContent=e;return x};
+      if(t==='bin'){for(let j=0;j<r;j++)bin.appendChild(ic());$('ptBin').classList.add('has');bags.forEach(x=>x.classList.remove('flash'))}
+      else{bags.forEach(g=>{g.querySelector('.it').appendChild(ic());g.classList.remove('flash');void g.offsetWidth;g.classList.add('flash')})}
+      setTimeout(step,dt)};
+    const finish=()=>{bags.forEach(x=>{x.classList.remove('flash');if(ok)x.classList.add('good')});btns.forEach(x=>x.disabled=false);
+      if(ok){$('ptBin').classList.add('none');bin.textContent='nothing! ✓';sfx.ok&&sfx.pop()}
+      $('ptCap').innerHTML=`${ea[0]} ${a} shared into ${k} bags: <b>${qa} each</b>${ra?`, <span class="n">${ra} left over</span>`:', none left'}.<br>${eb[0]} ${b} shared into ${k} bags: <b>${qb} each</b>${rb?`, <span class="n">${rb} left over</span>`:', none left'}.<br>${ok?`<span class="y">✓ ${k} bags works: ${k} divides ${a} and ${b} exactly (no remainder).</span>`:`<span class="n">✗ ${k} bags doesn't work.</span>`}`;
+      bt.classList.add(ok?'ok':'tried');
+      if(!$('ptLg').querySelector(`[data-k="${k}"]`)){const row=`<tr data-k="${k}"><td>${k}</td><td>${qa}</td><td>${qb}</td><td>${ok?'✓ none':`${ra?ea[0]+' '+ra:''} ${rb?eb[0]+' '+rb:''}`}</td></tr>`;
+        const after=[...$('ptLg').children].find(r=>+r.dataset.k>k);after?after.insertAdjacentHTML('beforebegin',row):$('ptLg').insertAdjacentHTML('beforeend',row)}};
+    step()})}
+/* Tool 2: packs. Add packs of x and packs of y until the two totals are equal. */
+function ptStacks(api,x,y,ex,ey){let m=0,n=0;const L=lcm2(x,y),H=L*1.25,CAP=2*L;
+  api.body.insertAdjacentHTML('beforeend',`<div class="ptlab2"><h4>🛒 Shopping for the party</h4><p class="ptsm">${ex[0]} ${ex[1]} come in packs of <b>${x}</b>. ${ey[0]} ${ey[1]} come in packs of <b>${y}</b>. Buy packs until you have the <b>same number</b> of each.</p>
+   <div class="ptstk"><div class="col"><div class="tot" id="ptTa">0</div><div class="pile" id="ptPa"></div><div class="row"><button class="btn" id="ptAm">−</button><button class="btn primary" id="ptAp">+ pack of ${x}</button></div></div>
+   <div class="col"><div class="tot" id="ptTb">0</div><div class="pile" id="ptPb"></div><div class="row"><button class="btn" id="ptBm">−</button><button class="btn primary" id="ptBp">+ pack of ${y}</button></div></div></div><p class="ptstat" id="ptSt" role="status"></p></div>`);
+  const draw=()=>{const blk=(k,v,e,c)=>Array.from({length:k},()=>`<i style="height:${(v/H*150).toFixed(1)}px;background:${c}">${v/H*150>16?e+' '+v:''}</i>`).join('');
+    $('ptPa').innerHTML=blk(m,x,ex[0],'#b9b2ff');$('ptPb').innerHTML=blk(n,y,ey[0],'#ffc79a');$('ptTa').textContent=`${ex[0]} ${m*x}`;$('ptTb').textContent=`${ey[0]} ${n*y}`;
+    $('ptSt').innerHTML=!m||!n?'':m*x===n*y?`<span class="y">✓ Equal! ${m} pack${m>1?'s':''} of ${x} = ${n} pack${n>1?'s':''} of ${y} = <b>${m*x}</b></span>`:`${m*x} and ${n*y} are not equal yet.`};
+  $('ptAp').onclick=()=>{if((m+1)*x<=CAP){m++;sfx.pop();draw()}};$('ptBp').onclick=()=>{if((n+1)*y<=CAP){n++;sfx.pop();draw()}};
+  $('ptAm').onclick=()=>{if(m){m--;sfx.tap();draw()}};$('ptBm').onclick=()=>{if(n){n--;sfx.tap();draw()}};draw()}
+/* Tool 3: lists. Tap the numbers that appear in BOTH lists. */
+function ptLists(api,a,b,kind,then){const listA=kind==='f'?pbFactors(a):Array.from({length:10},(_,i)=>a*(i+1)),listB=kind==='f'?pbFactors(b):Array.from({length:10},(_,i)=>b*(i+1)),com=listA.filter(v=>listB.includes(v));
+  api.body.insertAdjacentHTML('beforeend',`<div class="ptlab2"><h4>📝 ${kind==='f'?'Factor lists':'Multiple lists'}</h4><p class="ptsm">Tap every number that is in <b>both</b> lists.</p>
+   <div class="ptls"><b>${kind==='f'?`Factors of ${a}`:`Multiples of ${a}`}</b><div>${listA.map(v=>`<button class="ptc" data-v="${v}">${v}</button>`).join('')}</div>
+   <b>${kind==='f'?`Factors of ${b}`:`Multiples of ${b}`}</b><div>${listB.map(v=>`<button class="ptc" data-v="${v}">${v}</button>`).join('')}</div></div><p class="ptstat" id="ptLm" role="status"></p></div>`);
+  const found=new Set();let miss=0;
+  api.body.querySelectorAll('.ptc').forEach(c=>c.onclick=()=>{if(c.disabled)return;const v=+c.dataset.v;
+    if(com.includes(v)){found.add(v);api.body.querySelectorAll(`.ptc[data-v="${v}"]`).forEach(x=>{x.classList.add('both');x.disabled=true});sfx.pop();
+      $('ptLm').innerHTML=`<span class="y">✓ ${v} is in both lists.</span> ${found.size<com.length?`${com.length-found.size} more to find.`:''}`;
+      if(found.size===com.length){$('ptLm').innerHTML=`<span class="y">✓ All found: ${com.join(', ')}${kind==='m'?' (in these lists)':''}.</span> These are <b>common ${kind==='f'?'factors':'multiples'}</b> of ${a} and ${b}.`;then(com)}}
+    else{sfx.no();c.classList.add('tried');miss++;$('ptLm').innerHTML=`<span class="n">${v} is only in one list.</span>`;if(miss>=4)ctx.keep.pen=1}})}
+/* Tool 4: the builder. Tap prime members to build a number; live checks show WHY the HCF / LCM is what it is. */
+function ptBuild(api,fa,fb,mode,then){const A=fromF(fa),B=fromF(fb),H=fromF(fMin([fa,fb])),L=fromF(fMax([fa,fb])),isH=mode==='h',goal=isH?H:L;
+  const tray=[...pfArr(A).map(v=>({v,s:'a'})),...pfArr(B).map(v=>({v,s:'b'}))].map((c,i)=>({...c,i}));const pickd=new Set();let tries=0;const mate={};
+  if(isH){const used=new Set();tray.filter(c=>c.s==='a').forEach(c=>{const m=tray.find(d=>d.s==='b'&&d.v===c.v&&!used.has(d.i));if(m){used.add(m.i);mate[c.i]=m.i;mate[m.i]=c.i}})}
+  api.body.insertAdjacentHTML('beforeend',`<div class="ptlab2"><h4>🧱 ${isH?'HCF':'LCM'} builder</h4>
+   <p class="ptsm"><b>${A}</b> = ${pfArr(A).join(' × ')} &nbsp;·&nbsp; <b>${B}</b> = ${pfArr(B).join(' × ')}</p>
+   <p class="ptsm">${isH?`Build the <b>biggest</b> number that divides <b>both</b> ${A} and ${B} exactly.`:`Build the <b>smallest</b> number that is a multiple of <b>both</b> ${A} and ${B}.`} ${isH?'Tap a member to add it. If <b>both</b> numbers have it, its partner 🔗 lights up too: a shared member counts <b>once</b>.':'Tap members to add or remove them.'}</p>
+   <div class="pttray">${tray.map(c=>`<button class="ptm ${c.s}" data-i="${c.i}">${c.v}<small>from ${c.s==='a'?A:B}</small></button>`).join('')}</div>
+   <div class="ptcand">Your number: <b id="ptCv">1</b> <span id="ptCx"></span></div><div class="ptchk" id="ptCk"></div>
+   <button class="btn primary" id="ptGo">✅ This is the ${isH?'HCF':'LCM'}</button><p class="ptstat" id="ptBm" role="status"></p></div>`);
+  const dup=i=>isH&&mate[i]!==undefined&&pickd.has(mate[i])&&mate[i]<i;const val=()=>[...pickd].reduce((p,i)=>dup(i)?p:p*tray[i].v,1);
+  const show=()=>{const c=val(),ch=[...pickd].filter(i=>!dup(i)).map(i=>tray[i].v).sort((x,y)=>x-y);$('ptCv').textContent=c;$('ptCx').textContent=ch.length?'= '+ch.join(' × '):'';
+    const t=(x,y)=>x%y===0?`<span class="y">✅ ${x} ÷ ${y} = ${x/y}</span>`:`<span class="n">❌ ${x} ÷ ${y} = ${Math.floor(x/y)} remainder ${x%y}</span>`;
+    $('ptCk').innerHTML=isH?`<div>Divides ${A} exactly? ${t(A,c)}</div><div>Divides ${B} exactly? ${t(B,c)}</div>`:`<div>A multiple of ${A}? ${t(c,A)}</div><div>A multiple of ${B}? ${t(c,B)}</div>`};
+  api.body.querySelectorAll('.ptm').forEach(b=>b.onclick=()=>{if(b.disabled)return;const i=+b.dataset.i,on=!pickd.has(i),m=isH?mate[i]:undefined;
+    [i,...(m!==undefined?[m]:[])].forEach(j=>{on?pickd.add(j):pickd.delete(j);const e=api.body.querySelector(`.ptm[data-i="${j}"]`);e.classList.toggle('in',on);e.classList.toggle('lnk',on&&m!==undefined)});sfx.tap();show()});
+  const finish=()=>{api.body.querySelectorAll('.ptm').forEach(b=>b.disabled=true);$('ptGo').disabled=true;then()};
+  $('ptGo').onclick=()=>{if(api.answered)return;const c=val();
+    if(c===goal){sfx.ok();$('ptBm').innerHTML=isH?`<span class="y">✓ ${H} is the HCF.</span> Notice: you could only use members that <b>both</b> numbers have. Add a member only one of them has, and it no longer divides the other one exactly. That's why the HCF uses the <b>shared</b> primes.`
+        :`<span class="y">✓ ${L} is the LCM.</span> Notice: it needs <b>every</b> member of ${A} and <b>every</b> member of ${B}, or it won't be a multiple of both. But a shared member only needs to be there <b>once</b>: it serves both. That's why the LCM takes each prime once, shared ones not doubled.`;finish();return}
+    tries++;sfx.no();
+    let why;if(isH){const okA=A%c===0,okB=B%c===0;why=!okA||!okB?`${c} doesn't divide ${!okA?A:B} exactly. You used a member that only ${!okA?B:A} has. The HCF can only use members <b>both</b> numbers share (the ones that light up with a 🔗 partner).`:`${c} divides both exactly, but it's not the <b>biggest</b>. Is there another member that <b>both</b> numbers have?`}
+    else{const okA=c%A===0,okB=c%B===0;why=!okA||!okB?`${c} is not a multiple of ${!okA?A:B}. Your number is missing a member of ${!okA?A:B}.`:`${c} is a multiple of both, so it's a common multiple. But is it the <b>lowest</b>? A shared member may be in there twice. Take one out and check.`}
+    $('ptBm').innerHTML=`<span class="n">${why}</span>`;
+    if(tries>=3){ctx.keep.pen=1;pickd.clear();const need=pfArr(goal).slice();tray.forEach(c=>{const k=need.indexOf(c.v);if(k>=0&&(!isH||c.s==='a')){need.splice(k,1);pickd.add(c.i);if(isH&&mate[c.i]!==undefined)pickd.add(mate[c.i])}});
+      api.body.querySelectorAll('.ptm').forEach(b=>{b.classList.toggle('in',pickd.has(+b.dataset.i));b.classList.toggle('lnk',isH&&pickd.has(+b.dataset.i)&&mate[+b.dataset.i]!==undefined)});show();$('ptBm').innerHTML='';$('ptBm').innerHTML+=`<br>Here it is: <b>${goal}</b> = ${pfArr(goal).join(' × ')}. ${isH?'Only the shared members.':'Every member, shared ones once.'}`;finish()}};
+  show()}
+/* the column table, with the reason for each rule */
+function ptCols(fa,fb){const A=fromF(fa),B=fromF(fb),ps=[...new Set([...pfArr(A),...pfArr(B)])].sort((x,y)=>x-y),C=[];ps.forEach(p=>{const ea=fa[p]||0,eb=fb[p]||0;for(let k=0;k<Math.max(ea,eb);k++)C.push({p,a:k<ea,b:k<eb})});
+  const row=(key,n)=>`<tr><th>${n} =</th>${C.map((c,i)=>{const on=c[key],nxt=C.slice(i+1).some(d=>d[key]);return `<td class="${on&&c.a&&c.b?'sh':''}">${on?c.p:''}</td>${i<C.length-1?`<td class="x">${on&&nxt?'×':''}</td>`:''}`}).join('')}</tr>`;
+  return `<div class="ptcols"><table>${row('a',A)}${row('b',B)}</table><p class="ptkey"><span class="sh">Shaded</span> columns: both numbers have that prime.</p></div>`}
+const STH2=[(a,b)=>({art:cpArt([['🇸🇬',`${a} flags`],['🍫',`${b} snacks`],['→'],['🎁','? funpacks']]),q:`For National Day, <b>${a} flags</b> and <b>${b} snacks</b> go into identical funpacks, with nothing left over. What is the <b>largest</b> number of funpacks?`,q2:h=>[`How many flags are in each funpack?`,a/h]}),
+  (a,b)=>({art:cpArt([['⚽',`${a} boys`],['🏸',`${b} girls`],['→'],['👥','? groups']]),q:`A CCA has <b>${a} boys</b> and <b>${b} girls</b>. The teacher makes identical groups (same number of boys and of girls in each), with nobody left out. What is the <b>largest</b> number of groups?`,q2:h=>[`How many boys are in each group?`,a/h]})];
+const STL2=[(x,y)=>({art:cpArt([['🚌',`Bus A: every ${x} min`,x],['🚌',`Bus B: every ${y} min`,y]]),q:`At the bus interchange, Bus A leaves every <b>${x} min</b> and Bus B every <b>${y} min</b>. Both leave together now. After how many minutes do they <b>next</b> leave together?`,q2:L=>[`How many times does Bus A leave in that time (not counting now)?`,L/x]}),
+  (x,y)=>({art:cpArt([['🚆',`MRT: every ${x} min`,x],['🚈',`LRT: every ${y} min`,y]]),q:`At a station, an MRT train arrives every <b>${x} min</b> and an LRT train every <b>${y} min</b>. They arrive together now. After how many minutes do they <b>next</b> arrive together?`,q2:L=>[`How many MRT trains arrive in that time (not counting now)?`,L/x]})];
+const PTH={bags:['Try a number of bags. Look at the "left over" column.','The number of bags must divide BOTH amounts exactly (nothing left over).','Try the bigger numbers too: which is the most bags with nothing left?'],
+ stacks:['Add one pack at a time to the side with fewer.','The totals are multiples: count in steps of each pack size.','Stop at the FIRST time the two totals are equal.'],
+ listF:['A factor divides the number exactly (no remainder).','Tap the numbers you can see in both lists.','The highest one in both lists is the HCF.'],
+ listM:['A multiple is in the number\'s times table.','Tap the numbers you can see in both rows.','The lowest one in both rows is the LCM.'],
+ buildH:['The HCF must divide both numbers exactly.','Only use members that both numbers have.','Use each shared member as many times as both numbers have it.'],
+ buildL:['The LCM must be a multiple of both numbers, so it needs every member of each.','A shared member only needs to be there once.','If it is a multiple of both, try taking a member out: is it still a common multiple?'],
+ cols:['Line the primes up in columns.','HCF: it must divide both exactly, so use only the shaded (shared) columns.','LCM: it must be a multiple of both, so take one prime from every column.'],
+ idx:['HCF: primes in every number, lowest power.','LCM: every prime that appears, highest power.','Write powers out (2³ = 2 × 2 × 2) if it helps.'],
+ coprime:['Do they share any prime?','Every whole number has 1 as a factor.','No shared primes: LCM = the two numbers multiplied.'],
+ story:['Is it sharing out equally with nothing left over? Or waiting until two repeating things match?','Sharing out equally: the answer must divide both numbers exactly → HCF.','Repeating until they match: the answer must be a multiple of both numbers → LCM.']};
+const PTTYPES=[['bags','stacks','listF','listM','bags','stacks','story','story'],['buildH','buildL','cols','story','story','cols','story','story'],['cols','idx','idx','coprime','story','story','story','story']];
+function ptIdx(api,isH,three){const T=TIER(),fs=vnGen(T,{three}),ns=fs.map(fromF),H=fMin(fs),Lf=fMax(fs),right=isH?H:Lf,mixed={};
+  Object.keys(H).forEach(p=>mixed[p]=Lf[p]);const prod=fSum(fs);
+  const opts=[...new Set([pfsU(right),pfsU(isH?Lf:H),pfsU(isH?mixed:prod),pfsU(isH?prod:mixed)])].filter(Boolean);
+  api.q(cpClub([...new Set(ns.flatMap(pfArr))])+`<p class="qt">📋 The guest lists: ${ns.map((n,i)=>`<b>${n}</b> = ${pfs(fs[i])}`).join(three?'<br>':' and ')}</p><p class="qs">Find the ${isH?'<b>HCF</b>: it must divide '+(three?'all three':'both')+' exactly, so it can only use primes they all have, as many times as the one with fewest.':'<b>LCM</b>: it must be a multiple of '+(three?'all three':'both')+', so it needs every prime that appears, as many times as the one with most.'}</p>`);
+  const why=v=>v===pfsU(isH?Lf:H)?(isH?'That takes the highest powers: that is the LCM.':'That takes only the shared primes with the lowest powers: that is the HCF.'):v===pfsU(prod)?'That multiplies the numbers together, so shared primes are counted more than once.':isH?'Only shared primes count, but take the lowest power each time.':'Every prime that appears must be included, with its highest power.';
+  stepPick(api,{id:'cpIx',label:`<b>Step 1:</b> which is the ${isH?'HCF':'LCM'} in index notation?`,options:opts,right:pfsU(right),pen:'cpIv',hint:v=>why(v),
+    reveal:v=>`${why(v)} The ${isH?'HCF':'LCM'} is <b>${pfsU(right)}</b>. Tap it to carry on.`,okMsg:`<p class="askok">Yes! ${isH?'Shared primes, lowest powers':'Every prime, highest powers'}: ${pfs(right)}.</p>`,
+    then:()=>askOne(api,{id:'cpIv',label:`<b>Step 2:</b> work it out. ${isH?'HCF':'LCM'} =`,w:6,right:fromF(right),traps:[[fromF(isH?Lf:H),isH?'That is the LCM.':'That is the HCF.']],hint:'Write each power as repeated multiplication, then multiply.',
+      ok:`${pfs(right)} = ${fromF(right)}.`,bad:`${pfs(right)} = ${fromF(right)}.`,work:[`${isH?'HCF':'LCM'} = ${pfs(right)} = ${fromF(right)}`]})})}
+addGame('s1-tables',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🍹',title:'Club Prime: Party Tables',topic:'HCF and LCM',
+ how:'Plan the Club Prime party. Pack party bags with nothing left over and buy packs until the totals match, to see what the HCF and LCM mean. Higher levels build them from prime members and solve party problems.',rounds:8,
+ round(api,r){const T=TIER(),type=PTTYPES[T][r],K=ctx.keep=ctx.keep||{};
+  try{(QHINTS['s1-tables']=QHINTS['s1-tables']||[])[r]=PTH[type]}catch(e){}
+  if(type==='bags'){const h=pick([[4,6,6],[6,8,12]][T]); /* HCFs with several common factors, so 'tap all that worked' means something */let x,y,a,b,fail;
+    for(let k=0;k<200;k++){x=R(2,[5,6][T]);y=R(2,[5,6][T]);if(x===y||gcdN(x,y)!==1)continue;a=h*x;b=h*y;
+      const mx=Math.min(12,a,b),one=[];for(let d=2;d<=mx;d++){if((a%d===0)!==(b%d===0))one.push(d)}if(one.length){fail=pick(one.slice(0,2));break}}
+    const [ea,eb]=ptPair(),mx=Math.min(12,a,b),cf=[];for(let d=2;d<=mx;d++)if(a%d===0&&b%d===0)cf.push(d);
+    const inA=a%fail===0,big=inA?a:b,other=inA?b:a;
+    api.q(`<p class="qt">🛍️ <b>Party bags!</b> Qubi has ${ea[0]} <b>${a}</b> ${ea[1]} and ${eb[0]} <b>${b}</b> ${eb[1]} for party bags. Every bag must get the <b>same</b>, with <b>nothing left over</b>.</p>`);
+    ptBags(api,a,b,ea,eb);
+    api.body.insertAdjacentHTML('beforeend',`<div class="askwrap"><p class="asklab"><b>Step 1:</b> use the packer to find <b>every</b> number of bags that works (nothing left over). The ones that work turn green.</p><button class="btn primary" id="ptCfGo">✅ I've found every number that works</button><div id="ptCfM"></div></div>`);
+    let miss=0;const tried=()=>[...api.body.querySelectorAll('.ptnums .btn.ok')].map(x=>+x.dataset.k);
+    const step3=()=>{const NA=`the ${a} ${ea[1]}`,NB=`the ${b} ${eb[1]}`,A1=`Both ${NA} and ${NB} share equally into ${fail} bags`,A2=`${NA[0].toUpperCase()+NA.slice(1)} share equally into ${fail} bags, but ${NB} have some left over`,A3=`${NB[0].toUpperCase()+NB.slice(1)} share equally into ${fail} bags, but ${NA} have some left over`,A4=`Neither shares equally: both have some left over`,R1=inA?A2:A3;
+      const how=`${a} ${ea[1]} into ${fail} bags: ${a%fail?`${Math.floor(a/fail)} each, ${a%fail} left over`:`${a/fail} each, none left over`}. ${b} ${eb[1]} into ${fail} bags: ${b%fail?`${Math.floor(b/fail)} each, ${b%fail} left over`:`${b/fail} each, none left over`}.`;
+      stepPick(api,{id:'ptWhy',keepOrder:true,label:`<b>Step 2:</b> why didn't <b>${fail}</b> bags work? (Tap ${fail} in the packer to watch.)`,options:[A1,A2,A3,A4],right:R1,pen:'ptB1',
+        hint:()=>`Check each one: ${how}`,reveal:()=>`${how} Tap the right reason to carry on.`,
+        okMsg:`<p class="askok">Yes! In maths words: ${fail} is a <b>factor</b> of ${big} (${big} ÷ ${fail} has no remainder), but not a factor of ${other}. A number of bags only works if it is a factor of <b>both</b> numbers: a <b>common factor</b>.</p>`,
+        then:()=>askOne(api,{id:'ptB1',label:`<b>Step 3:</b> so what is the <b>most</b> bags Qubi can pack?`,w:4,unit:'bags',right:h,traps:cf.filter(d=>d!==h).map(d=>[d,`${d} works, but it's not the most. Look at your list of bags that worked.`]),hint:`The biggest number in your list: ${cf.join(', ')}.`,
+          ok:`${h} bags. ${h} is the <b>highest</b> number that divides ${a} <b>and</b> ${b} exactly: the <b>Highest Common Factor (HCF)</b> of ${a} and ${b}. Each bag gets ${a/h} ${ea[1]} and ${b/h} ${eb[1]}.`,
+          bad:`The most is ${h} bags: the <b>Highest Common Factor (HCF)</b> of ${a} and ${b}.`,work:[`Bags that work (common factors): 1, ${cf.join(', ')}`,`${fail} fails: it divides ${big} exactly but not ${other}`,`Highest common factor: HCF = ${h}`]})})};
+    $('ptCfGo').onclick=()=>{if(api.answered||$('ptCfGo').disabled)return;const got=tried(),missing=cf.filter(k=>!got.includes(k));
+      if(!missing.length){sfx.ok();$('ptCfGo').disabled=true;api.body.querySelectorAll('.ptnums .btn').forEach(bt=>bt.disabled=true);
+        document.querySelectorAll('#ptLg tr').forEach(tr=>tr.classList.toggle('cf',cf.includes(+tr.dataset.k)));
+        $('ptCfM').innerHTML=`<p class="askok">Yes! ${cf.join(', ')} bags work (and so does 1 big bag). Each of these numbers divides ${a} <b>and</b> ${b} exactly. They are called the <b>common factors</b> of ${a} and ${b}.</p>`;step3();return}
+      sfx.no();miss++;if(miss>=2)ctx.keep.pen=1;
+      $('ptCfM').innerHTML=`<p class="askneed">Not yet: ${got.length?`besides ${pbList(got)}, `:''}${missing.length>1?'there are more numbers of bags':'there is another number of bags'} that work${missing.length>1?'':'s'}. Keep trying in the packer.</p>`};
+    return}
+  if(type==='stacks'){const [x,y]=pick([[[2,3],[3,4],[4,6],[2,5],[3,5],[4,5],[6,8]],[[4,6],[6,8],[6,9],[8,12],[10,15],[9,12],[6,10]]][T]),L=lcm2(x,y),[ex,ey]=ptPair();
+    api.q(`<p class="qt">🛒 <b>Shopping for the party.</b> Qubi wants the <b>same number</b> of ${ex[1]} and ${ey[1]}.</p>`);ptStacks(api,x,y,ex,ey);
+    askOne(api,{id:'ptS1',label:`<b>Step 2:</b> Qubi wants exactly the same number of ${ex[1]} and ${ey[1]}. What is the <b>smallest</b> number of each he can buy? (Use the buttons above.)`,w:5,unit:'of each',right:L,traps:x*y!==L?[[x*y,`${x*y} of each works too, but it is not the smallest. Try fewer packs.`]]:[],hint:`Count in ${x}s and in ${y}s. Where do they first meet?`,
+      then:()=>askOne(api,{id:'ptS2',label:`<b>Step 3:</b> if Qubi keeps buying packs, what is the <b>next</b> number where he has the same number of ${ex[1]} and ${ey[1]}?`,w:5,unit:'of each',right:2*L,traps:[[L,`That's the smallest. Keep adding packs: when are the two numbers equal again?`]],hint:`Keep counting in ${x}s and ${y}s past ${L}.`,
+        then:()=>{api.body.insertAdjacentHTML('beforeend',`<p class="askok">${L}, ${2*L}, ${3*L}… are all in the ${x} times table <b>and</b> the ${y} times table. They are called the <b>common multiples</b> of ${x} and ${y}.</p>`);
+          askOne(api,{id:'ptS3',label:`<b>Step 4:</b> which common multiple is the <b>lowest</b>?`,w:5,right:L,traps:[[2*L,`${2*L} is a common multiple, but not the lowest.`]],hint:`The first match you found.`,
+            ok:`${L} is the <b>lowest</b> number in both the ${x} and ${y} times tables: the <b>Lowest Common Multiple (LCM)</b> of ${x} and ${y}. Qubi buys ${L/x} packs of ${x} and ${L/y} packs of ${y}.`,
+            bad:`The LCM of ${x} and ${y} is ${L}: the first total where they match.`,work:[`Multiples of ${x}: ${Array.from({length:2*L/x},(_,i)=>x*(i+1)).join(', ')}`,`Multiples of ${y}: ${Array.from({length:2*L/y},(_,i)=>y*(i+1)).join(', ')}`,`Common multiples: ${L}, ${2*L}, … → LCM = ${L}`]})}})});return}
+  if(type==='listF'){const [a,b]=pick([[12,18],[16,24],[20,30],[12,30],[18,24],[24,36],[20,28]]),H=gcdN(a,b);
+    api.q(`<p class="qt">📝 Qubi lists the factors of <b>${a}</b> and of <b>${b}</b>.</p>`);
+    ptLists(api,a,b,'f',com=>askOne(api,{id:'ptL1',label:`The <b>highest common factor</b> (HCF) of ${a} and ${b} is the biggest number in both lists. HCF =`,w:4,right:H,traps:com.filter(v=>v!==H).map(v=>[v,`${v} is a common factor, but not the highest.`]),hint:'Look at the numbers you tapped. Which is the biggest?',
+      ok:`HCF of ${a} and ${b} = ${H}: the biggest number that divides both exactly.`,bad:`The common factors are ${com.join(', ')}, so the HCF is ${H}.`,work:[`Common factors: ${com.join(', ')}`,`HCF = ${H}`]}));return}
+  if(type==='listM'){const [a,b]=pick([[4,6],[6,8],[3,4],[4,10],[6,9],[8,12],[6,10]]),L=lcm2(a,b);
+    api.q(`<p class="qt">📝 Qubi lists the first 10 multiples of <b>${a}</b> and of <b>${b}</b>.</p>`);
+    ptLists(api,a,b,'m',com=>askOne(api,{id:'ptL2',label:`The <b>lowest common multiple</b> (LCM) of ${a} and ${b} is the smallest number in both lists. LCM =`,w:4,right:L,traps:com.filter(v=>v!==L).map(v=>[v,`${v} is a common multiple, but not the lowest.`]),hint:'Look at the numbers you tapped. Which is the smallest?',
+      ok:`LCM of ${a} and ${b} = ${L}: the smallest number that is a multiple of both.`,bad:`The common multiples in the lists are ${com.join(', ')}, so the LCM is ${L}.`,work:[`Common multiples: ${com.join(', ')}…`,`LCM = ${L}`]}));return}
+  if(type==='buildH'||type==='buildL'){const isH=type==='buildH',[fa,fb]=vnGen(T),A=fromF(fa),B=fromF(fb),H=fromF(fMin([fa,fb])),L=fromF(fMax([fa,fb]));
+    api.q(cpClub([...new Set([...pfArr(A),...pfArr(B)])])+`<p class="qt">🧱 <b>Build the ${isH?'HCF':'LCM'}</b> of <b>${A}</b> and <b>${B}</b> from their prime members. The checks tell you if your number works.</p>`);
+    ptBuild(api,fa,fb,isH?'h':'l',()=>{const pen=!!K.pen;api.done(!pen,pen?`The ${isH?'HCF':'LCM'} is ${isH?H:L}.`:`${isH?`HCF = ${H}`:`LCM = ${L}`}. You built it!`,[`${A} = ${pfs(fa)}, ${B} = ${pfs(fb)}`,isH?`HCF: only the shared members → ${pfs(fMin([fa,fb]))} = ${H}`:`LCM: every member, shared ones once → ${pfs(fMax([fa,fb]))} = ${L}`],pen?0:undefined,{noRetry:1})});return}
+  if(type==='cols'){const [fa,fb]=vnGen(T),A=fromF(fa),B=fromF(fb),H=fromF(fMin([fa,fb])),L=fromF(fMax([fa,fb]));
+    api.q(cpClub([...new Set([...pfArr(A),...pfArr(B)])])+`<p class="qt">📐 <b>The column method:</b> a quick way to do what the builders showed. ${A} and ${B} are lined up, prime under prime.</p>`);
+    api.body.insertAdjacentHTML('beforeend',ptCols(fa,fb));
+    askOne(api,{id:'ptC1',label:`<b>HCF:</b> it must go <b>into both</b> numbers, so use only the <b>shaded</b> (shared) columns, one prime from each. HCF =`,w:6,right:H,traps:[[L,'That is the LCM (every column). The HCF uses only the shaded columns.'],[A*B,'That multiplies the two numbers. The HCF uses only the shaded columns.']],hint:'Multiply one prime from each shaded column.',
+      then:()=>askOne(api,{id:'ptC2',label:`<b>LCM:</b> both numbers must go <b>into it</b>, so take one prime from <b>every</b> column (a shared column counts once). LCM =`,w:6,right:L,traps:[[A*B,`That is ${A} × ${B}: the shared primes are counted twice. Each column counts once.`],[H,'That is the HCF. The LCM uses every column.']],hint:'Multiply one prime from each column.',
+        ok:`HCF = ${H} and LCM = ${L}.`,bad:`HCF = ${H} (shaded columns) and LCM = ${L} (every column).`,work:[`HCF = ${pfs(fMin([fa,fb]))} = ${H}`,`LCM = ${pfs(fMax([fa,fb]))} = ${L}`]})});return}
+  if(type==='idx')return ptIdx(api,r===PTTYPES[T].indexOf('idx'),r!==PTTYPES[T].indexOf('idx'));
   if(type==='coprime'){const [fa,fb]=vnGen(T,{coprime:1}),A=fromF(fa),B=fromF(fb);
-    api.q(cpClub([...new Set([...pfArr(A),...pfArr(B)])])+`<p class="qt">🤔 Nothing in common? <b>${A}</b> = ${pfs(fa)} and <b>${B}</b> = ${pfs(fb)} share a table.</p>`);
-    askOne(api,{id:'cpC',label:`<b>Step 1:</b> what is the HCF of ${A} and ${B}?`,w:4,right:1,traps:[[0,'0 is not a factor of anything. Every whole number has 1 as a factor, so the HCF is at least 1.']],hint:'Do they share any prime members? If not, what is the only factor they both have?',
-      then:()=>askOne(api,{id:'cpC2',label:`<b>Step 2:</b> nobody shares a seat, so everyone sits at the table. LCM of ${A} and ${B} =`,w:6,right:A*B,traps:[[A+B,'Multiply, don\'t add.']],hint:'With no shared members, the LCM is everyone multiplied together.',
+    api.q(cpClub([...new Set([...pfArr(A),...pfArr(B)])])+`<p class="qt">🤔 Nothing in common? <b>${A}</b> = ${pfs(fa)} and <b>${B}</b> = ${pfs(fb)}.</p>`);
+    askOne(api,{id:'cpC',label:`<b>Step 1:</b> what is the HCF of ${A} and ${B}?`,w:4,right:1,traps:[[0,'0 is not a factor of anything. Every whole number has 1 as a factor, so the HCF is at least 1.']],hint:'Do they share any prime? If not, what is the only factor they both have?',
+      then:()=>askOne(api,{id:'cpC2',label:`<b>Step 2:</b> no shared primes, so the LCM needs every member of both. LCM of ${A} and ${B} =`,w:6,right:A*B,traps:[[A+B,'Multiply, don\'t add.']],hint:'With no shared members, the LCM is the two numbers multiplied.',
         ok:`No shared primes, so HCF = 1 and LCM = ${A} × ${B} = ${A*B}.`,bad:`HCF = 1, so LCM = ${A} × ${B} = ${A*B}.`,work:[`${A} = ${pfs(fa)}, ${B} = ${pfs(fb)}: no shared primes`,`HCF = 1, LCM = ${A*B}`]})});return}
-  const kind=type==='mix'?pick(['h','l']):type==='sh'?'h':'l',[a,b]=stNums(T,kind),H=gcdN(a,b),L=lcm2(a,b),S=(kind==='h'?pick(STH):pick(STL))(a,b),ans=kind==='h'?H:L,[q2,a2]=S.q2(ans);
-  const step=()=>askOne(api,{id:'cpT',label:type==='mix'?'<b>Step 2:</b> work it out.':'<b>Step 1:</b> work it out.',w:6,right:ans,
-    traps:[[kind==='h'?L:H,kind==='h'?'That is the LCM. Sharing into identical groups needs the HCF.':'That is the HCF. Waiting for things to line up again needs the LCM.'],[a*b,kind==='h'?'Too big: you need a number that divides both.':`${a} × ${b} works, but it is not the first time they line up. Look for the lowest common multiple.`]],
-    hint:kind==='h'?`Find the HCF of ${a} and ${b}.`:`Find the LCM of ${x0(a,b)}.`,
-    then:()=>askOne(api,{id:'cpT2',label:`<b>${type==='mix'?'Step 3':'Step 2'}:</b> ${q2}`,w:6,right:a2,hint:kind==='h'?'Divide by the number of groups.':'Divide by how often it happens.',
-      ok:`${kind==='h'?`HCF(${a}, ${b}) = ${H}`:`LCM(${a}, ${b}) = ${L}`}, and the answer is ${a2}.`,bad:`${kind==='h'?`HCF(${a}, ${b}) = ${H}`:`LCM(${a}, ${b}) = ${L}`}. The answer is ${a2}.`,
-      work:[`${a} = ${pfs(PF(a))}, ${b} = ${pfs(PF(b))}`,kind==='h'?`HCF = ${pfs(fMin([PF(a),PF(b)]))} = ${H}`:`LCM = ${pfs(fMax([PF(a),PF(b)]))} = ${L}`,`${q2.replace(/\?$/,'')}: ${a2}`]})});
+  /* story: decide HCF or LCM first, with the reason in the choice */
+  const kind=r===PTTYPES[T].indexOf('story')?'h':r===PTTYPES[T].indexOf('story')+1?'l':pick(['h','l']),[a,b]=stNums(T,kind),H=gcdN(a,b),L=lcm2(a,b),S=(kind==='h'?pick([...STH,...STH2]):pick([...STL,...STL2]))(a,b),ans=kind==='h'?H:L,[q2,a2]=S.q2(ans);
+  const OH=`HCF: share out equally, nothing left over. The answer must divide ${a} and ${b} exactly.`,OL=`LCM: two things repeat until they match. The answer must be a multiple of ${a} and ${b}.`;
   api.q(cpClub([2,3,5,7])+`<p class="qt">🎉 <b>Party planning.</b> ${S.q}</p>`);api.body.insertAdjacentHTML('beforeend',S.art||'');
-  if(type==='mix')stepPick(api,{id:'cpK',keepOrder:true,label:'<b>Step 1:</b> do you need the HCF or the LCM?',options:['HCF','LCM'],right:kind==='h'?'HCF':'LCM',pen:'cpT',
-    hint:()=>'',reveal:()=>`${kind==='h'?'Sharing into identical groups, as many or as big as possible, needs the <b>HCF</b>.':'Waiting until repeating things line up again needs the <b>LCM</b>.'} Tap ${kind==='h'?'HCF':'LCM'} to carry on.`,
-    okMsg:`<p class="askok">Yes: ${kind==='h'?'equal groups with nothing left over → HCF.':'repeating until they line up → LCM.'}</p>`,then:step});else step()},
+  stepPick(api,{id:'cpK',keepOrder:true,label:'<b>Step 1:</b> what does this question need?',options:[OH,OL],right:kind==='h'?OH:OL,pen:'cpT',
+    hint:()=>'',reveal:()=>`${kind==='h'?'This is sharing out equally with nothing left over, so the answer must divide both numbers exactly: the <b>HCF</b>.':'This is two repeating things lining up again, so the answer must be a multiple of both numbers: the <b>LCM</b>.'} Tap it to carry on.`,
+    okMsg:`<p class="askok">Yes: ${kind==='h'?'sharing equally → a number that divides both exactly → HCF.':'repeating until they match → a multiple of both → LCM.'}</p>`,
+    then:()=>askOne(api,{id:'cpT',label:'<b>Step 2:</b> work it out.',w:6,right:ans,
+      traps:[[kind==='h'?L:H,kind==='h'?'That is the LCM. Sharing into identical groups needs the HCF.':'That is the HCF. Waiting for things to line up again needs the LCM.'],[a*b,kind==='h'?'Too big: you need a number that divides both exactly.':`${a} × ${b} works, but it is not the first time they line up. Look for the lowest common multiple.`]],
+      hint:kind==='h'?`Find the HCF of ${a} and ${b}.`:`Find the LCM of ${a} and ${b}.`,
+      then:()=>askOne(api,{id:'cpT2',label:`<b>Step 3:</b> ${q2}`,w:6,right:a2,hint:kind==='h'?'Divide by the number of groups.':'Divide by how often it happens.',
+        ok:`${kind==='h'?`HCF(${a}, ${b}) = ${H}`:`LCM(${a}, ${b}) = ${L}`}, and the answer is ${a2}.`,bad:`${kind==='h'?`HCF(${a}, ${b}) = ${H}`:`LCM(${a}, ${b}) = ${L}`}. The answer is ${a2}.`,
+        work:[`${a} = ${pfs(PF(a))}, ${b} = ${pfs(PF(b))}`,kind==='h'?`HCF = ${pfs(fMin([PF(a),PF(b)]))} = ${H}`:`LCM = ${pfs(fMax([PF(a),PF(b)]))} = ${L}`,`${q2.replace(/\?$/,'')}: ${a2}`]})})})},
+
  bonus(api){const h=pick([2,4,6,8]),pr=shuffle([[2,3],[3,4],[2,5],[3,5],[4,5],[5,6],[3,7],[2,7]].filter(([x,y])=>gcdN(x,y)===1))[0],[x,y]=pr,a=h*x,b=h*y,L=h*x*y;
   api.q(cpBan('THE VIP ROOM','Secret level')+mmRoom(`"Welcome, clever one. I am <b>2</b>, the Mastermind. Here is my riddle: I know two numbers. Their <b>HCF is ${h}</b> and their <b>LCM is ${L}</b>. One of them is <b>${a}</b>. What is the other?"`));
   askOne(api,{id:'mmR',w:6,right:b,traps:[[L/a,`${L} ÷ ${a} = ${L/a}, but check: is the HCF of ${a} and ${L/a} equal to ${h}?`],[L/h,`Close: try using HCF × LCM = first number × second number.`]].filter(([v])=>v!==b),
@@ -4047,6 +4370,9 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .fnchart .c:first-child i{background:#b9b2ff}.fnchart .c:last-child i{background:#ffb81f}
 #fnSyP{grid-template-columns:1fr!important}#fnSyP .btn{font-size:1rem!important;text-align:left}
 .fnppl{display:flex;flex-wrap:wrap;gap:4px}.fnppl i{width:clamp(11px,3vw,16px);height:clamp(11px,3vw,16px);border-radius:50%;border:2px solid #16233a;background:#fff;transition:background .3s,transform .3s}.fnppl i.on{background:#5f50ec}.fnppl i.ex{background:#ffb81f;transform:scale(1.2)}
+.fnstory{margin:0;padding-left:24px;text-align:left;font:600 15px/1.5 var(--body);display:grid;gap:4px}
+.fnfrw{flex:1 1 100%;display:grid;gap:10px;font:700 1.05rem var(--body)}.fnfrw>div{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px}@media (max-width:600px){.fnfrw{font-size:.95rem}.fnfr>span{padding:2px 3px}}
+.fnfr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px;line-height:1.25}.fnfr>span{display:flex;align-items:center;gap:4px;padding:2px 6px}.fnfr>span:first-child{border-bottom:2.5px solid currentColor}.fnfr input{width:2.4em!important;font-size:1.05rem!important;min-width:0!important;padding-left:4px!important;padding-right:4px!important;text-align:center}
 .fncal{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .fncal div{min-width:140px;border:2.5px solid #16233a;border-radius:14px;padding:8px 12px;background:#16233a;color:#9be7c4;text-align:center;font:700 1.1rem var(--display);transition:transform .5s}
 .fncal div small{display:block;color:#fff;font:800 11px var(--body);opacity:.8}.fncal div.flip{animation:fnflip .6s ease}@keyframes fnflip{50%{transform:rotateY(90deg)}}
@@ -4125,12 +4451,15 @@ function fnFinalPct(api,S,v,then,kind){const F=v[v.length-1],pc=fnR2(F/S*100),di
         hint:`${fn$(diff)} ÷ ${fn$(S)} × 100%`,then:()=>then(pc)})}})}
 const FNSTUFF=[['🧋','a cup of bubble tea'],['👟','a pair of sneakers'],['🎮','a video game'],['🎧','a pair of earbuds'],['🎒','a school bag'],['⌚','a smart watch']];
 function fnChainRound(api,T,kind){const [em,thing]=pick(FNSTUFF),rep=pick(FNREP);let steps,head,sub,truth,why;
-  const starts=[[100,200,50],[80,120,250],[60,160,240]][T];
+  let starts=[[100,200,50],[80,120,250],[60,160,240]][T];
   if(kind==='back'){const a=pick([[10,20,50],[20,25,40],[15,30,35]][T]);steps=[a,-a];head=`${em} Price of ${thing} goes UP ${a}%, then DOWN ${a}%. "Back to the old price!"`;sub='Shoppers say: no harm done.'}
   else if(kind==='add'){const [a,b]=pick([[[10,10],[10,20],[20,10]],[[20,30],[10,15],[30,20]],[[15,20],[25,40],[40,15]]][T]);steps=[a,b];head=`${em} ${thing[0].toUpperCase()+thing.slice(1)} goes up ${a}%, then another ${b}%. "That's ${a+b}% more in total!"`;sub='Our reporter just added them.'}
   else if(kind==='down2'){const [a,b]=pick([[[50,20],[20,20],[40,10]],[[40,20],[30,30],[50,50]],[[35,20],[25,40],[60,25]]][T]);steps=[-a,-b];head=`🛍️ Great Singapore Sale: ${a}% off ${thing}, then an EXTRA ${b}% off at the till. "That's ${a+b}% off!"`;sub='Queues form outside the mall.'}
   else if(kind==='true25'){const [a,b]=pick([[[25,20],[100,50]],[[25,20],[100,50],[150,60]],[[150,60],[400,80],[25,20]]][T]);steps=[a,-b];head=`${em} ${thing[0].toUpperCase()+thing.slice(1)} goes up ${a}%, then down ${b}%. "Back to the old price!"`;sub='Is our reporter right this time?'}
   else if(kind==='double'){const [a,b]=pick([[[50,50],[60,40]],[[50,50],[40,40],[30,60]],[[40,40],[45,40],[30,60]]][T]);steps=[a,b];head=`📈 Shop rent goes up ${a}%, then up ${b}% the next year. "Rent has MORE than doubled!"`;sub='Shop owners are worried.'}
+  else if(kind==='fare'){steps=[5,7];starts=[100,200,1000];head=`🚇 Bus and train fares rose 5% in Dec 2025, then 7% in Dec 2026. "So fares are now 12% higher than in 2024!"`;sub='Real Public Transport Council fare reviews. Test it on a monthly travel bill.'}
+  else if(kind==='slow'){steps=[10,3];starts=T?[400000,500000,600000]:[100,200,1000];head=`🏠 HDB resale prices rose about 10% in 2024, but only about 3% in 2025. "So flat prices FELL in 2025!"`;sub='Real figures: up 9.7% in 2024, up 2.9% in 2025.'}
+  else if(kind==='svc'){steps=[10,9];starts=[100,200,50];head=`🍽️ Restaurant bill: 10% service charge, then 9% GST. "So you pay 19% on top of the food price!"`;sub='The "++" on Singapore menus.'}
   else{const a=pick([[150,200],[150,200,300],[200,300,250]][T]);steps=[a];head=a===200||a===300?`🚀 Concert tickets up ${a}%! "So they now cost 3 times as much."`:`🚀 "Prices can NEVER go up by more than 100%. A ${a}% rise is impossible!"`;sub='Concert fans are confused.'}
   api.q(fnScene(rep,head,sub)+`<p class="qt">📰 <b>${rep[0]}</b> rushes in with a scoop. Is it TRUE or FAKE?</p>`);
   fnGut(api,()=>fnChain(api,{steps,starts,then:(S,v)=>fnFinalPct(api,S,v,pc=>{
@@ -4140,6 +4469,9 @@ function fnChainRound(api,T,kind){const [em,thing]=pick(FNSTUFF),rep=pick(FNREP)
     else if(kind==='down2'){truth=false;why=`The extra ${-steps[1]}% comes off the <b>sale</b> price, not the original. You pay ${pc}% of the price, so it is only ${fnR2(100-pc)}% off, not ${-(steps[0]+steps[1])}%.`}
     else if(kind==='true25'){truth=Math.abs(pc-100)<.001;why=truth?`Up ${steps[0]}% gives ${fnR2(1+steps[0]/100)} times the price; down ${-steps[1]}% keeps ${fnR2(1+steps[1]/100)} of that. ${fnR2(1+steps[0]/100)} × ${fnR2(1+steps[1]/100)} = 1, so you really are back to 100%.`:`You end at ${pc}%, not 100%.`}
     else if(kind==='double'){truth=pc>200;why=`${fnR2(1+steps[0]/100)} × ${fnR2(1+steps[1]/100)} = ${fnR2(pc/100)}, so the rent went up by ${fnR2(pc-100)}% in total. Doubling means going up by 100%, so this is ${truth?'more':'less'} than double.`}
+    else if(kind==='fare'){truth=false;why=`The 7% rise is taken of the <b>2025</b> fare, which is already 5% higher. × 1.05 × 1.07 = × 1.1235, so fares are 12.35% higher than in 2024: a little more than 12%.`}
+    else if(kind==='slow'){truth=false;why=`Prices still went <b>up</b> in 2025, just more slowly. A smaller increase is still an increase: the price ended ${ch}% higher than at the start. "Growth slowed down" is not the same as "prices fell".`}
+    else if(kind==='svc'){truth=false;why=`The 9% GST is charged on the food <b>and</b> the service charge, so it is 9% of a bigger amount. × 1.1 × 1.09 = × 1.199: you pay 19.9% on top, not 19%.`}
     else{const a=steps[0];truth=a===200;why=a===150||a===250?`A rise of ${a}% gives ${pc}% of the old price. Increases <b>can</b> be more than 100%; only a <b>decrease</b> can't go past 100% (you can't pay less than $0).`:`Up ${a}% means old price + ${a}% = ${pc}% of the old price, which is ${fnR2(pc/100)} times as much${a===300?', not 3 times':''}.`;}
     fnVerdict(api,truth,why,[`Test price ${fn$(S)}: ${v.map(fn$).join(' → ')}`,`Change: ${fn$(Math.abs(v[v.length-1]-S))} ÷ ${fn$(S)} × 100% = ${fnR2(Math.abs(pc-100))}% ${pc>100?'more':pc<100?'less':''} than the start`,`Each step multiplies: ${stepsTxt}`])},kind==='over'?'over':'')}))}
 
@@ -4207,6 +4539,7 @@ function fnPtsRound(api,T){const pairs=[[[40,50],[20,30],[50,60],[25,30]],[[60,7
    Step 2: pick the easier side and work it out (the lab works out the other side, so nothing is typed twice).
    Step 3: one example is not proof: choose the reason it ALWAYS works (a × b ÷ 100 = b × a ÷ 100).
    Step 4: use the hack on a new pair. */
+const fnFr=(n,d)=>`<span class="fnfr"><span>${n}</span><span>${d}</span></span>`;
 function fnSwapRound(api,T){const [a,b]=pick([[[8,50],[4,25],[12,50],[16,25]],[[18,50],[32,25],[24,25],[44,50]],[[7,20],[15,40],[35,60],[13,20]]][T]),v=fnR2(a*b/100),rep=pick(FNREP),truth=Math.random()<.65;
   const [c,d]=pick([[[18,50],[36,25],[14,50],[28,25]],[[46,50],[64,25],[52,25],[38,50]],[[17,20],[45,40],[26,50],[55,60]]][T].filter(([x,y])=>x!==a)),w=fnR2(c*d/100);
   const head=truth?`🤯 Maths hack goes viral: "${a}% of ${b} is the SAME as ${b}% of ${a}. It works for ANY two numbers!"`:`🤓 "${a}% of ${b} is much SMALLER than ${b}% of ${a}. Obviously!"`;
@@ -4223,20 +4556,118 @@ function fnSwapRound(api,T){const [a,b]=pick([[[8,50],[4,25],[12,50],[16,25]],[[
               then:()=>fnVerdict(api,truth,`${a}% of ${b} and ${b}% of ${a} are both ${a} × ${b} ÷ 100. Multiplying in a different order gives the same answer, so this works for <b>any</b> two numbers. ${truth?'':`So neither one is smaller: they are equal. `}Use it to pick the easier side: ${c}% of ${d} = ${d}% of ${c} = ${w}.`,
                 [`${a}% of ${b} = ${a} ÷ 100 × ${b} = ${a} × ${b} ÷ 100 = ${v}`,`${b}% of ${a} = ${b} ÷ 100 × ${a} = ${b} × ${a} ÷ 100 = ${v}`,`Hack: ${c}% of ${d} = ${d}% of ${c} = ${w}`])});
           const ib=k=>inBox('fnSy',k,'Number',3);
-          askBox(api,{id:'fnSy',label:`<b>Step 3: why are they always equal?</b> Both came out as ${v}, but that is just one example. Write each side as one multiplication:`,
-            html:`<div style="display:grid;gap:6px;font:700 1.05rem var(--body)"><div>${a}% of ${b} = ${a} ÷ 100 × ${b} = <b>${a} × ${b} ÷ 100</b></div><div>${b}% of ${a} = ${b} ÷ 100 × ${a} = ${ib('x')} × ${ib('y')} ÷ 100</div></div>`,
+          askBox(api,{id:'fnSy',label:`<b>Step 3: why are they always equal?</b> Both came out as ${v}, but that is just one example. Percent means "out of 100", so write each side as one fraction:`,
+            html:`<div class="fnfrw"><div>${a}% of ${b} = ${fnFr(a,100)} × ${b} = ${fnFr(`<b>${a} × ${b}</b>`,100)}</div><div>${b}% of ${a} = ${fnFr(b,100)} × ${a} = ${fnFr(`${ib('x')} × ${ib('y')}`,100)}</div></div>`,
             hint:`${b}% means ${b} ÷ 100. So ${b}% of ${a} = ${b} ÷ 100 × ${a}. Which two numbers are multiplied?`,
             judge:o=>(o.x===b&&o.y===a)||(o.x===a&&o.y===b),
-            onRight:()=>{api.body.insertAdjacentHTML('beforeend',`<p class="askok">Yes! Both sides multiply <b>${a}</b> and <b>${b}</b>, then divide by 100. ${a} × ${b} = ${b} × ${a}, so the answers are always equal, whatever the numbers.</p>`);step4()},
+            onRight:()=>{api.body.insertAdjacentHTML('beforeend',`<p class="askok">Yes! Both sides are ${fnFr(`${a} × ${b}`,100)}: they multiply <b>${a}</b> and <b>${b}</b>, then divide by 100. ${a} × ${b} = ${b} × ${a}, so the answers are always equal, whatever the numbers.</p>`);step4()},
             onWrong:()=>{ctx.keep.pen=1;api.body.insertAdjacentHTML('beforeend',`<p class="retrymsg">${b}% of ${a} = ${b} × ${a} ÷ 100. Both sides multiply the same two numbers, ${a} and ${b}, so they are always equal.</p>`);step4()}});
 }})};
     $('fnSw').querySelectorAll('button').forEach(x=>x.onclick=()=>{if(api.answered||x.disabled)return;sfx.pop();go(x.dataset.v)});if(ctx.keep.sw)go(ctx.keep.sw)})}
 
-const FNTYPES=['swap','back','pts','addDown','units','rev','trueish','mix'];
+/* ===== More claim types (20 Nov), with Singapore contexts from real news ===== */
+/* a "count it" lab: rows of dots (people, or $1 coins) */
+const fnDots=(rows,cap)=>`<div class="fnlab"><h4>🔬 Test lab: ${cap}</h4>${rows.map(([lab,id,N])=>`<div class="fnurow"><b>${lab}</b><div class="fnppl" id="${id}">${Array(N).fill('<i></i>').join('')}</div></div>`).join('')}</div>`;
+const fnFill=(id,k,from)=>[...$(id).children].forEach((x,i)=>{if(i<k)setTimeout(()=>{x.className=i>=from?'ex':'on'},i*30)});
+/* simple one-step % increase: a hawker plate goes up by some cents (Core) */
+function fnSimpleRound(api,T){const rep=pick(FNREP),[old,inc]=pick([[4,.5],[5,.5],[2.5,.5],[4,1],[3.5,.7],[1.6,.2]]),parts=Math.round(old/inc),pc=fnR2(100/parts),truth=Math.random()<.4,cents=Math.round(inc*100);
+  const [em,dish]=pick([['🍗','chicken rice'],['🍜','fishball noodles'],['🧋','bubble tea'],['☕','kopi']]),claim=truth?`up ${pc}%`:`up ${cents}%`;
+  api.q(fnScene(rep,`${em} ${dish[0].toUpperCase()+dish.slice(1)} goes from ${fn$(old)} to ${fn$(old+inc)}. "That's ${cents} cents more, so the price is ${claim}!"`,'Real news: hawker food prices rose 6.1% in 2023, the most since 2008.')+`<p class="qt">📰 <b>${rep[0]}</b> is at the hawker centre. Is the headline TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: the price bar</h4><div class="fnsale" id="fnSb">${Array(parts).fill(0).map(()=>'<i class="paid">?</i>').join('')}<i class="lit" style="flex:1">+${fn$(inc)}</i></div><div class="fnbrace"><span style="flex:${parts}">old price ${fn$(old)} = 100%</span><span style="flex:1;color:#c2410c">rise</span></div></div>`);
+    askOne(api,{id:'fnI1',label:`<b>Step 2:</b> the old price ${fn$(old)} is made of how many pieces of ${fn$(inc)}?`,w:4,right:parts,hint:`${fn$(old)} ÷ ${fn$(inc)}`,
+      then:()=>{[...$('fnSb').children].forEach((x,i)=>{if(i<parts)x.textContent=fn$(inc)});
+        askOne(api,{id:'fnI2',label:`<b>Step 3:</b> the rise is <b>1 piece</b> out of the ${parts} pieces in the old price. As a percentage of the old price, that is`,w:5,unit:'%',right:pc,traps:[[cents,`${cents} is the number of <b>cents</b>, not a percentage. Compare the rise with the old price: 1 out of ${parts}.`]],hint:`1 ÷ ${parts} × 100%`,
+          then:()=>fnVerdict(api,truth,`The rise is ${fn$(inc)} out of an old price of ${fn$(old)}: 1 piece out of ${parts}, which is <b>${pc}%</b>. "${cents} cents" is an amount of money, not a percentage.`,[`${fn$(inc)} ÷ ${fn$(old)} × 100% = ${pc}%`])})}})})}
+/* GST rate 8% → 9%: how much more GST do you pay? (Stretch) */
+function fnGstRound(api,T){const rep=pick(FNREP),B=pick([100,200,300,400]),g8=B*.08,g9=B*.09,d=fnR2(g9-g8),r=12.5,truth=Math.random()<.35;
+  api.q(fnScene(rep,`🧾 GST went from 8% to 9% on 1 Jan 2024. "So the GST you pay went up by ${truth?'12.5%':'just 1%'}!"`,`A family's ${fn$(B)} shopping, before GST.`)+`<p class="qt">📰 <b>${rep[0]}</b> has a story about GST. Is it TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',fnDots([['GST at 8%','fnGa',9],['GST at 9%','fnGb',9]],`GST on ${fn$(B)} (each dot = ${fn$(B/100)})`));
+    askOne(api,{id:'fnG8',label:`<b>Step 2:</b> GST at 8% on ${fn$(B)} =`,pre:'<span class="askunit">$</span>',w:5,right:g8,hint:`8 ÷ 100 × ${B}`,
+      then:()=>{fnFill('fnGa',8,9);askOne(api,{id:'fnG9',label:`<b>Step 3:</b> GST at 9% on ${fn$(B)} =`,pre:'<span class="askunit">$</span>',w:5,right:g9,hint:`9 ÷ 100 × ${B}`,
+        then:()=>{fnFill('fnGb',9,8);askOne(api,{id:'fnGc',label:`<b>Step 4:</b> the GST went up by ${fn$(d)}. Compared with the old GST (${fn$(g8)}), how many percent more is that?`,w:5,unit:'% more',right:r,traps:[[1,`1 is how much the GST <b>rate</b> changed (9% − 8%). Compare the extra ${fn$(d)} with the old GST of ${fn$(g8)}.`]],hint:`${fn$(d)} ÷ ${fn$(g8)} × 100%`,
+          then:()=>fnVerdict(api,truth,`The rate went up from 8% to 9%, but the GST you pay went from ${fn$(g8)} to ${fn$(g9)}: 1 extra dot for every 8, which is <b>12.5% more</b> GST. "1%" just subtracts the two rates.`,[`8% of ${fn$(B)} = ${fn$(g8)}, 9% of ${fn$(B)} = ${fn$(g9)}`,`${fn$(d)} ÷ ${fn$(g8)} × 100% = 12.5% more`])})}})}})})}
+/* order of two changes (Stretch/Challenge): +a then −b vs −b then +a */
+function fnOrderRound(api,T){const rep=pick(FNREP),[a,b]=pick([[[5,10],[10,20],[20,10]],[[5,10],[10,20],[20,10]],[[5,10],[25,20],[15,40]]][T]),S=100,A=fnR2(S*(1+a/100)*(1-b/100)),truth=Math.random()<.6,ch=fnR2(100-A);
+  const head=truth?`🔁 "Price up ${a}% then down ${b}% gives the SAME as down ${b}% then up ${a}%."`:`🔁 "Price up ${a}% then down ${b}%: that's exactly ${b-a}% down overall."`;
+  api.q(fnScene(rep,head,'Two shops change prices in a different order.')+`<p class="qt">📰 <b>${rep[0]}</b> compares two shops. Is it TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: two shops, start at $100</h4><div class="fncal"><div id="fnOa"><small>Shop A: +${a}% then −${b}%</small><span>?</span></div><div id="fnOb"><small>Shop B: −${b}% then +${a}%</small><span>?</span></div></div></div>`);
+    const show=(i,x)=>{const k=$(i);k.querySelector('span').textContent=fn$(x);k.classList.add('flip')};
+    askOne(api,{id:'fnO1',label:`<b>Step 2:</b> Shop A. $100 → up ${a}% → down ${b}%. Final price =`,pre:'<span class="askunit">$</span>',w:6,right:A,traps:[[100+a-b,`That adds and subtracts the percentages. The ${b}% comes off the <b>new</b> price, ${fn$(100+a)}.`]],hint:`$100 × ${fnR2(1+a/100)} × ${fnR2(1-b/100)}`,
+      then:()=>{show('fnOa',A);askOne(api,{id:'fnO2',label:`<b>Step 3:</b> Shop B. $100 → down ${b}% → up ${a}%. Final price =`,pre:'<span class="askunit">$</span>',w:6,right:A,hint:`$100 × ${fnR2(1-b/100)} × ${fnR2(1+a/100)}`,
+        then:()=>{show('fnOb',A);fnVerdict(api,truth,`Both shops end at ${fn$(A)}: each change <b>multiplies</b> the price (× ${fnR2(1+a/100)} and × ${fnR2(1-b/100)}), and multiplying in a different order gives the same answer. So the order doesn't matter, but the overall change is ${ch}% down, not ${b-a}%.`,[`A: 100 × ${fnR2(1+a/100)} × ${fnR2(1-b/100)} = ${A}`,`B: 100 × ${fnR2(1-b/100)} × ${fnR2(1+a/100)} = ${A}`])}})}})})}
+/* ratio → percent: "boys : girls = 1 : 4, so 25% are boys" (Stretch/Challenge) */
+function fnRatioRound(api,T){const rep=pick(FNREP),[a,b]=pick([[1,4],[3,5],[1,1],[3,2],[1,4]]),pc=fnR2(a/(a+b)*100),wrong=fnR2(a/b*100),truth=Math.random()<.35;
+  const [grp,x,y]=pick([['the choir','boys','girls'],['the robotics club','Sec 1s','Sec 2s'],['the badminton CCA','boys','girls']]);
+  api.q(fnScene(rep,`📊 In ${grp}, ${x} : ${y} = ${a} : ${b}. "So ${truth?pc:wrong}% of ${grp} are ${x}!"`,'Our reporter turned a ratio into a percentage.')+`<p class="qt">📰 <b>${rep[0]}</b> is writing about ${grp}. Is the headline TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: unit bars</h4><div class="fnurow"><b>${x}</b><div class="fnu a">${Array(a).fill('<i>1 u</i>').join('')}</div></div><div class="fnurow"><b>${y}</b><div class="fnu b">${Array(b).fill('<i>1 u</i>').join('')}</div></div></div>`);
+    askOne(api,{id:'fnRa1',label:`<b>Step 2:</b> the whole of ${grp} is how many units?`,w:4,unit:'units',right:a+b,traps:[[b,`That's just the ${y}. The whole group is ${x} <b>and</b> ${y}.`]],hint:`${a} + ${b}`,
+      then:()=>askOne(api,{id:'fnRa2',label:`<b>Step 3:</b> ${x} are ${a} out of ${a+b} units. As a percentage of the whole group, that is`,w:5,unit:'%',right:pc,traps:[[wrong,`That compares ${x} with ${y}. "% of ${grp}" compares ${x} with the <b>whole group</b>: ${a} out of ${a+b}.`]],hint:`${a} ÷ ${a+b} × 100%`,
+        then:()=>fnVerdict(api,truth,`${x} : ${y} = ${a} : ${b} means ${a} units of ${x} for every ${b} units of ${y}, so the whole group is ${a+b} units. ${x[0].toUpperCase()+x.slice(1)} are ${a} out of ${a+b} = <b>${pc}%</b>. ${a} ÷ ${b} compares ${x} with ${y}, not with everyone.`,[`Whole group = ${a} + ${b} = ${a+b} units`,`${a} ÷ ${a+b} × 100% = ${pc}%`])})})})}
+/* "40% boys, 60% girls → 20% more girls than boys" vs "girls outnumber boys by 20% of the class" (Challenge) */
+function fnGirlsRound(api,T){const rep=pick(FNREP),[pb,pg]=pick([[40,60],[25,75],[20,80]]),N=20,nb=pb*N/100,ng=pg*N/100,d=ng-nb,r=fnR2(d/nb*100),gap=pg-pb,v=pick(['wrong','right','class']);
+  const claim=v==='wrong'?`So there are ${gap}% more girls than boys!`:v==='right'?`So there are ${r}% more girls than boys!`:`So girls outnumber boys by ${gap}% of the class!`,truth=v!=='wrong';
+  api.q(fnScene(rep,`👫 Class 1G: ${pb}% boys, ${pg}% girls. "${claim}"`,'Class 1G has 20 students.')+`<p class="qt">📰 <b>${rep[0]}</b> brings class data. Read the claim carefully. TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',fnDots([['Boys','fnBa',N],['Girls','fnBb',N]],'count Class 1G (20 students)'));
+    askOne(api,{id:'fnBy1',label:`<b>Step 2:</b> ${pb}% of 20 students are boys. How many boys?`,w:4,right:nb,hint:`${pb} ÷ 100 × 20`,then:()=>{fnFill('fnBa',nb,N);
+      askOne(api,{id:'fnBy2',label:`<b>Step 3:</b> how many girls?`,w:4,right:ng,hint:`${pg} ÷ 100 × 20`,then:()=>{fnFill('fnBb',ng,nb);
+        askOne(api,{id:'fnBy3',label:`<b>Step 4:</b> there are ${d} more girls than boys. Compared with the <b>${nb} boys</b>, how many percent more is that?`,w:5,unit:'% more',right:r,traps:[[gap,`${gap}% is the gap as a share of the <b>whole class</b> (${d} out of 20). "More than boys" compares with the ${nb} boys.`]],hint:`${d} ÷ ${nb} × 100%`,
+          then:()=>fnVerdict(api,truth,`There are ${d} more girls. Compared with the ${nb} boys, that is <b>${r}% more</b> girls than boys. Compared with the whole class of 20, the gap is ${gap}% of the class. Both are true facts, but they compare with different amounts, so "${gap}% more girls than boys" is wrong.`,[`Boys ${nb}, girls ${ng}, gap ${d}`,`${d} ÷ ${nb} × 100% = ${r}% more than boys`,`${d} ÷ 20 × 100% = ${gap}% of the class`])})}})}})})}
+/* percentage of a percentage (Challenge) */
+function fnPofPRound(api,T){const rep=pick(FNREP),[p,f,fn,N]=pick([[40,.5,'half',20],[60,.5,'half',20],[80,.25,'a quarter',20],[50,.25,'a quarter',40]]),c=p*N/100,h=c*f,pc=fnR2(h/N*100),wrongP=fnR2(f*100),truth=Math.random()<.35;
+  api.q(fnScene(rep,`🚲 ${p}% of Class 1C cycle to school, and ${fn} of the cyclists wear a helmet. "So ${truth?pc:wrongP}% of the class wear a helmet!"`,`Class 1C has ${N} students.`)+`<p class="qt">📰 <b>${rep[0]}</b> has a road safety story. TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',fnDots([['Class 1C','fnHa',N]],`count Class 1C (${N} students)`));
+    askOne(api,{id:'fnH1',label:`<b>Step 2:</b> ${p}% of ${N} students cycle. How many cyclists?`,w:4,right:c,hint:`${p} ÷ 100 × ${N}`,then:()=>{fnFill('fnHa',c,N);
+      askOne(api,{id:'fnH2',label:`<b>Step 3:</b> ${fn} of the ${c} cyclists wear a helmet. How many students?`,w:4,right:h,traps:[[N*f,`That's ${fn} of the whole <b>class</b>. It's ${fn} of the <b>cyclists</b>.`]],hint:`${c} × ${f}`,then:()=>{fnFill('fnHa',h,0);
+        askOne(api,{id:'fnH3',label:`<b>Step 4:</b> ${h} out of ${N} students wear a helmet. As a percentage of the class, that is`,w:5,unit:'%',right:pc,traps:[[wrongP,`${wrongP}% is the share of the <b>cyclists</b>. As a share of the whole class: ${h} out of ${N}.`]],hint:`${h} ÷ ${N} × 100%`,
+          then:()=>fnVerdict(api,truth,`${fn[0].toUpperCase()+fn.slice(1)} of the cyclists is ${fn} of ${p}% of the class: ${f} × ${p}% = <b>${pc}%</b> of the class, not ${wrongP}%.`,[`Cyclists: ${p}% of ${N} = ${c}`,`Helmets: ${fn} of ${c} = ${h}`,`${h} ÷ ${N} × 100% = ${pc}%`])})}})}})})}
+/* find the flaw: classic fallacies as news stories (Challenge) */
+const FNFLAW=[{head:'💸 MYSTERY: a dollar vanishes at the zi char stall!',lines:['Three friends pay $10 each for dinner: $30.','The bill is only $25, so the cashier gives the waiter $5 to return.','The waiter gives each friend $1 back and keeps $2.','So each friend paid $9, and 3 × $9 = $27.','$27 + the waiter\'s $2 = $29. One dollar has vanished!'],bad:4,
+   why:'The $27 the friends paid <b>already includes</b> the waiter\'s $2 ($25 bill + $2). Adding the $2 again counts it twice. The right check is $27 paid + $3 returned = $30.',q:['The $27 the friends paid = $25 bill + $__ kept by the waiter',2]},
+  {head:'💍 Shopper gets a $200 ring for $100, and says it is fair!',lines:['Mei buys a ring for $100.','The next day she swaps it for a $200 ring.','The jeweller asks her to pay $100 more.','Mei: "I paid you $100 yesterday, and I just gave you back a $100 ring. That makes $200, so I owe nothing!"'],bad:3,
+   why:'The $100 ring she gave back was <b>bought with</b> the $100 she paid. It is the same $100 counted twice. The jeweller has only received $100 for a $200 ring.',q:['How much more must Mei pay?',100]},
+  {head:'📚 MYSTERY: a dollar disappears when two bookmark stalls join up!',lines:['Stall A sells bookmarks at 2 for $1. Stall B sells them at 3 for $1.','Each stall has 30 bookmarks. Apart, A earns $15 and B earns $10: $25 in total.','They join up. "2 for $1 plus 3 for $1 is the same as 5 for $2," they say.','60 bookmarks make 12 bundles of 5, so they earn 12 × $2 = $24.','A dollar has disappeared!'],bad:2,
+   why:'"5 for $2" is <b>not</b> the same deal. It would only match if the stalls sold their bookmarks in a 2 : 3 mix, but they have 30 each. At 5 for $2, every bookmark sells for 40 cents, but Stall A\'s really sold for 50 cents. Nothing disappeared: the joint price was just lower.',q:['At 5 for $2, how many cents is each bookmark?',40]}];
+function fnFlawRound(api,T){const rep=pick(FNREP),F=pick(FNFLAW);
+  api.q(fnScene(rep,F.head,'A story is going round. Something in it is wrong.')+`<p class="qt">📰 <b>${rep[0]}</b> brings a puzzling story. Is the headline TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: check the story, line by line</h4><ol class="fnstory">${F.lines.map(l=>`<li>${l}</li>`).join('')}</ol></div>`);
+    const L=F.lines.map((l,i)=>`Line ${i+1}`);
+    stepPick(api,{id:'fnFl',keepOrder:true,label:'<b>Step 2:</b> which line has the mistake?',options:L,right:L[F.bad],pen:'fnFq',hint:()=>'Check each line with the numbers. Which one adds or counts something that is already counted?',
+      reveal:()=>`The mistake is in line ${F.bad+1}. Tap it to carry on.`,okMsg:`<p class="askok">Yes, line ${F.bad+1}. ${F.why}</p>`,
+      then:()=>askOne(api,{id:'fnFq',label:`<b>Step 3:</b> ${F.q[0]}`,w:5,right:F.q[1],hint:'Use the numbers from the story.',
+        then:()=>fnVerdict(api,false,F.why,F.lines.map((l,i)=>i===F.bad?`❌ ${l}`:l))})})})}
+
+/* each game draws 8 claims from its level's pool (no repeats): Core = one-step claims with full scaffolding;
+   Stretch = two-step changes, reverse %, real SG data; Challenge = ratio, compound and "find the flaw" claims */
+const FNPOOL=[{first:'swap',rest:['simple','back','pts','rev','over','slow','ratio','simple']},
+  {first:'back',rest:['add','down2','pts','units','rev','fare','gst','order','ratio','slow']},
+  {first:'units',rest:['rev','fare','gst','order','ratio','girls','svc','pofp','flaw','double','true25']}];
+const FNH={swap:['"Percent" means "out of 100". a% of b = a ÷ 100 × b.','Work out the easier side.','Write each side as one multiplication.'],
+ simple:['How many pieces of the rise fit into the old price?','The rise is 1 of those pieces.','1 ÷ number of pieces × 100%.'],
+ back:['Each machine works on the price that comes IN.','The second % is taken of a different (bigger) amount.','Compare the final price with the start.'],
+ add:['Each machine works on the price that comes IN.','The second % is taken of the new, bigger price.','Compare the final price with the start.'],
+ down2:['The second discount comes off the SALE price.','Run the price through each machine.','Compare the final price with the start.'],
+ fare:['The 7% is taken of the 2025 fare, not the 2024 fare.','Run $100 through both machines.','Compare the final amount with $100.'],
+ slow:['A smaller increase is still an increase.','Run the price through both machines.','Is the final price higher or lower than the start?'],
+ svc:['GST is charged on the food AND the service charge.','Run $100 through both machines.','Compare the final bill with $100.'],
+ pts:['Turn each percentage into a number of students first.','Find how many more (or fewer) students there are now.','Compare that with the number LAST term.'],
+ gst:['Work out the GST in dollars at 8% and at 9%.','Find how much more GST that is.','Compare the extra with the OLD GST.'],
+ units:['Draw A with its units. p% more means add p% of A\'s units.','"Less than B" compares the gap with B, not A.','Gap ÷ B\'s units × 100%.'],
+ rev:['The % off was taken from the ORIGINAL price, not the sale price.','The sale price is (100 − discount)% of the original.','Find 1 part (or 1%), then multiply up to 100%.'],
+ order:['Each change multiplies the price.','Run $100 through each shop.','Does the order of multiplying change the answer?'],
+ ratio:['A ratio compares the two groups. A percentage of the group compares with EVERYONE.','Add the units to get the whole group.','Part ÷ whole × 100%.'],
+ girls:['Work out how many boys and girls.','"More than boys" compares the gap with the boys.','"Of the class" compares the gap with everyone.'],
+ pofp:['Find the number of cyclists first.','Then take the fraction of the cyclists, not of the class.','Compare with the whole class.'],
+ flaw:['Check each line with the numbers.','Look for something counted twice.','Which line adds two amounts that overlap?'],
+ over:['Up 100% means double. Up 200% means old + 2 × old.','Increases can be more than 100%.','How many times the old price is the new price?'],
+ double:['Multiply the two changes: × 1.5 × 1.5…','Doubling is × 2.','Compare your answer with 2.'],
+ true25:['Run the price through each machine.','Up 25% is × 1.25. Down 20% is × 0.8.','1.25 × 0.8 = ?']};
 addGame('s1-news',{level:'Sec 1',sec:'s1',strand:'num',glyph:'📰',music:'news',title:'Fake News Desk',topic:'Percentage change and reverse percentage',
- how:'Reporters rush in with percentage headlines. Stamp each one TRUE or FAKE, investigate with hands-on tools, then publish or fix your call. Keep your readers\' trust!',rounds:8,
- round(api,r){const T=TIER();let t=FNTYPES[r];
-  if(t==='mix')t=pick(['back','addDown','pts','units','rev','trueish']);
+ how:'Reporters rush in with percentage headlines, many from real Singapore news. Stamp each one TRUE or FAKE, investigate with hands-on tools, then publish or fix your call. Core: one-step claims. Stretch: two-step changes and reverse percentage. Challenge: ratios, compound changes and spot-the-flaw stories.',rounds:8,
+ round(api,r){const T=TIER();if(r===0||!ctx.fnPlan){const P=FNPOOL[T];ctx.fnPlan=[P.first,...shuffle([...new Set(P.rest)]).slice(0,7)];while(ctx.fnPlan.length<8)ctx.fnPlan.push(pick(P.rest))}
+  let t=ctx.fnPlan[r];try{(QHINTS['s1-news']=QHINTS['s1-news']||[])[r]=FNH[t]||FNHINTS[0]}catch(e){}
+  if(t==='simple')return fnSimpleRound(api,T);if(t==='gst')return fnGstRound(api,T);if(t==='order')return fnOrderRound(api,T);if(t==='ratio')return fnRatioRound(api,T);
+  if(t==='girls')return fnGirlsRound(api,T);if(t==='pofp')return fnPofPRound(api,T);if(t==='flaw')return fnFlawRound(api,T);
+  if(['back','add','down2','fare','slow','svc','over','double','true25'].includes(t))return fnChainRound(api,T,t);
   if(t==='swap')return fnSwapRound(api,T);if(t==='pts')return fnPtsRound(api,T);if(t==='units')return fnUnitsRound(api,T);if(t==='rev')return fnRevRound(api,T);
   if(t==='back')return fnChainRound(api,T,'back');if(t==='addDown')return fnChainRound(api,T,pick(['add','down2']));
   return fnChainRound(api,T,pick(['true25','double','over']))},
@@ -4924,10 +5355,10 @@ const HOWTO={
 'p6-chain':{steps:['The figure is made of squares, rectangles, rhombuses or parallelograms joined to triangles.','First find angle <b>y</b>, then use it to find angle <b>x</b>.','Look for equal sides (isosceles triangles), parallel lines and straight lines (180°).','Type each answer. The figure is not drawn to scale, so do not measure it.'],eg:'In a rhombus the opposite angles are equal, and the angles next to each other add up to 180°.'},
 'p6-average':{steps:['Towers of blocks show how many each child has.','Tap a tower to pick up its top block, then tap another tower to drop it there.','Move blocks until all the towers are the same height. That height is the <b>average</b>.','Other rounds: average = total ÷ number of items, and total = average × number of items.'],eg:'Towers of 2, 5 and 5 → total 12 → 12 ÷ 3 = 4 each.'},
 'p4-diner':{steps:['Read the order ticket. Each order uses decimals.','For adding and subtracting, first choose the layout with the <b>decimal points lined up</b> (not the last digits).','Fill empty places with 0 (3.5 → 3.50, 5 → 5.00), then work out the answer and press Check.','For × and ÷, think in tenths or hundredths first (0.4 = 4 tenths), then change back.','Wrong the first time? Qubi tells you what went wrong so you can fix it.'],eg:'3.5 + 1.25 → 3.50 + 1.25 = 4.75 (not 1.60).'},
-'s1-bouncer':{steps:['You are the bouncer at the <b>PRIMES ONLY</b> club. A prime number is a whole number <b>greater than 1</b> with <b>exactly two different factors</b>: 1 and itself.','A guest steps forward and hands its card to Qubi. The card shows its name: a number.','Tap <b>Let in</b> for a prime number, or <b>Turn away</b> for any other number.','Get it wrong and the manager scolds you, and another guest comes forward. A round is only complete when you get it right.','<b>Medium (Stretch):</b> each guest has a ⏳ <b>patience bar</b>. Decide quickly for +2 bonus points. Watch their faces get crosser: if the bar runs out, they storm off, Qubi gets told off, and you must serve another guest. <b>Challenge:</b> guests come in <b>groups of 3</b>, with tricky guests like 0 and negative numbers. Tap every prime, then press Done.','Stuck? Tap <b>💡 Hint</b> (up to 3). Score 80% or more in Solo to unlock a secret round!'],eg:'91 is odd and ends in 1, but 91 = 7 × 13, so turn it away. 97: test 2, 3, 5 and 7 (11 × 11 = 121 is too big). None divide it, so let it in.'},
-'s1-split':{steps:['Composite numbers can only enter Club Prime by splitting into their <b>prime members</b>.','Tap a blue member to split it into two factors. Keep going until every member is prime (gold ✨).','Then write the number as a product of primes in <b>index notation</b>, e.g. 60 = 2² × 3 × 5.','Watch out: 1 is not prime, and 2³ means 2 × 2 × 2, not 2 × 3.','Score 80% or more in Solo to meet the Mastermind in the VIP room!'],eg:'60 = 6 × 10 = (2 × 3) × (2 × 5) = 2² × 3 × 5. Any first split gives the same primes.'},
+'s1-bouncer':{steps:['You are the bouncer at the <b>PRIMES ONLY</b> club. A prime number is a whole number <b>greater than 1</b> with <b>exactly two different factors</b>: 1 and itself.','<b>Then prove it to Qubi.</b> A guest who stays out: tap the test that busts it (for example ÷ 3, or "less than 2"). A prime guest: tap the division tests you need, then press <b>Enough checks</b>. You can stop once a prime times itself is bigger than the number.','A guest steps forward and hands its card to Qubi. The card shows its name: a number.','Tap <b>Let in</b> for a prime number, or <b>Turn away</b> for any other number.','Get it wrong and the manager scolds you, and another guest comes forward. A round is only complete when you get it right.','<b>Medium (Stretch):</b> each guest has a ⏳ <b>patience bar</b>. Decide quickly for +2 bonus points. Watch their faces get crosser: if the bar runs out, they storm off, Qubi gets told off, and you must serve another guest. <b>Challenge:</b> guests come in <b>groups of 3</b>, with tricky guests like 0 and negative numbers. Tap every prime, then press Done.','Stuck? Tap <b>💡 Hint</b> (up to 3). Score 80% or more in Solo to unlock a secret round!'],eg:'91 is odd and ends in 1, but 91 = 7 × 13, so turn it away. 97: test 2, 3, 5 and 7 (11 × 11 = 121 is too big). None divide it, so let it in.'},
+'s1-split':{steps:['Composite numbers can only enter Club Prime by splitting into their <b>prime members</b>.','Tap a blue member to split it into two factors. Keep going until every member is prime (gold ✨).','Then write the number as a product of primes in <b>index notation</b>, e.g. 60 = 2² × 3 × 5.','Watch out: 1 is not prime, and 2³ means 2 × 2 × 2, not 2 × 3.','Score 80% or more in Solo to meet the Mastermind in the VIP room!','<b>Stretch:</b> also the <b>ladder</b> method: divide by primes again and again until you reach 1.','<b>Challenge:</b> the <b>VIP Squares room</b>. Group identical primes in pairs for square roots, or in threes for cube roots. Leftover primes tell you the smallest number to multiply by to make a perfect square or cube.'],eg:'60 = 6 × 10 = (2 × 3) × (2 × 5) = 2² × 3 × 5. Any first split gives the same primes.'},
 's1-news':{steps:['You work at the news desk of <b>The Daily Percent</b>. Reporters rush in with percentage headlines.','<b>Step 1:</b> stamp the story <b>TRUE</b> or <b>FAKE</b> on a gut feeling.','<b>Then investigate</b> in the test lab: run prices through machines, build unit bars, read the sale bar or the chart.','If your evidence agrees with your stamp, the story is published. If not, restamp it (fewer points).','Good calls raise your <b>reader trust</b>. Wrong calls make readers angry!'],eg:'"Up 20% then down 20%: back to the start!" Test $100: $100 → $120 → $96. FAKE: the 20% off comes from the bigger price.'},
-'s1-tables':{steps:['Two teams share a party table. Each team is a number, written as a product of primes.','Pair up the primes both teams have: tap one in each team to put them on a <b>shared seat</b>. The game then lines them up in columns.','<b>HCF</b> = one prime from each <b>shared</b> column, multiplied. <b>LCM</b> = one prime from <b>every</b> column, multiplied.','In index notation: HCF uses shared primes with the <b>lowest</b> powers; LCM uses every prime with the <b>highest</b> powers.','Party problems: equal groups with nothing left over → HCF. Things repeating until they line up again → LCM.'],eg:'60 = 2 × 2 × 3 × 5 and 72 = 2 × 2 × 2 × 3 × 3. Shared columns: 2, 2, 3 → HCF = 12. Every column: 2 × 2 × 2 × 3 × 3 × 5 → LCM = 360.'},
+'s1-tables':{steps:['Help Qubi plan the Club Prime party.','<b>Party bags (HCF):</b> try different numbers of bags. Every bag gets the same, with nothing left over. The <b>most</b> bags is the <b>highest common factor</b>: it goes into both numbers.','<b>Shopping (LCM):</b> buy packs until you have the same number of each. The <b>first</b> match is the <b>lowest common multiple</b>: both numbers go into it.','<b>Stretch and Challenge:</b> build the HCF and LCM from prime members. The checks show why: the HCF can only use primes both numbers share; the LCM needs every prime, but a shared one only once.','<b>Party problems:</b> first decide, HCF or LCM? Sharing out equally → HCF. Repeating things lining up again → LCM.'],eg:'18 sweets and 24 stickers: 6 bags works with nothing left (3 sweets and 4 stickers each). No bigger number of bags works, so HCF = 6.'},
 's1-integers':{steps:['On the number line, numbers get bigger to the right. So −8 is smaller than −3.','Adding a negative moves left. Subtracting a negative is the same as adding: 5 − (−3) = 5 + 3.','Multiplying or dividing: same signs give a positive answer, different signs give a negative answer.','−3² means −(3²) = −9. Only (−3)² equals 9.','On a phone, tap the ± button to make your answer negative.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'−2 − 3 = −5, but (−2) × (−3) = 6.'},
 's1-estimate':{steps:['Decimal places: count digits after the decimal point. The next digit decides: 5 or more rounds up.','Significant figures: start counting at the first non-zero digit. Zeros in front never count.','Keep the place value: 34 567 to 2 significant figures is 35 000, not 35.','A zero at the end can matter: 2.996 to 3 significant figures is 3.00.','To estimate, round every number to 1 significant figure first, then calculate.','Core, Stretch and Challenge use the same skills with harder numbers.'],eg:'48.7 × 5.12 ≈ 50 × 5 = 250.'},
 'sg-journeys':{steps:['Watch the journey on the map. The train moves along the route, and the time for each part pops up underneath.','Add up the minutes for <b>every</b> part, including the walk when you change lines.','Count on from the start time to find when you arrive, or count back to find when to board.','Easy: one MRT line. Hard: changing lines, walking, and planning when to leave.'],eg:'Bishan → Braddell 2 min, → Toa Payoh 2 min, → Novena 3 min: 2 + 2 + 3 = 7 min.'},
@@ -5979,10 +6410,10 @@ const OTHER={P5:[{title:'I Want to Be a Millionaire',glyph:'$',strand:'num',topi
   {title:'Percentage Lab',glyph:'%',strand:'num',topic:'Percentage',d:'Hundred square, bar models, discount and GST, pie chart games.',url:'percentage-lab.html'}],P6:[]};
 /* Card blurbs: one short, plain line per game (what you DO in it). */
 const CARD={'p4-diner':'Cook up orders by adding, subtracting, multiplying and dividing decimals.','p4-train':'Read a train board in 24-hour time. How long is each trip?','sg-journeys':'Ride the MRT. Work out how long trips take and when you arrive.','sg-journeys-2':'Plan bus and MRT trips. Read timetables and beat the delays.','world-journeys':'Travel the world by tram, bullet train and cable car: speed, distance, time.','p4-compass':'Follow compass directions and turns to find the treasure.','p5-pizza':'Add and take away fractions with pizza slices.','p5-pshop':'Shop with percentages: discounts, GST and interest.','p6-pie':'Read the bakery’s pie charts using % and angles.','party-team':'Class teams race on their own devices. Great for the whole class!','party-tug':'Two players, one rope. Answer fast to pull it your way.','party-bingo':'Bingo with maths clues. Play solo, vs Robo or as a class.','party-wall':'Race to fill fraction walls with bricks that fit.','p6-quest':'PSLE practice: MCQs, short answers and boss battles, then a report card.','p4-rounding':'Land the rocket, then round to the nearest 10, 100 or 1000.','p4-factors':'Catch the jungle animals holding factors and multiples.','p4-product':'Arrange digit cards to make the biggest or smallest product.','p4-flip':'Memory game: match improper fractions, mixed numbers and pizzas.','p4-share':'Share a jar of sweets to find a fraction of a set.','p4-target':'Pick two fractions that add or subtract to hit the target.','p4-decimals':'Put tricky decimals like 0.7, 0.07 and 0.707 in order.','p4-cashier':'Add up canteen orders and give the right change.','p4-garden':'Build gardens on a grid with the right area and perimeter.','p4-angles':'Aim a cannon by angle to pop hidden balloons.','p4-mirror':'Finish the picture so both sides match the mirror line.','p4-nets':'Will it fold into a cube? Spot the nets.','p4-graphs':'Read line graphs and pie charts like a reporter.','p5-vault':'Crack vault codes with numbers up to 10 million.','p5-order':'Brackets first, then × ÷, then + −. Tap the right step.','p5-slide':'Slide digits to × and ÷ by 10, 100, 1000 and change units.','p5-share':'Share pizzas to see that a ÷ b is the fraction a/b.','p5-fgrid':'Shade a grid to multiply fractions.','p5-rate':'Find the rate, then use it: car parks, postage and more.','p5-tarea':'Find the real height of a triangle, then its area.','p5-volume':'Build cubes and fill tanks: volume and litres.','p5-angles':'Pick the angle fact, then find the missing angle.','p5-triangles':'Sort triangles by sides and angles; find missing angles.','p5-quads':'Guess the mystery four-sided shape from clues.','p6-fdiv':'Scoop and share on bar models to divide fractions.','p6-pchange':'Draw before-and-after bar models for percentage change.','p6-ratio':'Mix drinks to learn ratio and share in a ratio.','p6-algebra':'Balance the scale to find x.','p6-circle':'Trace the edges, pick the formula and work with π.','p6-cuberoot':'Crack crates with cube roots, square roots and volume.','p6-chain':'Find one angle, then the next, in shapes made of pieces.','p6-average':'Level out towers of blocks to see what an average is.',
- 's1-bouncer':'Be the club bouncer: only prime numbers get in!','s1-split':'Split numbers into primes to get them into the club.','s1-tables':'Seat two teams at party tables to find the HCF and LCM.','s1-integers':'Survive below zero: order and calculate with negative numbers.','s1-estimate':'Round to decimal places and significant figures, then estimate.','s1-news':'Run a newsroom: catch fake percentage headlines and prove them wrong.'};
+ 's1-bouncer':'Be the club bouncer: only primes get in, and you must prove it!','s1-split':'Split numbers into primes to get them into the club.','s1-tables':'Pack party bags and buy party packs to find the HCF and LCM.','s1-integers':'Survive below zero: order and calculate with negative numbers.','s1-estimate':'Round to decimal places and significant figures, then estimate.','s1-news':'Run a newsroom: catch fake percentage headlines and prove them wrong.'};
 /* Hidden search tags: other words a pupil (or teacher) might type. Never shown on the card. */
 const TAGS={'p4-diner':'decimal decimals point add subtract multiply divide food cook restaurant','p4-train':'time clock 24 hour hours minutes duration timetable train mrt am pm','sg-journeys':'time duration clock minutes hours mrt train singapore travel journey arrive','sg-journeys-2':'time timetable bus mrt clock minutes duration route delay singapore journey','world-journeys':'speed distance time km/h rate travel train world journey average speed','p4-compass':'compass north south east west direction turn angle map treasure 8-point','p5-pizza':'fraction fractions add subtract mixed number improper common denominator pizza','p5-pshop':'percent percentage % discount gst tax interest sale shop money','p6-pie':'pie chart statistics data graph percent angle sector','party-team':'class team quiz race multiplayer online battle','party-tug':'times tables multiplication facts 2 player multiplayer race','party-bingo':'bingo class multiplayer clues number','party-wall':'fraction equivalent fractions add wall race multiplayer','p6-quest':'psle revision exam test paper mcq booklet all topics practice','p4-rounding':'round rounding nearest 10 100 1000 estimate approximate place value','p4-factors':'factor factors multiple multiples common factor multiplication tables divide','p4-product':'multiply multiplication product digits long multiplication','p4-flip':'fraction mixed number improper fraction memory match','p4-share':'fraction of a set share divide groups sweets','p4-target':'fraction fractions add subtract common denominator','p4-decimals':'decimal decimals order compare place value tenths hundredths','p4-cashier':'money dollars cents change decimal add multiply canteen','p4-garden':'area perimeter rectangle square grid composite figure cm','p4-angles':'angle angles protractor degrees measure estimate draw','p4-mirror':'symmetry symmetric line of symmetry mirror reflection','p4-nets':'nets net cube cuboid prism pyramid 3d solid fold','p4-graphs':'line graph pie chart data statistics read graph','p5-vault':'place value millions large numbers whole numbers digits','p5-order':'order of operations bodmas pemdas brackets','p5-slide':'multiply divide 10 100 1000 place value convert units measurement metric','p5-share':'fraction division divide share','p5-fgrid':'multiply fractions fraction times area model','p5-rate':'rate per unit cost speed price','p5-tarea':'triangle area base height','p5-volume':'volume cube cuboid litres ml capacity tank cm3','p5-angles':'angles straight line point vertically opposite find x unknown angle','p5-triangles':'triangle isosceles equilateral right angled angle sum 180','p5-quads':'quadrilateral parallelogram rhombus trapezium square rectangle shapes','p6-fdiv':'divide fractions fraction division','p6-pchange':'percentage change increase decrease before after whole percent','p6-ratio':'ratio simplify equivalent share proportion','p6-algebra':'algebra equation unknown x solve expression balance letters','p6-circle':'circle area circumference pi radius diameter semicircle quarter','p6-cuberoot':'cube root square root volume cube cuboid edge','p6-chain':'angles quadrilateral triangle composite figure geometry unknown','p6-average':'average mean data statistics total',
- 's1-bouncer':'prime composite primes factors 1 zero number club bouncer','s1-split':'prime factorisation factor tree index notation powers indices primes','s1-tables':'hcf lcm highest common factor lowest common multiple prime factorisation','s1-integers':'negative numbers integers minus below zero temperature number line directed numbers','s1-estimate':'rounding decimal places significant figures sf dp estimate estimation approximate','s1-news':'percent percentage % increase decrease discount gst reverse percentage original price percentage points fake news true false reasoning'};
+ 's1-bouncer':'prime composite primes factors divisibility divide test 1 zero number club bouncer sieve','s1-split':'prime factorisation factor tree index notation powers indices primes','s1-tables':'hcf lcm highest common factor lowest common multiple prime factorisation common factors common multiples bags packs','s1-integers':'negative numbers integers minus below zero temperature number line directed numbers','s1-estimate':'rounding decimal places significant figures sf dp estimate estimation approximate','s1-news':'percent percentage % increase decrease discount gst reverse percentage original price percentage points fake news true false reasoning'};
 /* Visual Lab tags (secondary hub) */
 const LABTAGS={discs:'integers negative numbers zero pairs add subtract counters',gradient:'gradient slope line straight line graph rise run',coords:'coordinates cartesian plane x y axis points graph',parallel:'parallel lines angles corresponding alternate interior',expand:'expand expansion brackets algebra area model',parabola:'quadratic graph parabola curve',trig:'trigonometry sine cosine tangent sin cos tan ratio',circles:'circle theorems angles',vectors:'vectors',matrices:'matrix matrices multiply',unitcircle:'unit circle trigonometry graph',waves:'sine graph wave trigonometry',inequality:'quadratic inequality shade',perp:'perpendicular gradient lines'};
 const OTHERTAGS={'millionaire.html':'percent percentage quiz game show money','percentage-lab.html':'percent percentage hundred square bar model discount gst pie chart'};
@@ -5994,7 +6425,7 @@ const QTEEN=QUBI.replace('<g class="q-hat">','<g class="q-teen"><rect x="0" y="6
 const qmini=(svg,cls,col)=>svg.replace('class="qubi"',`class="qubi idle ${cls}"`).replace(/#ff8a3d/g,col||'#ff8a3d');
 /* the three home pages: start screen, primary hub, secondary hub */
 const isHome=()=>['','start','secondary'].includes(location.hash.slice(1));
-function homeView(quiet){const h=location.hash.slice(1);if(h==='start'||(h===''&&!START_SEEN)){if(quiet&&document.querySelector('.start'))return;startView()}else if(h==='secondary')secView();else hub()}
+function homeView(quiet){const h=location.hash.slice(1);if(h==='start'||(h===''&&!START_SEEN)){if(quiet&&document.querySelector('.start'))return;startView()}else if(h==='secondary'||RETIRED.includes(h))secView();else hub()}
 function startView(){document.body.classList.add('atstart');
   const word=(w,o)=>[...w].map((c,i)=>`<span class="hl" style="--i:${i+o}">${c}</span>`).join('');
   $('view').innerHTML=`<div class="start"><div class="st-top">${qubiBox('stQ','Hi! I\u2019m Qubi. Where shall we go?','wave')}<h1 class="st-title">${word('Maths',0)} <span>${word('Arcade',5)}</span></h1><p class="st-sub">Games that make maths click.</p></div>
@@ -6014,12 +6445,17 @@ const SECLAB=[['discs','s1','±','Zero-Pair Zapper','Integers','Cancel + and −
   ['unitcircle','am','sin','Unit Circle to Graph','Trig functions and equations','See the unit circle unroll into a graph.','geo'],['waves','am','∿','Wave Shaper','Graphs of y = a sin bx + c','Shape the wave with a, b and c.','geo'],['inequality','am','><','Inequality Shader','Quadratic inequalities','Shade where the curve is above or below zero.','num'],['perp','am','⊥','Perpendicular Rotator','Perpendicular lines','Rotate a line 90° and see the gradients multiply to −1.','geo']];
 const SECLV=[['s1','Secondary 1'],['s2','Secondary 2'],['s3','Secondary 3 and 4'],['am','Additional Maths']];
 let secLevel='s1';try{secLevel=localStorage.getItem('arcSecLevel')||'s1'}catch(e){}
-function secView(){const labs=SECLAB.filter(a=>a[1]===secLevel);
+/* Games taken off the site for now (20 Nov): Below Zero and Close Enough? Old links open the secondary page. */
+const RETIRED=['s1-integers','s1-estimate'];
+RETIRED.forEach(id=>{delete GAMES[id];const i=ORDER.indexOf(id);if(i>=0)ORDER.splice(i,1)});
+/* The Visual Lab is hidden while it is rebuilt (20 Nov). Set SHOW_LAB to true to bring it back. */
+const SHOW_LAB=false;
+function secView(){const labs=SHOW_LAB?SECLAB.filter(a=>a[1]===secLevel):[];
   $('view').innerHTML=`<div style="display:grid;gap:22px">
     <div class="hero"><div class="ht"><h1>${[...'Secondary '].map((c,i)=>c===' '?' ':`<span class="hl" style="--i:${i}">${c}</span>`).join('')}<span>${[...'Maths'].map((c,i)=>`<span class="hl" style="--i:${i+10}">${c}</span>`).join('')}</span></h1></div><div class="mbox" id="secQ"><div class="mbubble">${pick(['Pick a level, then dive in.','What are you working on today?'])}</div>${qmini(QTEEN,'teen')}</div></div>
     <div class="levels" role="group" aria-label="Level">${SECLV.map(([k,n])=>`<button aria-pressed="${k===secLevel}" data-l="${k}">${n}</button>`).join('')}<a href="#start" style="margin-left:auto;align-self:center;display:inline-flex;align-items:center;justify-content:center;font:800 15px var(--body);color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:6px 16px;line-height:1.2;white-space:nowrap;text-decoration:none">⇄ Primary / Secondary</a></div>${hubPlayerBar()}
-    <section class="strand" style="--c:var(--teal)"><h2>Games · Number and Algebra</h2>${(()=>{const gs=ORDER.map(id=>[id,GAMES[id]]).filter(([,g])=>g.sec===secLevel);return gs.length?`<div class="cards">${gs.map(([id,g],ci)=>`<a class="gcard" data-kind="game"${tagAttr(TAGS[id])} href="#${id}" style="--c:var(--teal);--i:${ci}"><span class="gl" aria-hidden="true">${g.glyph}</span><span><b>${g.title}</b><small>${g.topic}</small><span class="d">${CARD[id]||g.how}</span></span></a>`).join('')}</div><p style="margin:10px 0 0;color:var(--muted);font-size:.92rem"><b>Three levels in every game:</b> Core, Stretch and Challenge. All three cover the same skills; the numbers get harder. Start with Core and move up when it feels easy.</p>`:`<div class="empty"><b>${SECLV.find(l=>l[0]===secLevel)[1]} games are on the way.</b> Secondary 1 is being built first.</div>`})()}</section>
-    <section class="strand" style="--c:var(--violet)"><h2>Visual Lab · explore, then take the challenge</h2><div class="cards">${labs.map((a,ci)=>`<a class="gcard" data-kind="lab"${tagAttr(LABTAGS[a[0]])} href="secondary.html#${a[0]}" style="--c:var(--${a[6]==='geo'?'tomato':'violet'});--i:${ci}"><span class="gl" aria-hidden="true">${a[2]}</span><span><b>${a[3]}</b><small>${a[4]}</small><span class="d">${a[5]}</span></span></a>`).join('')}</div></section></div>`;
+    <section class="strand" style="--c:var(--teal)"><h2>Games · Number and Algebra</h2>${(()=>{const gs=ORDER.map(id=>[id,GAMES[id]]).filter(([,g])=>g.sec===secLevel);return gs.length?`<div class="cards">${gs.map(([id,g],ci)=>`<a class="gcard" data-kind="game"${tagAttr(TAGS[id])} href="#${id}" style="--c:var(--teal);--i:${ci}"><span class="gl" aria-hidden="true">${g.glyph}</span><span><b>${g.title}</b><small>${g.topic}</small><span class="d">${CARD[id]||g.how}</span></span></a>`).join('')}</div><p style="margin:10px 0 0;color:var(--muted);font-size:.92rem"><b>Three levels in every game:</b> Core, Stretch and Challenge. All three cover the same topic; each level asks for more thinking. Start with Core and move up when it feels easy.</p>`:`<div class="empty"><b>${SECLV.find(l=>l[0]===secLevel)[1]} games are on the way.</b> Secondary 1 is being built first.</div>`})()}</section>
+    ${labs.length?'':'<!--'}<section class="strand" style="--c:var(--violet)"><h2>Visual Lab · explore, then take the challenge</h2><div class="cards">${labs.map((a,ci)=>`<a class="gcard" data-kind="lab"${tagAttr(LABTAGS[a[0]])} href="secondary.html#${a[0]}" style="--c:var(--${a[6]==='geo'?'tomato':'violet'});--i:${ci}"><span class="gl" aria-hidden="true">${a[2]}</span><span><b>${a[3]}</b><small>${a[4]}</small><span class="d">${a[5]}</span></span></a>`).join('')}</div></section>${labs.length?'':'-->'}</div>`;
   $('view').querySelectorAll('.levels button').forEach(b=>b.onclick=()=>{secLevel=b.dataset.l;try{localStorage.setItem('arcSecLevel',secLevel)}catch(e){}sfx.tap();quietSwap(secView)});wireHubPlayer()}
 let level='P4';try{level=localStorage.getItem('arcLevel')||'P4'}catch(e){}
 function hub(){
@@ -6092,7 +6528,7 @@ const QHINTS={
       'Work it out, then put your answer back into the question to check that both sides match.']
   ]
 };
-if(typeof FNHINTS!=='undefined')QHINTS['s1-news']=FNHINTS;
+if(typeof FNHINTS!=='undefined')QHINTS['s1-news']=QHINTS['s1-news']||[];
 const QGENERAL=['Read the question again slowly. What exactly is it asking you to find? Point to the key numbers and words.',
   'Choose a tool: a model or bar diagram, a number line, a table, or a quick sketch. Which one fits this question?',
   'Do one small step at a time and write it down. Then check: is your answer sensible? Estimate first and compare.'];
@@ -6131,7 +6567,7 @@ function qhNextHint(again){if(!qhInRound())return qhStuck();
   if($('qhBtn'))$('qhBtn').classList.add('qhused')}
 function qhWhich(pick){if(!pick&&qhWhere().home==='start')return qhSay('Which level are you in?',['P4','P5','P6','Sec 1'].map(l=>[l.startsWith('P')?'Primary '+l[1]:'Secondary 1',()=>qhWhich(l)]).concat([qhBack()]));
   const lv=pick||qhLevelNow(),ids=qhGames(lv);
-  if(!ids.length)return qhSay(`There are no games for ${esc(lv)} yet. Try the Visual Lab on the Secondary page!`,[qhBack()]);
+  if(!ids.length)return qhSay(`There are no games for ${esc(lv)} yet. They are on the way!`,[qhBack()]);
   const topics={};ids.forEach(id=>{const k=STRANDS[GAMES[id].strand]?STRANDS[GAMES[id].strand].name:'Other';(topics[k]=topics[k]||[]).push(id)});
   const c=Object.keys(topics).map(k=>[k,()=>qhList(lv,topics[k],pick)]);
   c.push(['🎲 Surprise me!',()=>{qhClose();location.hash=ids[Math.floor(Math.random()*ids.length)]}],qhBack());

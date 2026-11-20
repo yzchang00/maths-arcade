@@ -38,6 +38,18 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .pbtiles{display:grid;gap:8px;justify-items:center;margin-top:6px}.pbtiles svg{width:100%;max-width:440px;height:auto;display:block;background:#eef6ff;border:2.5px solid #2c3446;border-radius:12px}
 .pbctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}.pbctl .btn{min-height:34px;padding:4px 10px;font-size:13px}.pbctl .btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .pbmsg{font:800 14px var(--body);text-align:center;margin:0}
+.pbev{display:grid;gap:8px;justify-items:center;width:100%;max-width:640px}.pbev .qt{margin:0}.pbst{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pbst .btn{min-width:66px;font-size:1.05rem;padding:8px 10px}.pbst .btn.ok{background:#45d08a;color:#16233a;border-color:#16233a}.pbst .btn.tried{opacity:.55}.pbst .btn.need{box-shadow:0 0 0 3px #ffd257}
+.pblog{display:grid;gap:4px;font:700 15px/1.45 var(--body);text-align:left;width:100%}.pblog .y{color:#0b968b}.pblog .n{color:#c2410c}.pblog .i{color:var(--ink)}
+.pbsc{margin-top:6px}.pbsc summary{cursor:pointer;font-weight:800;color:#5f50ec}.pbsc p{margin:4px 0}
+.pbgsay{position:absolute;right:88%;top:30%;width:max-content;max-width:min(165px,42vw);background:#fff;color:#16233a;border:2.5px solid #16233a;border-radius:12px;padding:4px 9px;font:800 12px/1.3 var(--body);text-align:center;z-index:20;transform-origin:100% 50%;animation:pbgpop .3s cubic-bezier(.3,1.5,.5,1) both}
+.pbgsay:after{content:'';position:absolute;left:100%;top:50%;margin-top:-7px;border:7px solid transparent;border-left-color:#16233a}.pbgsay.mad{background:#ffe1dc;border-color:#c2410c}.pbgsay.mad:after{border-left-color:#c2410c}
+@keyframes pbgpop{from{opacity:0;transform:scale(.5)}}
+@media (max-width:600px){.pbgsay{right:auto;left:50%;top:auto;bottom:80%;max-width:150px;font-size:11px;transform:translateX(-50%);transform-origin:50% 100%;animation:none}
+ .pbgsay:after{left:50%;top:100%;margin-top:0;margin-left:-7px;border-left-color:transparent;border-top-color:#16233a}.pbgsay.mad:after{border-left-color:transparent;border-top-color:#c2410c}}
+.svg{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;width:100%;max-width:440px}.svg span{display:grid;place-items:center;aspect-ratio:1;border:1.5px solid var(--line,#c9cfdb);border-radius:6px;font:800 clamp(10px,2.6vw,14px) var(--body);cursor:pointer;background:var(--surface);color:var(--ink);position:relative;transition:background .25s,opacity .25s}
+#svWP{grid-template-columns:1fr!important}
+.svg span.x{opacity:.35;text-decoration:line-through;cursor:default}.svg span.now{background:#ffd6d2}.svg span.pr{background:#ffd257;color:#16233a;border-color:#b07d00;opacity:1;text-decoration:none}
 .pbnote{background:#fff3cc;color:#16233a;border:2px solid #ffb81f;border-radius:12px;padding:6px 10px;font:600 14px/1.4 var(--body);margin:6px 0 0}
 .pbpat{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;font:800 14px var(--body)}.pbpat i{flex:1;height:14px;border:2.5px solid var(--ink);border-radius:99px;overflow:hidden;background:var(--surface)}
 .pbpat b{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ef5240,#ffd257 40%,#45d08a)}.pbpat b.out{background:#ef5240}.pbpat span{white-space:nowrap}
@@ -118,10 +130,16 @@ function pbNumber(type,T){const seen=ctx.pbSeen=ctx.pbSeen||new Set();
 /* the hint ladder for one guest: equal rows → quick tests → a nudge */
 function pbHint(n,k){if(n<=0)return {h:['<b>Hint 1:</b> read the house rule: a prime must be a whole number <b>greater than 1</b>.',`<b>Hint 2:</b> is ${n} greater than 1?`,'<b>Hint 3:</b> numbers less than 2 (like 0, 1 and negatives) are never prime.'][Math.min(k,2)]};const ps=PBP(n),dg=String(n).split(''),sum=dg.reduce((a,b)=>a+ +b,0);
   if(k===0)return n<4?{h:`<b>Hint 1:</b> list every factor of ${n}. A prime has <b>exactly two different</b> factors: 1 and itself.`}:{h:`<b>Hint 1:</b> could <b>${n}</b> guests stand in <b>equal rows</b> (at least 2 rows, the same number in every row)? If yes, ${n} is not prime. Try it:`,tool:1};
-  if(k===1)return {h:`<b>Hint 2:</b> quick tests. Is ${n} even? Do its digits add up to a multiple of 3${dg.length>1?` (${dg.join(' + ')} = ${sum})`:''}? Does it end in 0 or 5? If none of those work, keep testing 7, 11, 13…`};
+  if(k===1){const why3=dg.length===2?`${n} = ${dg[0]} tens + ${dg[1]} = ${dg[0]} × 9 + ${dg[0]} + ${dg[1]}. ${dg[0]} × 9 is always a multiple of 3, so only ${dg[0]} + ${dg[1]} = ${sum} decides.`:dg.length===3?`${n} = ${dg[0]} × 99 + ${dg[1]} × 9 + (${dg.join(' + ')}). 99 and 9 are multiples of 3, so only ${dg.join(' + ')} = ${sum} decides.`:'';
+    return {h:`<b>Hint 2:</b> divide ${n} by the small primes one at a time: <b>2, 3, 5, 7…</b> If one divides it exactly (no remainder), the guest is not prime.<details class="pbsc"><summary>Shortcuts some teachers use (and why they work)</summary>
+      <p><b>÷ 2:</b> the number is even (ends in 0, 2, 4, 6 or 8). Every ten is 2 × 5, so only the last digit matters.</p><p><b>÷ 5:</b> it ends in 0 or 5. Every ten is 2 × 5, so again only the last digit matters.</p>
+      ${why3?`<p><b>÷ 3:</b> the digits add up to a multiple of 3. Why? ${why3}${sum%3===0?` ${sum} is a multiple of 3, so 3 divides ${n}.`:` ${sum} is not a multiple of 3, so 3 does not divide ${n}.`}</p>`:''}</details>`}}
   if(n===1)return {h:'<b>Hint 3:</b> how many different factors does 1 have? A prime needs exactly two.'};
   if(n===2||n===3)return {h:`<b>Hint 3:</b> the factors of ${n} are 1 and ${n}. How many is that?`};
-  return {h:isPrime(n)?`<b>Hint 3:</b> you only need to test the primes up to √${n} ≈ ${Math.sqrt(n).toFixed(1)}: ${pbList(ps)}. Try dividing ${n} by each of them.`:`<b>Hint 3:</b> try dividing ${n} by <b>${pbSmall(n)}</b>.`}}
+  if(!isPrime(n))return {h:`<b>Hint 3:</b> try dividing ${n} by <b>${pbSmall(n)}</b>.`};
+  const nx=pbNextP(ps.length?ps[ps.length-1]:1);
+  return {h:`<b>Hint 3:</b> factors come in pairs that multiply to ${n}. Because ${nx} × ${nx} = ${nx*nx} is bigger than ${n}, any pair would need a number smaller than ${nx}. So you only need to test ${pbList(ps.length?ps:[2])}. If none of them divide ${n} exactly, it is prime.`}}
+const pbNextP=p=>{let q=p+1;while(!isPrime(q))q++;return q};
 /* a group for Challenge (3) or the outfit party (4): a mix of primes and look-alikes, all different */
 function pbGroup(type,T,size,bonus){const seen=ctx.pbSeen=ctx.pbSeen||new Set(),out=[],add=n=>{if(!out.includes(n)){out.push(n);seen.add(n)}};
   if(bonus){const hi=T===2?199:99,ps=pbPrimesIn(11,hi),cs=[];for(let n=10;n<=hi;n++)if(!isPrime(n)&&n%2&&n%5)cs.push(n);const k=R(1,size-1);
@@ -131,7 +149,7 @@ function pbGroup(type,T,size,bonus){const seen=ctx.pbSeen=ctx.pbSeen||new Set(),
   let g=0;while(out.length<size&&g++<40){const n=pbNumber(out.length===size-1&&Math.random()<.5?'mix':type,T);add(n)}return shuffle(out)}
 /* one round: a guest (or a group) walks up from the moving queue and hands its card(s) to Qubi */
 function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patience||0,bonus=!!o.bonus;
-  const st=ctx.pbR={misses:0,hints:0,log:[],k:0},base=T>=1||bonus?8:10;
+  const st=ctx.pbR={misses:0,hints:0,evid:0,log:[],k:0},base=T>=1||bonus?8:10;
   const lead=bonus?`<p class="qt">🎭 <b>Surprise outfit party!</b> Four guests in costume arrive together, and they are <b>very impatient</b>. Tap every guest who may enter, then press <b>Done</b>.</p>`
     :size>1?`<p class="qt">A group of <b>${size}</b> guests arrives. Tap <b>every</b> guest who may enter (only prime numbers), then press <b>Done</b>.</p><p class="qs">House rule: a prime is a whole number <b>greater than 1</b> with exactly two different factors. Watch out for tricky guests like 0 and negative numbers!</p>`
     :`<p class="qt">You're the bouncer at the <b>PRIMES ONLY</b> club. Check each guest's card. Only <b>prime numbers</b> may enter.</p>`;
@@ -144,6 +162,9 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const scene=$('pbScene'),Q=[];
   const mk=(left,wait)=>{const g=document.createElement('div');g.className='pbguy'+(wait?' wait':'');g.style.left=left+'%';g.innerHTML=pbGuySvg(pick(PBCOL),bonus?R(1,4):0);scene.appendChild(g);return g};
   for(let i=0;i<4;i++){const g=mk(W[i],1);g.style.zIndex=5-i;Q.push(g)}
+  const gsay=(t,mad)=>{scene.querySelectorAll('.pbgsay').forEach(x=>x.remove());const gs=st.guys||[];const g=gs[Math.floor((gs.length-1)/2)];if(!g||!t)return;
+    const b=document.createElement('div');b.className='pbgsay'+(mad?' mad':'');b.innerHTML=t;g.appendChild(b)};
+  const gquiet=()=>scene.querySelectorAll('.pbgsay').forEach(x=>x.remove());
   const say=(t,mad)=>{const x=$('pbSay');if(x){x.innerHTML=t;x.className='pbsay on'+(mad?' mad':'')}};
   const wait=ms=>new Promise(r=>api.later(r,calm?Math.min(ms,150):ms));
   const fronts=size===1?[nar?44:57]:size===3?(nar?[20,36,52]:[36,46,56]):(nar?[2,18,34,50]:[30,40,50,60]);
@@ -152,11 +173,11 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
   const mood=k=>{(st.guys||[]).forEach(g=>{g.classList.remove('p1','p2','p3');if(k)g.classList.add('p'+k)})};
   const patience=()=>{if(!secs)return;const b=$('pbBar');late=false;b.style.transition='none';b.style.width='100%';b.className='';void b.offsetWidth;b.style.transition=`width ${secs}s linear`;b.style.width='0%';t0=Date.now();
     clearTimeout(timer);moods.forEach(clearTimeout);mood(0);
-    moods=[[.5,1,''],[.75,2,size>1?'Come on…':'Come on…'],[.9,3,size>1?'Hurry UP! We\'re leaving soon!':'Hurry UP!']].map(([f,k,t])=>{const id=setTimeout(()=>{if(st.busy||api.answered)return;mood(k);if(t)say(t,k===3);if(k===3)sfx.tick&&sfx.tick()},secs*1000*f);ctx.timers.push(id);return id});
+    moods=[[.5,1,''],[.75,2,size>1?'Come on…':'Come on…'],[.9,3,size>1?'Hurry UP! We\'re leaving soon!':'Hurry UP!']].map(([f,k,t])=>{const id=setTimeout(()=>{if(st.busy||api.answered)return;mood(k);if(t)gsay(t,k===3);if(k===3)sfx.tick&&sfx.tick()},secs*1000*f);ctx.timers.push(id);return id});
     timer=setTimeout(()=>{if(st.busy||api.answered)return;late=true;b.className='out';decide(null)},secs*1000);ctx.timers.push(timer)};
   const stopPat=()=>{clearTimeout(timer);moods.forEach(clearTimeout);const b=$('pbBar');if(b){const w=getComputedStyle(b).width;b.style.transition='none';b.style.width=w}};
   const patUI=()=>secs?`<div class="pbpat" id="pbPat"><span>⏳ ${bonus?'Very impatient!':'Patience'}</span><i><b id="pbBar"></b></i></div>`:'';
-  const next=async()=>{if(api.answered)return;(st.guys||[]).forEach(g=>g.remove());st.k=0;st.busy=false;late=false;
+  const next=async()=>{if(api.answered)return;gquiet();(st.guys||[]).forEach(g=>g.remove());st.k=0;st.busy=false;late=false;
     const nums=size===1?[pbNumber(o.type,T)]:pbGroup(o.type,T,size,bonus);st.nums=nums;st.pick=new Set();
     $('pbSay').className='pbsay';$('pbCard').className='pbcard';$('pbAsk').innerHTML='';{const q=scene.querySelector('.pbmgr .qubi');if(q){q.classList.remove('oops');q.classList.add('idle')}scene.querySelector('.pbmgr').classList.remove('scold')}
     /* the front of the queue steps up to the door, everyone behind shuffles forward, and new guests join the back */
@@ -170,6 +191,7 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       $('pbName').textContent=nums[i];cd.style.transition='none';cd.style.left=(fronts[i]+(nar?6:4))+'%';cd.style.top='62%';cd.className='pbcard';void cd.offsetWidth;cd.style.transition='';
       cd.className='pbcard hand';await wait(size>1?180:300);cd.style.left=nar?'70%':'76%';cd.style.top='46%';cd.className='pbcard give';await wait(size>1?420:650)}
     mg.classList.remove('pbhop');void mg.offsetWidth;mg.classList.add('pbhop');say(size>1?'Let me see these…':'Let me see…');sfx.tap();await wait(500);$('pbSay').className='pbsay';
+    if(size===1&&nums[0]===1)gsay('I\'m 1! I can only be divided by myself… so I\'m prime, right? Let me in!');
     if(size===1){$('pbName').textContent=nums[0];cd.style.left=nar?'40%':'50%';cd.style.top='6%';cd.className='pbcard on';await wait(600);
       $('pbAsk').innerHTML=`${patUI()}<p class="qt">Only prime numbers are allowed. Let <b>${nums[0]}</b> in?</p><div class="pbbtns"><button class="btn" id="pbIn">✅ Let in</button><button class="btn" id="pbOut">🚫 Turn away</button></div>`+hintUI();
       $('pbIn').onclick=()=>decide(true);$('pbOut').onclick=()=>decide(false)}
@@ -187,16 +209,50 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       :'<b>Hint 3:</b><br>'+st.nums.map(n=>n<2?`${n}: not prime (less than 2)`:isPrime(n)?`${n}: test ${pbList(PBP(n).length?PBP(n):[2])}. Do any of them divide it?`:`${n}: try dividing by ${pbSmall(n)}`).join('<br>');$('pbHints').appendChild(box)}
     $('pbHint').textContent=st.k>=3?'No more hints':`💡 Another hint (${3-st.k} left)`;if(st.k>=3)$('pbHint').disabled=true};
   pbQueue.hint=hint; /* Ask Qubi uses the same hints */
-  const decide=async letIn=>{if(api.answered||st.busy)return;st.busy=true;stopPat();const quick=secs&&!late&&Date.now()-t0<secs*1000;
+  /* EVIDENCE (20 Nov): after a right call, the bouncer proves it to Qubi, so guessing doesn't pay.
+     A guest who stays out: tap the test that busts it (a divisor, or "less than 2").
+     A single prime guest: run the division tests and decide when you have done enough (stop once prime × itself is bigger than the number). */
+  const STAMPS=[[2,3,5,7],[2,3,5,7,11],[2,3,5,7,11,13,17]][T];
+  const evPanel=(head)=>{$('pbAsk').innerHTML=`<div class="pbev"><p class="qt">🔍 <b>Prove it to Qubi.</b> ${head}</p><div class="pbst" id="pbSt"></div><div class="pblog" id="pbLog" role="status"></div><div id="pbEvB"></div></div>`};
+  const logLine=(t,c)=>{$('pbLog').insertAdjacentHTML('beforeend',`<div class="${c}">${t}</div>`)};
+  const bust=(n,who)=>new Promise(done=>{let miss=0;evPanel(`${who}<b>${n}</b> stays out. Which test <b>busts</b> ${n}?`);
+    $('pbSt').innerHTML=STAMPS.map(d=>`<button class="btn" data-d="${d}">÷ ${d}</button>`).join('')+`<button class="btn" data-d="lt">Less than 2</button>`;
+    const finish=()=>{$('pbSt').querySelectorAll('button').forEach(b=>b.disabled=true);api.later(done,1100)};
+    $('pbSt').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.disabled)return;const d=b.dataset.d;
+      if(d==='lt'){if(n<2){b.classList.add('ok');sfx.ok();logLine(n===1?'✓ 1 is less than 2. It has only <b>one</b> factor (itself), and a prime needs exactly two.':`✓ ${n} is less than 2. Primes must be whole numbers <b>greater than 1</b>.`,'y');finish()}
+        else{b.classList.add('tried');b.disabled=true;sfx.no();miss++;logLine(`❌ ${n} is not less than 2. Try dividing it.`,'n')}return}
+      const k=+d;b.disabled=true;
+      if(n<2){b.classList.add('tried');logLine(n===0?`0 ÷ ${k} = 0. True for every number, so it doesn't explain much. The real reason: 0 is less than 2.`:`${n} is negative. Negative numbers are out straight away: they are less than 2.`,'i');sfx.tap();return}
+      if(n%k===0&&n!==k){b.classList.add('ok');sfx.ok();logLine(`✓ ${n} ÷ ${k} = ${n/k} exactly. So ${n} = ${k} × ${n/k}: <b>busted!</b>`,'y');finish();return}
+      b.classList.add('tried');sfx.no();miss++;logLine(`❌ ${n} ÷ ${k} = ${Math.floor(n/k)} remainder ${n%k}. ${k} does not divide ${n} exactly.`,'n');
+      if(miss>=3){st.evid=1;const s0=pbSmall(n);logLine(`It's <b>÷ ${s0}</b>: ${n} = ${s0} × ${n/s0}.`,'i');const sb=$('pbSt').querySelector(`[data-d="${s0}"]`);if(sb)sb.classList.add('ok');finish()}})});
+  const checks=n=>new Promise(done=>{const need=PBP(n);if(!need.length){done();return}const did=new Set();let early=0;
+    evPanel(`Show that nothing splits <b>${n}</b>. Tap the division tests you need, then press <b>Enough checks</b>.`);
+    $('pbSt').innerHTML=STAMPS.filter(d=>d<n).map(d=>`<button class="btn${T===0&&need.includes(d)?' need':''}" data-d="${d}">÷ ${d}</button>`).join('');
+    if(T===0)$('pbLog').insertAdjacentHTML('beforebegin',`<p class="ptsm">💡 Core level: the tests you need are outlined in yellow.</p>`);
+    $('pbEvB').innerHTML=`<button class="btn primary" id="pbEnough">✅ Enough checks: let ${n} in</button>`;
+    $('pbSt').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(b.disabled)return;const k=+b.dataset.d;b.disabled=true;b.classList.add('tried');did.add(k);sfx.tap();logLine(`${n} ÷ ${k} = ${Math.floor(n/k)} remainder ${n%k}. ❌ ${k} is not a factor.`,'i')});
+    const end=()=>{$('pbSt').querySelectorAll('button').forEach(b=>b.disabled=true);$('pbEnough').disabled=true;const nx=pbNextP(need[need.length-1]);
+      const small=Array.from({length:nx-2},(_,k)=>k+2),comp=small.filter(x=>!isPrime(x));
+      logLine(`✓ Enough! Factors come in <b>pairs</b> that multiply to ${n}. If both numbers in a pair were ${nx} or more, they would multiply to at least ${nx} × ${nx} = ${nx*nx}, which is already bigger than ${n}. So one number in any pair would have to be <b>smaller than ${nx}</b>: ${pbList(small)}.${comp.length?` (${pbList(comp)} ${comp.length>1?'are':'is'} made of smaller primes, so ${comp.length>1?'they are':'it is'} already covered.)`:''} You checked those, and none of them divide ${n} exactly. So ${n} has only one factor pair, 1 × ${n}: it is prime.`,'y');sfx.ok();api.later(done,3200)};
+    $('pbEnough').onclick=()=>{const miss=need.filter(p=>!did.has(p));if(!miss.length)return end();
+      early++;sfx.no();const m=miss[0];
+      if(early>=2){st.evid=1;miss.forEach(p=>{did.add(p);const b=$('pbSt').querySelector(`[data-d="${p}"]`);if(b){b.disabled=true;b.classList.add('tried')}logLine(`${n} ÷ ${p} = ${Math.floor(n/p)} remainder ${n%p}. ❌ ${p} is not a factor.`,'i')});return end()}
+      logLine(`Not yet: try <b>÷ ${m}</b>. ${n} could still have a factor pair with ${m} in it, like ${m} × something (${m} × ${m} = ${m*m} is not bigger than ${n}).`,'n')}});
+  const evidence=async(nums,ins)=>{if(bonus)return;
+    if(size===1){const n=nums[0];if(isPrime(n))await checks(n);else await bust(n,'');return}
+    for(let i=0;i<nums.length;i++)if(!isPrime(nums[i]))await bust(nums[i],`Guest ${i+1}: `)};
+  const decide=async letIn=>{if(api.answered||st.busy)return;st.busy=true;stopPat();if(letIn!==null)gquiet();const quick=secs&&!late&&Date.now()-t0<secs*1000;
     $('pbAsk').querySelectorAll('button').forEach(b=>b.disabled=true);$('pbCard').className='pbcard';
     const nums=st.nums,ins=size===1?[letIn]:nums.map((_,i)=>st.pick.has(i)),timeout=letIn===null;
     if(!timeout)mood(0);
     const wrong=timeout?nums.map((_,i)=>i):nums.map((n,i)=>ins[i]!==isPrime(n)).map((w,i)=>w?i:-1).filter(i=>i>=0);
-    if(!wrong.length){ /* everyone judged right */
+    if(!wrong.length){ /* everyone judged right: first prove it, then the guests react */
+      await evidence(nums,ins);if(api.answered)return;
       nums.forEach((n,i)=>{const g=st.guys[i];g.classList.remove('tip');g.classList.add(isPrime(n)?'happy':'sad');if(isPrime(n))g.classList.add('jump')});
       say(nums.every(n=>!isPrime(n))?'Good call! None of them get in.':pick(['Welcome in, primes!','Perfect door work!','Nice! Only the primes get in.']));await wait(900);
       nums.forEach((n,i)=>{const g=st.guys[i];if(isPrime(n)){g.style.left='84%';g.style.opacity='0'}else g.style.left='-24%'});await wait(800);
-      const pts=bonus?0:Math.min(st.misses===0?base+(quick?2:0):st.misses===1?5:2,st.hints?6:10);
+      const pts=bonus?0:Math.min(st.misses===0?base+(quick?2:0):st.misses===1?5:2,st.hints||st.evid?6:10);
       const work=nums.map(n=>`${pbWhy(n)}<br><span style="color:#5f50ec;font-weight:800">${pbFacts(n)}</span>`);
       api.done(true,`${size===1?(isPrime(nums[0])?`${nums[0]} is prime, so it's in.`:`${nums[0]} is not prime, so it's out.`):`Primes let in: ${nums.filter(isPrime).join(', ')||'none'}.`}${quick&&!st.misses&&!bonus?' ⏳ +2 speed bonus!':''}${st.misses?` Round complete after ${st.misses} mistake${st.misses>1?'s':''}.`:''}`,[...work,...(st.log.length?['Earlier in this round: '+st.log.join(' ')]:[])],pts);return}
     /* a mistake: no second try. Wrong guests are dealt with, the manager scolds, and new guests come forward */
@@ -208,7 +264,7 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
       const wi=wrong.filter(i=>ins[i]).map(i=>nums[i]),wo=wrong.filter(i=>!ins[i]).map(i=>nums[i]);
       say(wi.length?`Hey! ${pbList(wi.map(n=>'<b>'+n+'</b>'))} ${wi.length>1?'aren\'t':'isn\'t'} prime. You let an impostor in!`:`Wait! ${pbList(wo.map(n=>'<b>'+n+'</b>'))} ${wo.length>1?'ARE':'IS'} prime. You turned away a real member!`,true)}
     else{ /* out of patience: the guests tell Qubi off, then storm off; new guests come forward */
-      const mg=scene.querySelector('.pbmgr');mood(3);say(bonus?'We\'re leaving! This party is boring!':size>1?'We\'ve waited FOREVER! We\'re going to another club!':'Too slow! I\'m going somewhere else!',true);
+      const mg=scene.querySelector('.pbmgr');mood(3);gsay(bonus?'We\'re leaving! This party is boring!':size>1?'We\'ve waited FOREVER! We\'re going to another club!':'Too slow! I\'m going somewhere else!',true);
       if(mg){mg.classList.remove('scold');void mg.offsetWidth;mg.classList.add('scold');const q=mg.querySelector('.qubi');if(q){q.classList.remove('idle');q.classList.add('oops')}}await wait(1500);
       st.guys.forEach((g,i)=>api.later(()=>{g.classList.add('storm');g.style.left='-26%'},i*150));st.log.push(size>1?'the group ran out of patience and left.':'a guest ran out of patience and left.');await wait(900)}
     qubi('gQ','oops','Do better!');const stg=$('gStage');if(stg){stg.classList.remove('shake');void stg.offsetWidth;stg.classList.add('shake')}await wait(500);
@@ -219,9 +275,33 @@ function pbRound(api,o){const T=o.T,size=o.size,nar=innerWidth<600,secs=o.patien
     $('pbNext').onclick=()=>{sfx.tap();next()};$('pbNext').focus()};
   next()}
 function pbQueue(api,type,T){pbRound(api,{type,T,size:T===2?3:1,patience:T===1?20:T===2?30:0})}
+/* ---- Sieve Night (Challenge, last round): the Sieve of Eratosthenes on the club's 100-square guest list ---- */
+function pbSieve(api){const sp=[2,3,5,7];let step=0,crossed=new Set([1]);
+  api.q(`<p class="qt">🌙 <b>Sieve Night!</b> 100 guests queue at once, far too many to check one by one. Qubi has a trick: cross out the numbers that <b>can't</b> be prime, and the ones left standing are the members.</p>`);
+  api.body.innerHTML=`<div class="ptlab2"><h4>🔢 The guest list, 1 to 100</h4><div class="svg" id="svG">${Array.from({length:100},(_,i)=>`<span data-n="${i+1}" class="${i===0?'x':''}">${i+1}</span>`).join('')}</div><p class="ptstat" id="svM" role="status">1 is crossed out already: it is not prime.</p><div id="svB"></div></div>`;
+  const cell=n=>$('svG').querySelector(`[data-n="${n}"]`);
+  const ask=()=>{if(step>=sp.length)return finale();const p=sp[step];
+    $('svB').innerHTML=`<p class="asklab" style="text-align:center">${step===0?'<b>Step 1:</b> tap the first number that is not crossed out.':`<b>Step ${step+1}:</b> tap the next number that is not crossed out.`}</p>`;
+    $('svG').querySelectorAll('span').forEach(c=>c.onclick=()=>{if(api.answered)return;const n=+c.dataset.n;if(crossed.has(n)||c.classList.contains('pr'))return;
+      if(n!==p){sfx.no();$('svM').innerHTML=`<span class="n">Not that one: ${n<p?'':'there is a smaller number still standing. '}Look for the <b>first</b> number not crossed out.</span>`;return}
+      sfx.ok();c.classList.add('pr');$('svG').querySelectorAll('span').forEach(x=>x.onclick=null);
+      $('svM').innerHTML=`<span class="y">✓ ${p} is prime: nothing smaller (except 1) divides it.</span> Every other multiple of ${p} has ${p} as a factor, so none of them can be prime.`;
+      $('svB').innerHTML=`<button class="btn primary" id="svX">✂️ Cross out every multiple of ${p}</button>`;
+      $('svX').onclick=()=>{$('svX').disabled=true;sfx.tap();const ms=[];for(let m=p*2;m<=100;m+=p)if(!crossed.has(m))ms.push(m);
+        ms.forEach((m,k)=>setTimeout(()=>{crossed.add(m);const e=cell(m);if(e){e.classList.add('x','now');setTimeout(()=>e.classList.remove('now'),400)}},k*25));
+        setTimeout(()=>{$('svM').innerHTML=`${ms.length} more numbers crossed out: ${ms.slice(0,6).join(', ')}${ms.length>6?'…':''}${step>0&&ms.length?` (some multiples of ${p} were already gone)`:''}.`;step++;ask()},ms.length*25+500)}})};
+  const finale=()=>{const left=[];for(let n=2;n<=100;n++)if(!crossed.has(n))left.push(n);
+    $('svB').innerHTML='';
+    stepPick(api,{id:'svW',keepOrder:true,label:`<b>Step 5:</b> the next number standing is 11. Do we need to cross out multiples of 11?`,options:['No: 11 × 11 = 121 is already bigger than 100','Yes: 11 is prime, so cross out its multiples too'],right:'No: 11 × 11 = 121 is already bigger than 100',pen:'svC',
+      hint:()=>'Look at 22, 33, 44… 99. Are they already crossed out? Why?',reveal:()=>'22 = 2 × 11, 33 = 3 × 11, … 77 = 7 × 11: each has a smaller factor, so it was crossed out already. The first new one would be 11 × 11 = 121. Tap the right answer.',
+      okMsg:`<p class="askok">Yes! Every multiple of 11 below 100 has a smaller factor (22 = 2 × 11, 77 = 7 × 11…), so it's already gone. The same idea is why you can stop checking at 7 for numbers up to 100.</p>`,
+      then:()=>{left.forEach((n,k)=>setTimeout(()=>{const e=cell(n);if(e)e.classList.add('pr')},k*30));
+        askOne(api,{id:'svC',label:`<b>Step 6:</b> everything still standing is prime. Count them: how many primes are there from 1 to 100?`,w:4,right:left.length,hint:'Count the yellow numbers, row by row.',
+          ok:`There are ${left.length} primes below 100. The sieve found them all without checking each one!`,bad:`There are ${left.length} primes below 100.`,work:[`Cross out 1, then multiples of 2, 3, 5 and 7`,`11 × 11 = 121 > 100, so stop`,`${left.length} primes: ${left.join(', ')}`]})}})};
+  ask()}
 addGame('s1-bouncer',{level:'Sec 1',sec:'s1',strand:'num',glyph:'🚪',title:'Prime Bouncer',topic:'Prime and composite numbers',
- how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away. Medium adds a patience bar: guests get crosser and storm off if you take too long. Challenge brings groups of 3 and tricky guests.',rounds:8,
- round(api,r){api.r0=r===0;pbQueue(api,PBTYPES[r],TIER())},
+ how:'Guard the door of the Primes Only club. Let prime numbers in and turn the rest away, then prove each call with a division test. Medium adds a patience bar: guests get crosser and storm off if you take too long. Challenge brings groups of 3, tricky guests and Sieve Night.',rounds:8,
+ round(api,r){api.r0=r===0;if(TIER()===2&&r===7)return pbSieve(api);pbQueue(api,PBTYPES[r],TIER())},
  bonus(api){api.r0=false;pbRound(api,{type:'mix',T:TIER(),size:4,patience:20,bonus:1})},
  ownHint:()=>pbQueue.hint&&pbQueue.hint()});
 /* show it first in the Secondary 1 list */

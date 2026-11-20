@@ -52,7 +52,7 @@ const QHINTS={
       'Work it out, then put your answer back into the question to check that both sides match.']
   ]
 };
-if(typeof FNHINTS!=='undefined')QHINTS['s1-news']=FNHINTS;
+if(typeof FNHINTS!=='undefined')QHINTS['s1-news']=QHINTS['s1-news']||[];
 const QGENERAL=['Read the question again slowly. What exactly is it asking you to find? Point to the key numbers and words.',
   'Choose a tool: a model or bar diagram, a number line, a table, or a quick sketch. Which one fits this question?',
   'Do one small step at a time and write it down. Then check: is your answer sensible? Estimate first and compare.'];
@@ -91,7 +91,7 @@ function qhNextHint(again){if(!qhInRound())return qhStuck();
   if($('qhBtn'))$('qhBtn').classList.add('qhused')}
 function qhWhich(pick){if(!pick&&qhWhere().home==='start')return qhSay('Which level are you in?',['P4','P5','P6','Sec 1'].map(l=>[l.startsWith('P')?'Primary '+l[1]:'Secondary 1',()=>qhWhich(l)]).concat([qhBack()]));
   const lv=pick||qhLevelNow(),ids=qhGames(lv);
-  if(!ids.length)return qhSay(`There are no games for ${esc(lv)} yet. Try the Visual Lab on the Secondary page!`,[qhBack()]);
+  if(!ids.length)return qhSay(`There are no games for ${esc(lv)} yet. They are on the way!`,[qhBack()]);
   const topics={};ids.forEach(id=>{const k=STRANDS[GAMES[id].strand]?STRANDS[GAMES[id].strand].name:'Other';(topics[k]=topics[k]||[]).push(id)});
   const c=Object.keys(topics).map(k=>[k,()=>qhList(lv,topics[k],pick)]);
   c.push(['🎲 Surprise me!',()=>{qhClose();location.hash=ids[Math.floor(Math.random()*ids.length)]}],qhBack());

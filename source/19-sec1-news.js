@@ -69,6 +69,9 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .fnchart .c:first-child i{background:#b9b2ff}.fnchart .c:last-child i{background:#ffb81f}
 #fnSyP{grid-template-columns:1fr!important}#fnSyP .btn{font-size:1rem!important;text-align:left}
 .fnppl{display:flex;flex-wrap:wrap;gap:4px}.fnppl i{width:clamp(11px,3vw,16px);height:clamp(11px,3vw,16px);border-radius:50%;border:2px solid #16233a;background:#fff;transition:background .3s,transform .3s}.fnppl i.on{background:#5f50ec}.fnppl i.ex{background:#ffb81f;transform:scale(1.2)}
+.fnstory{margin:0;padding-left:24px;text-align:left;font:600 15px/1.5 var(--body);display:grid;gap:4px}
+.fnfrw{flex:1 1 100%;display:grid;gap:10px;font:700 1.05rem var(--body)}.fnfrw>div{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px}@media (max-width:600px){.fnfrw{font-size:.95rem}.fnfr>span{padding:2px 3px}}
+.fnfr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px;line-height:1.25}.fnfr>span{display:flex;align-items:center;gap:4px;padding:2px 6px}.fnfr>span:first-child{border-bottom:2.5px solid currentColor}.fnfr input{width:2.4em!important;font-size:1.05rem!important;min-width:0!important;padding-left:4px!important;padding-right:4px!important;text-align:center}
 .fncal{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .fncal div{min-width:140px;border:2.5px solid #16233a;border-radius:14px;padding:8px 12px;background:#16233a;color:#9be7c4;text-align:center;font:700 1.1rem var(--display);transition:transform .5s}
 .fncal div small{display:block;color:#fff;font:800 11px var(--body);opacity:.8}.fncal div.flip{animation:fnflip .6s ease}@keyframes fnflip{50%{transform:rotateY(90deg)}}
@@ -147,12 +150,15 @@ function fnFinalPct(api,S,v,then,kind){const F=v[v.length-1],pc=fnR2(F/S*100),di
         hint:`${fn$(diff)} ÷ ${fn$(S)} × 100%`,then:()=>then(pc)})}})}
 const FNSTUFF=[['🧋','a cup of bubble tea'],['👟','a pair of sneakers'],['🎮','a video game'],['🎧','a pair of earbuds'],['🎒','a school bag'],['⌚','a smart watch']];
 function fnChainRound(api,T,kind){const [em,thing]=pick(FNSTUFF),rep=pick(FNREP);let steps,head,sub,truth,why;
-  const starts=[[100,200,50],[80,120,250],[60,160,240]][T];
+  let starts=[[100,200,50],[80,120,250],[60,160,240]][T];
   if(kind==='back'){const a=pick([[10,20,50],[20,25,40],[15,30,35]][T]);steps=[a,-a];head=`${em} Price of ${thing} goes UP ${a}%, then DOWN ${a}%. "Back to the old price!"`;sub='Shoppers say: no harm done.'}
   else if(kind==='add'){const [a,b]=pick([[[10,10],[10,20],[20,10]],[[20,30],[10,15],[30,20]],[[15,20],[25,40],[40,15]]][T]);steps=[a,b];head=`${em} ${thing[0].toUpperCase()+thing.slice(1)} goes up ${a}%, then another ${b}%. "That's ${a+b}% more in total!"`;sub='Our reporter just added them.'}
   else if(kind==='down2'){const [a,b]=pick([[[50,20],[20,20],[40,10]],[[40,20],[30,30],[50,50]],[[35,20],[25,40],[60,25]]][T]);steps=[-a,-b];head=`🛍️ Great Singapore Sale: ${a}% off ${thing}, then an EXTRA ${b}% off at the till. "That's ${a+b}% off!"`;sub='Queues form outside the mall.'}
   else if(kind==='true25'){const [a,b]=pick([[[25,20],[100,50]],[[25,20],[100,50],[150,60]],[[150,60],[400,80],[25,20]]][T]);steps=[a,-b];head=`${em} ${thing[0].toUpperCase()+thing.slice(1)} goes up ${a}%, then down ${b}%. "Back to the old price!"`;sub='Is our reporter right this time?'}
   else if(kind==='double'){const [a,b]=pick([[[50,50],[60,40]],[[50,50],[40,40],[30,60]],[[40,40],[45,40],[30,60]]][T]);steps=[a,b];head=`📈 Shop rent goes up ${a}%, then up ${b}% the next year. "Rent has MORE than doubled!"`;sub='Shop owners are worried.'}
+  else if(kind==='fare'){steps=[5,7];starts=[100,200,1000];head=`🚇 Bus and train fares rose 5% in Dec 2025, then 7% in Dec 2026. "So fares are now 12% higher than in 2024!"`;sub='Real Public Transport Council fare reviews. Test it on a monthly travel bill.'}
+  else if(kind==='slow'){steps=[10,3];starts=T?[400000,500000,600000]:[100,200,1000];head=`🏠 HDB resale prices rose about 10% in 2024, but only about 3% in 2025. "So flat prices FELL in 2025!"`;sub='Real figures: up 9.7% in 2024, up 2.9% in 2025.'}
+  else if(kind==='svc'){steps=[10,9];starts=[100,200,50];head=`🍽️ Restaurant bill: 10% service charge, then 9% GST. "So you pay 19% on top of the food price!"`;sub='The "++" on Singapore menus.'}
   else{const a=pick([[150,200],[150,200,300],[200,300,250]][T]);steps=[a];head=a===200||a===300?`🚀 Concert tickets up ${a}%! "So they now cost 3 times as much."`:`🚀 "Prices can NEVER go up by more than 100%. A ${a}% rise is impossible!"`;sub='Concert fans are confused.'}
   api.q(fnScene(rep,head,sub)+`<p class="qt">📰 <b>${rep[0]}</b> rushes in with a scoop. Is it TRUE or FAKE?</p>`);
   fnGut(api,()=>fnChain(api,{steps,starts,then:(S,v)=>fnFinalPct(api,S,v,pc=>{
@@ -162,6 +168,9 @@ function fnChainRound(api,T,kind){const [em,thing]=pick(FNSTUFF),rep=pick(FNREP)
     else if(kind==='down2'){truth=false;why=`The extra ${-steps[1]}% comes off the <b>sale</b> price, not the original. You pay ${pc}% of the price, so it is only ${fnR2(100-pc)}% off, not ${-(steps[0]+steps[1])}%.`}
     else if(kind==='true25'){truth=Math.abs(pc-100)<.001;why=truth?`Up ${steps[0]}% gives ${fnR2(1+steps[0]/100)} times the price; down ${-steps[1]}% keeps ${fnR2(1+steps[1]/100)} of that. ${fnR2(1+steps[0]/100)} × ${fnR2(1+steps[1]/100)} = 1, so you really are back to 100%.`:`You end at ${pc}%, not 100%.`}
     else if(kind==='double'){truth=pc>200;why=`${fnR2(1+steps[0]/100)} × ${fnR2(1+steps[1]/100)} = ${fnR2(pc/100)}, so the rent went up by ${fnR2(pc-100)}% in total. Doubling means going up by 100%, so this is ${truth?'more':'less'} than double.`}
+    else if(kind==='fare'){truth=false;why=`The 7% rise is taken of the <b>2025</b> fare, which is already 5% higher. × 1.05 × 1.07 = × 1.1235, so fares are 12.35% higher than in 2024: a little more than 12%.`}
+    else if(kind==='slow'){truth=false;why=`Prices still went <b>up</b> in 2025, just more slowly. A smaller increase is still an increase: the price ended ${ch}% higher than at the start. "Growth slowed down" is not the same as "prices fell".`}
+    else if(kind==='svc'){truth=false;why=`The 9% GST is charged on the food <b>and</b> the service charge, so it is 9% of a bigger amount. × 1.1 × 1.09 = × 1.199: you pay 19.9% on top, not 19%.`}
     else{const a=steps[0];truth=a===200;why=a===150||a===250?`A rise of ${a}% gives ${pc}% of the old price. Increases <b>can</b> be more than 100%; only a <b>decrease</b> can't go past 100% (you can't pay less than $0).`:`Up ${a}% means old price + ${a}% = ${pc}% of the old price, which is ${fnR2(pc/100)} times as much${a===300?', not 3 times':''}.`;}
     fnVerdict(api,truth,why,[`Test price ${fn$(S)}: ${v.map(fn$).join(' → ')}`,`Change: ${fn$(Math.abs(v[v.length-1]-S))} ÷ ${fn$(S)} × 100% = ${fnR2(Math.abs(pc-100))}% ${pc>100?'more':pc<100?'less':''} than the start`,`Each step multiplies: ${stepsTxt}`])},kind==='over'?'over':'')}))}
 
@@ -229,6 +238,7 @@ function fnPtsRound(api,T){const pairs=[[[40,50],[20,30],[50,60],[25,30]],[[60,7
    Step 2: pick the easier side and work it out (the lab works out the other side, so nothing is typed twice).
    Step 3: one example is not proof: choose the reason it ALWAYS works (a × b ÷ 100 = b × a ÷ 100).
    Step 4: use the hack on a new pair. */
+const fnFr=(n,d)=>`<span class="fnfr"><span>${n}</span><span>${d}</span></span>`;
 function fnSwapRound(api,T){const [a,b]=pick([[[8,50],[4,25],[12,50],[16,25]],[[18,50],[32,25],[24,25],[44,50]],[[7,20],[15,40],[35,60],[13,20]]][T]),v=fnR2(a*b/100),rep=pick(FNREP),truth=Math.random()<.65;
   const [c,d]=pick([[[18,50],[36,25],[14,50],[28,25]],[[46,50],[64,25],[52,25],[38,50]],[[17,20],[45,40],[26,50],[55,60]]][T].filter(([x,y])=>x!==a)),w=fnR2(c*d/100);
   const head=truth?`🤯 Maths hack goes viral: "${a}% of ${b} is the SAME as ${b}% of ${a}. It works for ANY two numbers!"`:`🤓 "${a}% of ${b} is much SMALLER than ${b}% of ${a}. Obviously!"`;
@@ -245,20 +255,118 @@ function fnSwapRound(api,T){const [a,b]=pick([[[8,50],[4,25],[12,50],[16,25]],[[
               then:()=>fnVerdict(api,truth,`${a}% of ${b} and ${b}% of ${a} are both ${a} × ${b} ÷ 100. Multiplying in a different order gives the same answer, so this works for <b>any</b> two numbers. ${truth?'':`So neither one is smaller: they are equal. `}Use it to pick the easier side: ${c}% of ${d} = ${d}% of ${c} = ${w}.`,
                 [`${a}% of ${b} = ${a} ÷ 100 × ${b} = ${a} × ${b} ÷ 100 = ${v}`,`${b}% of ${a} = ${b} ÷ 100 × ${a} = ${b} × ${a} ÷ 100 = ${v}`,`Hack: ${c}% of ${d} = ${d}% of ${c} = ${w}`])});
           const ib=k=>inBox('fnSy',k,'Number',3);
-          askBox(api,{id:'fnSy',label:`<b>Step 3: why are they always equal?</b> Both came out as ${v}, but that is just one example. Write each side as one multiplication:`,
-            html:`<div style="display:grid;gap:6px;font:700 1.05rem var(--body)"><div>${a}% of ${b} = ${a} ÷ 100 × ${b} = <b>${a} × ${b} ÷ 100</b></div><div>${b}% of ${a} = ${b} ÷ 100 × ${a} = ${ib('x')} × ${ib('y')} ÷ 100</div></div>`,
+          askBox(api,{id:'fnSy',label:`<b>Step 3: why are they always equal?</b> Both came out as ${v}, but that is just one example. Percent means "out of 100", so write each side as one fraction:`,
+            html:`<div class="fnfrw"><div>${a}% of ${b} = ${fnFr(a,100)} × ${b} = ${fnFr(`<b>${a} × ${b}</b>`,100)}</div><div>${b}% of ${a} = ${fnFr(b,100)} × ${a} = ${fnFr(`${ib('x')} × ${ib('y')}`,100)}</div></div>`,
             hint:`${b}% means ${b} ÷ 100. So ${b}% of ${a} = ${b} ÷ 100 × ${a}. Which two numbers are multiplied?`,
             judge:o=>(o.x===b&&o.y===a)||(o.x===a&&o.y===b),
-            onRight:()=>{api.body.insertAdjacentHTML('beforeend',`<p class="askok">Yes! Both sides multiply <b>${a}</b> and <b>${b}</b>, then divide by 100. ${a} × ${b} = ${b} × ${a}, so the answers are always equal, whatever the numbers.</p>`);step4()},
+            onRight:()=>{api.body.insertAdjacentHTML('beforeend',`<p class="askok">Yes! Both sides are ${fnFr(`${a} × ${b}`,100)}: they multiply <b>${a}</b> and <b>${b}</b>, then divide by 100. ${a} × ${b} = ${b} × ${a}, so the answers are always equal, whatever the numbers.</p>`);step4()},
             onWrong:()=>{ctx.keep.pen=1;api.body.insertAdjacentHTML('beforeend',`<p class="retrymsg">${b}% of ${a} = ${b} × ${a} ÷ 100. Both sides multiply the same two numbers, ${a} and ${b}, so they are always equal.</p>`);step4()}});
 }})};
     $('fnSw').querySelectorAll('button').forEach(x=>x.onclick=()=>{if(api.answered||x.disabled)return;sfx.pop();go(x.dataset.v)});if(ctx.keep.sw)go(ctx.keep.sw)})}
 
-const FNTYPES=['swap','back','pts','addDown','units','rev','trueish','mix'];
+/* ===== More claim types (20 Nov), with Singapore contexts from real news ===== */
+/* a "count it" lab: rows of dots (people, or $1 coins) */
+const fnDots=(rows,cap)=>`<div class="fnlab"><h4>🔬 Test lab: ${cap}</h4>${rows.map(([lab,id,N])=>`<div class="fnurow"><b>${lab}</b><div class="fnppl" id="${id}">${Array(N).fill('<i></i>').join('')}</div></div>`).join('')}</div>`;
+const fnFill=(id,k,from)=>[...$(id).children].forEach((x,i)=>{if(i<k)setTimeout(()=>{x.className=i>=from?'ex':'on'},i*30)});
+/* simple one-step % increase: a hawker plate goes up by some cents (Core) */
+function fnSimpleRound(api,T){const rep=pick(FNREP),[old,inc]=pick([[4,.5],[5,.5],[2.5,.5],[4,1],[3.5,.7],[1.6,.2]]),parts=Math.round(old/inc),pc=fnR2(100/parts),truth=Math.random()<.4,cents=Math.round(inc*100);
+  const [em,dish]=pick([['🍗','chicken rice'],['🍜','fishball noodles'],['🧋','bubble tea'],['☕','kopi']]),claim=truth?`up ${pc}%`:`up ${cents}%`;
+  api.q(fnScene(rep,`${em} ${dish[0].toUpperCase()+dish.slice(1)} goes from ${fn$(old)} to ${fn$(old+inc)}. "That's ${cents} cents more, so the price is ${claim}!"`,'Real news: hawker food prices rose 6.1% in 2023, the most since 2008.')+`<p class="qt">📰 <b>${rep[0]}</b> is at the hawker centre. Is the headline TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: the price bar</h4><div class="fnsale" id="fnSb">${Array(parts).fill(0).map(()=>'<i class="paid">?</i>').join('')}<i class="lit" style="flex:1">+${fn$(inc)}</i></div><div class="fnbrace"><span style="flex:${parts}">old price ${fn$(old)} = 100%</span><span style="flex:1;color:#c2410c">rise</span></div></div>`);
+    askOne(api,{id:'fnI1',label:`<b>Step 2:</b> the old price ${fn$(old)} is made of how many pieces of ${fn$(inc)}?`,w:4,right:parts,hint:`${fn$(old)} ÷ ${fn$(inc)}`,
+      then:()=>{[...$('fnSb').children].forEach((x,i)=>{if(i<parts)x.textContent=fn$(inc)});
+        askOne(api,{id:'fnI2',label:`<b>Step 3:</b> the rise is <b>1 piece</b> out of the ${parts} pieces in the old price. As a percentage of the old price, that is`,w:5,unit:'%',right:pc,traps:[[cents,`${cents} is the number of <b>cents</b>, not a percentage. Compare the rise with the old price: 1 out of ${parts}.`]],hint:`1 ÷ ${parts} × 100%`,
+          then:()=>fnVerdict(api,truth,`The rise is ${fn$(inc)} out of an old price of ${fn$(old)}: 1 piece out of ${parts}, which is <b>${pc}%</b>. "${cents} cents" is an amount of money, not a percentage.`,[`${fn$(inc)} ÷ ${fn$(old)} × 100% = ${pc}%`])})}})})}
+/* GST rate 8% → 9%: how much more GST do you pay? (Stretch) */
+function fnGstRound(api,T){const rep=pick(FNREP),B=pick([100,200,300,400]),g8=B*.08,g9=B*.09,d=fnR2(g9-g8),r=12.5,truth=Math.random()<.35;
+  api.q(fnScene(rep,`🧾 GST went from 8% to 9% on 1 Jan 2024. "So the GST you pay went up by ${truth?'12.5%':'just 1%'}!"`,`A family's ${fn$(B)} shopping, before GST.`)+`<p class="qt">📰 <b>${rep[0]}</b> has a story about GST. Is it TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',fnDots([['GST at 8%','fnGa',9],['GST at 9%','fnGb',9]],`GST on ${fn$(B)} (each dot = ${fn$(B/100)})`));
+    askOne(api,{id:'fnG8',label:`<b>Step 2:</b> GST at 8% on ${fn$(B)} =`,pre:'<span class="askunit">$</span>',w:5,right:g8,hint:`8 ÷ 100 × ${B}`,
+      then:()=>{fnFill('fnGa',8,9);askOne(api,{id:'fnG9',label:`<b>Step 3:</b> GST at 9% on ${fn$(B)} =`,pre:'<span class="askunit">$</span>',w:5,right:g9,hint:`9 ÷ 100 × ${B}`,
+        then:()=>{fnFill('fnGb',9,8);askOne(api,{id:'fnGc',label:`<b>Step 4:</b> the GST went up by ${fn$(d)}. Compared with the old GST (${fn$(g8)}), how many percent more is that?`,w:5,unit:'% more',right:r,traps:[[1,`1 is how much the GST <b>rate</b> changed (9% − 8%). Compare the extra ${fn$(d)} with the old GST of ${fn$(g8)}.`]],hint:`${fn$(d)} ÷ ${fn$(g8)} × 100%`,
+          then:()=>fnVerdict(api,truth,`The rate went up from 8% to 9%, but the GST you pay went from ${fn$(g8)} to ${fn$(g9)}: 1 extra dot for every 8, which is <b>12.5% more</b> GST. "1%" just subtracts the two rates.`,[`8% of ${fn$(B)} = ${fn$(g8)}, 9% of ${fn$(B)} = ${fn$(g9)}`,`${fn$(d)} ÷ ${fn$(g8)} × 100% = 12.5% more`])})}})}})})}
+/* order of two changes (Stretch/Challenge): +a then −b vs −b then +a */
+function fnOrderRound(api,T){const rep=pick(FNREP),[a,b]=pick([[[5,10],[10,20],[20,10]],[[5,10],[10,20],[20,10]],[[5,10],[25,20],[15,40]]][T]),S=100,A=fnR2(S*(1+a/100)*(1-b/100)),truth=Math.random()<.6,ch=fnR2(100-A);
+  const head=truth?`🔁 "Price up ${a}% then down ${b}% gives the SAME as down ${b}% then up ${a}%."`:`🔁 "Price up ${a}% then down ${b}%: that's exactly ${b-a}% down overall."`;
+  api.q(fnScene(rep,head,'Two shops change prices in a different order.')+`<p class="qt">📰 <b>${rep[0]}</b> compares two shops. Is it TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: two shops, start at $100</h4><div class="fncal"><div id="fnOa"><small>Shop A: +${a}% then −${b}%</small><span>?</span></div><div id="fnOb"><small>Shop B: −${b}% then +${a}%</small><span>?</span></div></div></div>`);
+    const show=(i,x)=>{const k=$(i);k.querySelector('span').textContent=fn$(x);k.classList.add('flip')};
+    askOne(api,{id:'fnO1',label:`<b>Step 2:</b> Shop A. $100 → up ${a}% → down ${b}%. Final price =`,pre:'<span class="askunit">$</span>',w:6,right:A,traps:[[100+a-b,`That adds and subtracts the percentages. The ${b}% comes off the <b>new</b> price, ${fn$(100+a)}.`]],hint:`$100 × ${fnR2(1+a/100)} × ${fnR2(1-b/100)}`,
+      then:()=>{show('fnOa',A);askOne(api,{id:'fnO2',label:`<b>Step 3:</b> Shop B. $100 → down ${b}% → up ${a}%. Final price =`,pre:'<span class="askunit">$</span>',w:6,right:A,hint:`$100 × ${fnR2(1-b/100)} × ${fnR2(1+a/100)}`,
+        then:()=>{show('fnOb',A);fnVerdict(api,truth,`Both shops end at ${fn$(A)}: each change <b>multiplies</b> the price (× ${fnR2(1+a/100)} and × ${fnR2(1-b/100)}), and multiplying in a different order gives the same answer. So the order doesn't matter, but the overall change is ${ch}% down, not ${b-a}%.`,[`A: 100 × ${fnR2(1+a/100)} × ${fnR2(1-b/100)} = ${A}`,`B: 100 × ${fnR2(1-b/100)} × ${fnR2(1+a/100)} = ${A}`])}})}})})}
+/* ratio → percent: "boys : girls = 1 : 4, so 25% are boys" (Stretch/Challenge) */
+function fnRatioRound(api,T){const rep=pick(FNREP),[a,b]=pick([[1,4],[3,5],[1,1],[3,2],[1,4]]),pc=fnR2(a/(a+b)*100),wrong=fnR2(a/b*100),truth=Math.random()<.35;
+  const [grp,x,y]=pick([['the choir','boys','girls'],['the robotics club','Sec 1s','Sec 2s'],['the badminton CCA','boys','girls']]);
+  api.q(fnScene(rep,`📊 In ${grp}, ${x} : ${y} = ${a} : ${b}. "So ${truth?pc:wrong}% of ${grp} are ${x}!"`,'Our reporter turned a ratio into a percentage.')+`<p class="qt">📰 <b>${rep[0]}</b> is writing about ${grp}. Is the headline TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: unit bars</h4><div class="fnurow"><b>${x}</b><div class="fnu a">${Array(a).fill('<i>1 u</i>').join('')}</div></div><div class="fnurow"><b>${y}</b><div class="fnu b">${Array(b).fill('<i>1 u</i>').join('')}</div></div></div>`);
+    askOne(api,{id:'fnRa1',label:`<b>Step 2:</b> the whole of ${grp} is how many units?`,w:4,unit:'units',right:a+b,traps:[[b,`That's just the ${y}. The whole group is ${x} <b>and</b> ${y}.`]],hint:`${a} + ${b}`,
+      then:()=>askOne(api,{id:'fnRa2',label:`<b>Step 3:</b> ${x} are ${a} out of ${a+b} units. As a percentage of the whole group, that is`,w:5,unit:'%',right:pc,traps:[[wrong,`That compares ${x} with ${y}. "% of ${grp}" compares ${x} with the <b>whole group</b>: ${a} out of ${a+b}.`]],hint:`${a} ÷ ${a+b} × 100%`,
+        then:()=>fnVerdict(api,truth,`${x} : ${y} = ${a} : ${b} means ${a} units of ${x} for every ${b} units of ${y}, so the whole group is ${a+b} units. ${x[0].toUpperCase()+x.slice(1)} are ${a} out of ${a+b} = <b>${pc}%</b>. ${a} ÷ ${b} compares ${x} with ${y}, not with everyone.`,[`Whole group = ${a} + ${b} = ${a+b} units`,`${a} ÷ ${a+b} × 100% = ${pc}%`])})})})}
+/* "40% boys, 60% girls → 20% more girls than boys" vs "girls outnumber boys by 20% of the class" (Challenge) */
+function fnGirlsRound(api,T){const rep=pick(FNREP),[pb,pg]=pick([[40,60],[25,75],[20,80]]),N=20,nb=pb*N/100,ng=pg*N/100,d=ng-nb,r=fnR2(d/nb*100),gap=pg-pb,v=pick(['wrong','right','class']);
+  const claim=v==='wrong'?`So there are ${gap}% more girls than boys!`:v==='right'?`So there are ${r}% more girls than boys!`:`So girls outnumber boys by ${gap}% of the class!`,truth=v!=='wrong';
+  api.q(fnScene(rep,`👫 Class 1G: ${pb}% boys, ${pg}% girls. "${claim}"`,'Class 1G has 20 students.')+`<p class="qt">📰 <b>${rep[0]}</b> brings class data. Read the claim carefully. TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',fnDots([['Boys','fnBa',N],['Girls','fnBb',N]],'count Class 1G (20 students)'));
+    askOne(api,{id:'fnBy1',label:`<b>Step 2:</b> ${pb}% of 20 students are boys. How many boys?`,w:4,right:nb,hint:`${pb} ÷ 100 × 20`,then:()=>{fnFill('fnBa',nb,N);
+      askOne(api,{id:'fnBy2',label:`<b>Step 3:</b> how many girls?`,w:4,right:ng,hint:`${pg} ÷ 100 × 20`,then:()=>{fnFill('fnBb',ng,nb);
+        askOne(api,{id:'fnBy3',label:`<b>Step 4:</b> there are ${d} more girls than boys. Compared with the <b>${nb} boys</b>, how many percent more is that?`,w:5,unit:'% more',right:r,traps:[[gap,`${gap}% is the gap as a share of the <b>whole class</b> (${d} out of 20). "More than boys" compares with the ${nb} boys.`]],hint:`${d} ÷ ${nb} × 100%`,
+          then:()=>fnVerdict(api,truth,`There are ${d} more girls. Compared with the ${nb} boys, that is <b>${r}% more</b> girls than boys. Compared with the whole class of 20, the gap is ${gap}% of the class. Both are true facts, but they compare with different amounts, so "${gap}% more girls than boys" is wrong.`,[`Boys ${nb}, girls ${ng}, gap ${d}`,`${d} ÷ ${nb} × 100% = ${r}% more than boys`,`${d} ÷ 20 × 100% = ${gap}% of the class`])})}})}})})}
+/* percentage of a percentage (Challenge) */
+function fnPofPRound(api,T){const rep=pick(FNREP),[p,f,fn,N]=pick([[40,.5,'half',20],[60,.5,'half',20],[80,.25,'a quarter',20],[50,.25,'a quarter',40]]),c=p*N/100,h=c*f,pc=fnR2(h/N*100),wrongP=fnR2(f*100),truth=Math.random()<.35;
+  api.q(fnScene(rep,`🚲 ${p}% of Class 1C cycle to school, and ${fn} of the cyclists wear a helmet. "So ${truth?pc:wrongP}% of the class wear a helmet!"`,`Class 1C has ${N} students.`)+`<p class="qt">📰 <b>${rep[0]}</b> has a road safety story. TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',fnDots([['Class 1C','fnHa',N]],`count Class 1C (${N} students)`));
+    askOne(api,{id:'fnH1',label:`<b>Step 2:</b> ${p}% of ${N} students cycle. How many cyclists?`,w:4,right:c,hint:`${p} ÷ 100 × ${N}`,then:()=>{fnFill('fnHa',c,N);
+      askOne(api,{id:'fnH2',label:`<b>Step 3:</b> ${fn} of the ${c} cyclists wear a helmet. How many students?`,w:4,right:h,traps:[[N*f,`That's ${fn} of the whole <b>class</b>. It's ${fn} of the <b>cyclists</b>.`]],hint:`${c} × ${f}`,then:()=>{fnFill('fnHa',h,0);
+        askOne(api,{id:'fnH3',label:`<b>Step 4:</b> ${h} out of ${N} students wear a helmet. As a percentage of the class, that is`,w:5,unit:'%',right:pc,traps:[[wrongP,`${wrongP}% is the share of the <b>cyclists</b>. As a share of the whole class: ${h} out of ${N}.`]],hint:`${h} ÷ ${N} × 100%`,
+          then:()=>fnVerdict(api,truth,`${fn[0].toUpperCase()+fn.slice(1)} of the cyclists is ${fn} of ${p}% of the class: ${f} × ${p}% = <b>${pc}%</b> of the class, not ${wrongP}%.`,[`Cyclists: ${p}% of ${N} = ${c}`,`Helmets: ${fn} of ${c} = ${h}`,`${h} ÷ ${N} × 100% = ${pc}%`])})}})}})})}
+/* find the flaw: classic fallacies as news stories (Challenge) */
+const FNFLAW=[{head:'💸 MYSTERY: a dollar vanishes at the zi char stall!',lines:['Three friends pay $10 each for dinner: $30.','The bill is only $25, so the cashier gives the waiter $5 to return.','The waiter gives each friend $1 back and keeps $2.','So each friend paid $9, and 3 × $9 = $27.','$27 + the waiter\'s $2 = $29. One dollar has vanished!'],bad:4,
+   why:'The $27 the friends paid <b>already includes</b> the waiter\'s $2 ($25 bill + $2). Adding the $2 again counts it twice. The right check is $27 paid + $3 returned = $30.',q:['The $27 the friends paid = $25 bill + $__ kept by the waiter',2]},
+  {head:'💍 Shopper gets a $200 ring for $100, and says it is fair!',lines:['Mei buys a ring for $100.','The next day she swaps it for a $200 ring.','The jeweller asks her to pay $100 more.','Mei: "I paid you $100 yesterday, and I just gave you back a $100 ring. That makes $200, so I owe nothing!"'],bad:3,
+   why:'The $100 ring she gave back was <b>bought with</b> the $100 she paid. It is the same $100 counted twice. The jeweller has only received $100 for a $200 ring.',q:['How much more must Mei pay?',100]},
+  {head:'📚 MYSTERY: a dollar disappears when two bookmark stalls join up!',lines:['Stall A sells bookmarks at 2 for $1. Stall B sells them at 3 for $1.','Each stall has 30 bookmarks. Apart, A earns $15 and B earns $10: $25 in total.','They join up. "2 for $1 plus 3 for $1 is the same as 5 for $2," they say.','60 bookmarks make 12 bundles of 5, so they earn 12 × $2 = $24.','A dollar has disappeared!'],bad:2,
+   why:'"5 for $2" is <b>not</b> the same deal. It would only match if the stalls sold their bookmarks in a 2 : 3 mix, but they have 30 each. At 5 for $2, every bookmark sells for 40 cents, but Stall A\'s really sold for 50 cents. Nothing disappeared: the joint price was just lower.',q:['At 5 for $2, how many cents is each bookmark?',40]}];
+function fnFlawRound(api,T){const rep=pick(FNREP),F=pick(FNFLAW);
+  api.q(fnScene(rep,F.head,'A story is going round. Something in it is wrong.')+`<p class="qt">📰 <b>${rep[0]}</b> brings a puzzling story. Is the headline TRUE or FAKE?</p>`);
+  fnGut(api,()=>{api.body.insertAdjacentHTML('beforeend',`<div class="fnlab"><h4>🔬 Test lab: check the story, line by line</h4><ol class="fnstory">${F.lines.map(l=>`<li>${l}</li>`).join('')}</ol></div>`);
+    const L=F.lines.map((l,i)=>`Line ${i+1}`);
+    stepPick(api,{id:'fnFl',keepOrder:true,label:'<b>Step 2:</b> which line has the mistake?',options:L,right:L[F.bad],pen:'fnFq',hint:()=>'Check each line with the numbers. Which one adds or counts something that is already counted?',
+      reveal:()=>`The mistake is in line ${F.bad+1}. Tap it to carry on.`,okMsg:`<p class="askok">Yes, line ${F.bad+1}. ${F.why}</p>`,
+      then:()=>askOne(api,{id:'fnFq',label:`<b>Step 3:</b> ${F.q[0]}`,w:5,right:F.q[1],hint:'Use the numbers from the story.',
+        then:()=>fnVerdict(api,false,F.why,F.lines.map((l,i)=>i===F.bad?`❌ ${l}`:l))})})})}
+
+/* each game draws 8 claims from its level's pool (no repeats): Core = one-step claims with full scaffolding;
+   Stretch = two-step changes, reverse %, real SG data; Challenge = ratio, compound and "find the flaw" claims */
+const FNPOOL=[{first:'swap',rest:['simple','back','pts','rev','over','slow','ratio','simple']},
+  {first:'back',rest:['add','down2','pts','units','rev','fare','gst','order','ratio','slow']},
+  {first:'units',rest:['rev','fare','gst','order','ratio','girls','svc','pofp','flaw','double','true25']}];
+const FNH={swap:['"Percent" means "out of 100". a% of b = a ÷ 100 × b.','Work out the easier side.','Write each side as one multiplication.'],
+ simple:['How many pieces of the rise fit into the old price?','The rise is 1 of those pieces.','1 ÷ number of pieces × 100%.'],
+ back:['Each machine works on the price that comes IN.','The second % is taken of a different (bigger) amount.','Compare the final price with the start.'],
+ add:['Each machine works on the price that comes IN.','The second % is taken of the new, bigger price.','Compare the final price with the start.'],
+ down2:['The second discount comes off the SALE price.','Run the price through each machine.','Compare the final price with the start.'],
+ fare:['The 7% is taken of the 2025 fare, not the 2024 fare.','Run $100 through both machines.','Compare the final amount with $100.'],
+ slow:['A smaller increase is still an increase.','Run the price through both machines.','Is the final price higher or lower than the start?'],
+ svc:['GST is charged on the food AND the service charge.','Run $100 through both machines.','Compare the final bill with $100.'],
+ pts:['Turn each percentage into a number of students first.','Find how many more (or fewer) students there are now.','Compare that with the number LAST term.'],
+ gst:['Work out the GST in dollars at 8% and at 9%.','Find how much more GST that is.','Compare the extra with the OLD GST.'],
+ units:['Draw A with its units. p% more means add p% of A\'s units.','"Less than B" compares the gap with B, not A.','Gap ÷ B\'s units × 100%.'],
+ rev:['The % off was taken from the ORIGINAL price, not the sale price.','The sale price is (100 − discount)% of the original.','Find 1 part (or 1%), then multiply up to 100%.'],
+ order:['Each change multiplies the price.','Run $100 through each shop.','Does the order of multiplying change the answer?'],
+ ratio:['A ratio compares the two groups. A percentage of the group compares with EVERYONE.','Add the units to get the whole group.','Part ÷ whole × 100%.'],
+ girls:['Work out how many boys and girls.','"More than boys" compares the gap with the boys.','"Of the class" compares the gap with everyone.'],
+ pofp:['Find the number of cyclists first.','Then take the fraction of the cyclists, not of the class.','Compare with the whole class.'],
+ flaw:['Check each line with the numbers.','Look for something counted twice.','Which line adds two amounts that overlap?'],
+ over:['Up 100% means double. Up 200% means old + 2 × old.','Increases can be more than 100%.','How many times the old price is the new price?'],
+ double:['Multiply the two changes: × 1.5 × 1.5…','Doubling is × 2.','Compare your answer with 2.'],
+ true25:['Run the price through each machine.','Up 25% is × 1.25. Down 20% is × 0.8.','1.25 × 0.8 = ?']};
 addGame('s1-news',{level:'Sec 1',sec:'s1',strand:'num',glyph:'📰',music:'news',title:'Fake News Desk',topic:'Percentage change and reverse percentage',
- how:'Reporters rush in with percentage headlines. Stamp each one TRUE or FAKE, investigate with hands-on tools, then publish or fix your call. Keep your readers\' trust!',rounds:8,
- round(api,r){const T=TIER();let t=FNTYPES[r];
-  if(t==='mix')t=pick(['back','addDown','pts','units','rev','trueish']);
+ how:'Reporters rush in with percentage headlines, many from real Singapore news. Stamp each one TRUE or FAKE, investigate with hands-on tools, then publish or fix your call. Core: one-step claims. Stretch: two-step changes and reverse percentage. Challenge: ratios, compound changes and spot-the-flaw stories.',rounds:8,
+ round(api,r){const T=TIER();if(r===0||!ctx.fnPlan){const P=FNPOOL[T];ctx.fnPlan=[P.first,...shuffle([...new Set(P.rest)]).slice(0,7)];while(ctx.fnPlan.length<8)ctx.fnPlan.push(pick(P.rest))}
+  let t=ctx.fnPlan[r];try{(QHINTS['s1-news']=QHINTS['s1-news']||[])[r]=FNH[t]||FNHINTS[0]}catch(e){}
+  if(t==='simple')return fnSimpleRound(api,T);if(t==='gst')return fnGstRound(api,T);if(t==='order')return fnOrderRound(api,T);if(t==='ratio')return fnRatioRound(api,T);
+  if(t==='girls')return fnGirlsRound(api,T);if(t==='pofp')return fnPofPRound(api,T);if(t==='flaw')return fnFlawRound(api,T);
+  if(['back','add','down2','fare','slow','svc','over','double','true25'].includes(t))return fnChainRound(api,T,t);
   if(t==='swap')return fnSwapRound(api,T);if(t==='pts')return fnPtsRound(api,T);if(t==='units')return fnUnitsRound(api,T);if(t==='rev')return fnRevRound(api,T);
   if(t==='back')return fnChainRound(api,T,'back');if(t==='addDown')return fnChainRound(api,T,pick(['add','down2']));
   return fnChainRound(api,T,pick(['true25','double','over']))},
