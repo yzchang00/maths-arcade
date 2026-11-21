@@ -7,6 +7,9 @@ try{MUSIC.on=localStorage.getItem('arcMusic')!=='0'}catch(e){}
 function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
 function compose(key){const base=key.replace('~secret',''),G0=GAMES[base];
   if(G0&&G0.music==='news')return newsSong(key.endsWith('~secret'));
+  if(G0&&G0.music==='hawker')return {hawker:true,bpm:96};
+  if(G0&&G0.music==='warehouse')return whSong(key.endsWith('~secret'));
+  if(G0&&G0.music==='paint')return {paint:true,secret:key.endsWith('~secret'),bpm:key.endsWith('~secret')?150:100};
   const rnd=mulberry(hashStr(key)),pk=a=>a[Math.floor(rnd()*a.length)];
   const secret=key.endsWith('~secret'),chill=key==='secondary'||!!(GAMES[key]&&GAMES[key].sec),minor=!secret&&rnd()<.3,scale=chill?[0,2,3,5,7,9,10]:minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11],root=pk([0,2,3,5,7,-3,-2]),bpm=secret?150:chill?84:pk([100,108,116,124,132]);
   const prog=chill?[0,3,6,4]:pk(minor?[[0,5,2,6],[0,3,4,0],[0,6,5,4],[0,3,6,4]]:[[0,4,5,3],[0,5,3,4],[5,3,0,4],[0,3,4,3],[0,3,5,4],[0,4,3,4]]);
@@ -34,13 +37,52 @@ function newsStep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.
   if(s%2===0)mtone(t,midiF(mnote(S,ch,-2)),st*1.6,'square',.05);                                         /* pulsing bass */
   if(S.secret&&s===0&&bar%2===0)mslide(t,660,880,st*14,.035);                                            /* siren */
   S.form[bar].forEach(ev=>{if(ev.s===s)mtone(t,midiF(mnote(S,ch+ev.d,1)),ev.len*st*.85,S.lead,.03)})}
+/* Triangle Sorter's warehouse: a bouncy, friendly groove. Soft triangle-wave tune, conveyor clunks on the off-beats,
+   a shaker, a walking bass and a little scanner beep every few bars. No harsh square or sawtooth leads. */
+function whSong(secret){const n=(s,len,d)=>({s,len,d});
+  const A=[n(0,2,4),n(2,2,4),n(4,2,5),n(6,2,4),n(8,4,2),n(12,4,0)],B=[n(0,2,2),n(2,2,4),n(4,4,5),n(8,2,4),n(10,2,2),n(12,4,4)],
+    C=[n(0,3,7),n(3,3,5),n(6,2,4),n(8,4,5),n(12,4,4)],D=[n(0,2,4),n(2,2,2),n(4,2,1),n(6,2,2),n(8,8,0)];
+  return {wh:true,secret,bpm:secret?128:108,root:0,scale:[0,2,4,5,7,9,11],prog:[0,3,4,0],lead:'triangle',bassPat:[0,6,8,14],form:[A,B,A,D,C,B,C,D]}}
+function whStep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
+  if(s===0||s===8)mtone(t,100,.16,'sine',.15),mtone(t,55,.18,'sine',.1);                                 /* soft kick */
+  if(s===4||s===12)mtone(t,190,.07,'triangle',.07),mnoise(t,.06,.05,700);                              /* conveyor clunk */
+  if(s%2===1)mnoise(t,.025,.016,6500);                                                                   /* shaker */
+  if(s===0)[0,2,4].forEach(k=>mtone(t,midiF(mnote(S,ch+k,0)),st*14,'sine',.026));                       /* warm chord */
+  if(S.bassPat.includes(s))mtone(t,midiF(mnote(S,ch+(s===6||s===14?4:0),-2)),st*2.5,'triangle',.1);     /* walking bass */
+  if(bar%4===3&&(s===13||s===15))mtone(t,1568,.06,'sine',.035);                                         /* scanner beep-beep */
+  if(S.secret&&s%4===2)mtone(t,midiF(mnote(S,ch+[4,7,9,11][(n>>2)%4],2)),st*.9,'sine',.025);
+  S.form[bar].forEach(ev=>{if(ev.s===s)mtone(t,midiF(mnote(S,ch+ev.d,1)),ev.len*st*.9,S.lead,.06)})}
 const midiF=m=>440*Math.pow(2,(m-69)/12);
+/* Hawker Centre Tycoon: a warm, easy-going hawker-centre tune. A plucked lead on the five-note (pentatonic) scale,
+   soft chords, a walking bass and a light hand-drum and shaker groove. Written for this game. */
+const HWPENT=[0,2,4,7,9],HWMEL=[[[0,2,4],[2,2,3],[4,4,2],[8,2,3],[10,2,4],[12,4,5]],[[0,2,4],[2,2,2],[4,2,3],[6,2,1],[8,8,2]],[[0,2,2],[2,2,3],[4,4,4],[8,2,6],[10,2,5],[12,4,4]],[[0,4,3],[4,4,2],[8,8,0]],
+  [[0,2,4],[2,2,3],[4,4,2],[8,2,3],[10,2,4],[12,4,5]],[[0,2,4],[2,2,5],[4,4,7],[8,2,6],[10,2,5],[12,4,4]],[[0,2,3],[2,2,4],[4,2,2],[6,2,1],[8,8,2]],[[0,4,1],[4,4,2],[8,8,0]]];
+const HWCH=[[0,4,7],[9,12,16],[5,9,12],[7,11,14],[0,4,7],[5,9,12],[2,5,9],[0,4,7]];
+function hawkerStep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,K=65,pm=d=>K+HWPENT[((d%5)+5)%5]+12*Math.floor(d/5),ch=HWCH[bar];
+  if(s===0||s===6||s===10)mtone(t,s===0?150:190,.16,'sine',s===0?.14:.08);   /* hand drum */
+  if(s===4||s===12)mnoise(t,.06,.035,3000);                                   /* soft slap */
+  if(s%2===0)mnoise(t,.025,s%4===0?.018:.011,9000);                           /* shaker */
+  if(s===0)ch.forEach(k=>mtone(t,midiF(K-12+k),st*15,'sine',.022));           /* chord pad */
+  if(s===0||s===8)mtone(t,midiF(K-24+ch[0]),st*5,'triangle',.1);             /* bass */
+  if(s===12)mtone(t,midiF(K-24+ch[0]+7),st*3,'triangle',.07);
+  if(s%4===2)mtone(t,midiF(K+ch[(s>>2)%3]),st*1.2,'triangle',.018);          /* off-beat pluck */
+  HWMEL[bar].forEach(([b,len,d])=>{if(b===s){const f=midiF(pm(d));mtone(t,f,Math.min(len*st,.55),'triangle',.07);mtone(t,f*2,Math.min(len*st,.3),'sine',.015)}})}
+/* Qubi's Paint Shop: a bouncy "ukulele and brushes" shop tune in F major (I-vi-IV-V). Soft kick, brush snare,
+   strummed off-beat chords and a sing-along melody. The secret Mural Rush round plays it faster with a sparkle. */
+const PSCH=[[0,4,7],[9,12,16],[5,9,12],[7,11,14]],PSBASS=[0,9,5,7],PSMEL=[[0,7],[3,9],[6,12],[10,11],[12,9],[16,7],[19,4],[22,5],[24,7],[28,12],[32,14],[35,12],[38,11],[40,9],[44,7],[48,9],[51,7],[54,4],[56,5],[60,4]];
+function paintStep(S,n,t){const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%4,ch=PSCH[bar],R=65;
+  if(s===0||s===10)mtone(t,92,.2,'sine',.16);                                   /* soft kick */
+  if(s===4||s===12)mnoise(t,.09,.05,2500);if(s%2===0)mnoise(t,.025,.018,8000);  /* brushes */
+  if(s===0||s===6||s===8||s===14)mtone(t,midiF(R-24+PSBASS[bar]+(s===6||s===14?7:0)),st*2.4,'triangle',.11);
+  if(s%4===2)ch.forEach((k,i)=>mtone(t+i*.012,midiF(R+k),st*1.6,'triangle',.03)); /* strum */
+  const pos=n%64;PSMEL.forEach(([p,d])=>{if(p===pos)mtone(t,midiF(R+12+d),st*1.8,'sine',.07)});
+  if(S.secret&&s%2===1)mtone(t,midiF(R+24+ch[(s>>1)%3]),st*.8,'square',.012)}
 function mnote(S,d,oct){const o=Math.floor(d/7),i=((d%7)+7)%7;return 60+S.root+S.scale[i]+12*(o+oct)}
 function mtone(t,f,dur,type,vol){const c=AC,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.01);
   g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(MUSIC.gain);o.start(t);o.stop(t+dur+.05)}
 function mnoise(t,dur,vol,hp){const c=AC;if(!MUSIC.noise){const b=c.createBuffer(1,c.sampleRate*.5,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MUSIC.noise=b}
   const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=MUSIC.noise;f.type='highpass';f.frequency.value=hp;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f).connect(g).connect(MUSIC.gain);s.start(t);s.stop(t+dur+.02)}
-function mstep(S,n,t){if(S.news)return newsStep(S,n,t);const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
+function mstep(S,n,t){if(S.news)return newsStep(S,n,t);if(S.hawker)return hawkerStep(S,n,t);if(S.wh)return whStep(S,n,t);if(S.paint)return paintStep(S,n,t);const st=60/S.bpm/4,s=n%16,bar=Math.floor(n/16)%8,ch=S.prog[bar%4];
   if(S.chill){ /* the secondary theme: slower, laid-back beat with soft chords */
     if(s===0||s===10)mtone(t,90,.22,'sine',.18),mtone(t,55,.24,'sine',.13);if(s===8)mnoise(t,.14,.06,1500);if(s%4===2)mnoise(t,.03,.022,8000);
     if(s===0)[0,2,4,6].forEach(k=>mtone(t,midiF(mnote(S,ch+k,0)),st*15,'sine',.034))}

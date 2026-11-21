@@ -1,5 +1,5 @@
-<title>Maths Arcade · Maths learning games for Primary 4–6 and Secondary 1</title>
-<meta name="description" content="Maths Arcade is a free maths learning website for Singapore pupils in Primary 4 to 6 and Secondary 1. Short practice games on fractions, decimals, percentage, time, speed, area, angles, data, prime numbers, integers and estimation, built around the mistakes pupils commonly make.">
+<title>Maths Arcade · Maths learning games for Primary 4–6 and Secondary 1–4</title>
+<meta name="description" content="Maths Arcade is a free maths learning website for Singapore pupils in Primary 4 to 6 and Secondary 1 to 4. Short practice games on fractions, decimals, percentage, time, speed, area, angles, data, prime numbers, integers and estimation, built around the mistakes pupils commonly make.">
 <meta name="keywords" content="maths, mathematics, education, learning, practice, Singapore, primary school, secondary school, PSLE, fractions, percentage, prime numbers">
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#5f50ec">
@@ -658,7 +658,7 @@ input.num.ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 1
 .ptover .end{background:var(--surface);border:2.5px solid var(--ink);border-radius:16px;padding:18px;box-shadow:5px 5px 0 var(--ink);max-width:560px}.ptover .end p{margin:0}
 #gStage:has(.ptover){position:relative;min-height:420px}
 /* ---- Tug-of-war ---- */
-.tug{display:grid;gap:10px}.tughead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.pill.hot{border-color:var(--bad);color:var(--bad)}
+.tug{display:grid;gap:10px}.tughead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.pill.hot{border-color:var(--bad);color:var(--bad)}.pill.streakp{border-color:#ef5240;color:#fff;background:linear-gradient(135deg,#ef5240,#ffb81f)}
 .tugrope{width:100%;height:auto;max-height:110px}.tgzone{opacity:.18}.tgzone.z0{fill:var(--teal)}.tgzone.z1{fill:var(--violet)}
 .tugsides{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tgside{border:3px solid var(--teal);border-radius:16px;padding:10px;display:grid;gap:8px;align-content:start;transition:opacity .2s}.tgside.s1{border-color:var(--violet)}.tgside.locked{opacity:.65}
@@ -745,6 +745,86 @@ body.playing .gbtn{display:none}
 .oltoast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:300;background:var(--ink);color:var(--bg);font-weight:800;padding:10px 16px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center;animation:pillpop .3s ease}
 .olrejoin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:color-mix(in srgb,var(--sun) 25%,var(--surface));border:2px solid var(--ink);border-radius:14px;padding:10px 14px;font-weight:700;margin-bottom:12px}
 #view>.qs,#view>.qs .hl,#view>.qs .gcard,#view>.qs .pill,#view>.qs .strand,#view>.qs .mbubble{animation:none!important}
+/* ---- Hawker Centre Tycoon ---- */
+.hwhome{display:grid;gap:14px}.hwh{margin:6px 0 0;font:600 1.25rem var(--display)}
+.hwsign{border:3px solid var(--ink);border-radius:18px;overflow:hidden;background:var(--surface);box-shadow:0 4px 0 var(--ink)}
+.hwbanner{background:var(--tomato);color:#fff;font:700 1.35rem var(--display);text-align:center;padding:10px 12px;letter-spacing:.03em;background-image:repeating-linear-gradient(90deg,transparent 0 22px,rgba(255,255,255,.14) 22px 44px)}
+.hwstats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:10px}
+.hwhow{border:2px solid var(--line);border-radius:14px;padding:8px 14px;background:var(--surface)}.hwhow summary{font-weight:800;cursor:pointer}.hwhow ul{margin:8px 0 4px;padding-left:20px;display:grid;gap:4px}
+.hwstalls{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.hwstall{display:grid;gap:6px;align-content:start;border:2.5px solid var(--ink);border-radius:16px;padding:8px;background:var(--surface);box-shadow:0 4px 0 var(--ink);position:relative}
+.hwstall::before{content:'';position:absolute;inset:0 0 auto 0;height:10px;border-radius:13px 13px 0 0;background:repeating-linear-gradient(90deg,var(--tomato) 0 14px,#fff 14px 28px);opacity:.85}
+.hwstall.l3::before{background:repeating-linear-gradient(90deg,var(--teal) 0 14px,#fff 14px 28px)}.hwstall.l4::before{background:repeating-linear-gradient(90deg,var(--violet) 0 14px,#fff 14px 28px)}.hwstall.l5::before{background:repeating-linear-gradient(90deg,var(--sun) 0 14px,#fff 14px 28px)}
+.hwserve{display:grid;justify-items:center;gap:3px;text-align:center;background:none;border:0;color:var(--ink);cursor:pointer;padding:12px 4px 4px;font:inherit;border-radius:12px}
+.hwserve:hover{background:var(--soft)}.hwserve b{font:600 1.08rem var(--display)}.hwserve small{color:var(--muted);font-weight:700;font-size:12.5px}
+.hwic{font-size:2.3rem;line-height:1}.hwlv{font-size:15px;letter-spacing:1px}.hwlv i{font-style:normal;color:color-mix(in srgb,var(--ink) 18%,transparent)}.hwlv i.on{color:var(--sun);-webkit-text-stroke:.6px var(--ink)}
+.hwmast{display:block;width:100%;height:8px;border-radius:99px;background:var(--soft);overflow:hidden}.hwmast i{display:block;height:100%;background:var(--teal);border-radius:99px}
+.hwup{justify-self:stretch}.hwgold{font-weight:800;text-align:center;font-size:13px}
+.hwnote{color:var(--muted);font-size:13px;margin:0;text-align:center}
+.hwtop{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hwtm.late{color:var(--bad)}
+.hwprog{display:flex;gap:4px;flex-wrap:wrap}.hwprog i{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:var(--surface)}.hwprog i.now{background:var(--sun)}.hwprog i.ok{background:var(--good)}.hwprog i.half{background:var(--sun);opacity:.7}.hwprog i.no{background:var(--bad)}
+.hwticket{display:flex;gap:10px;align-items:center;border:2px dashed var(--ink);border-radius:14px;padding:8px 12px;background:color-mix(in srgb,var(--sun) 16%,var(--surface))}
+.hwticket b{font:600 1.08rem var(--display);display:block}.hwticket small{color:var(--muted);font-weight:700}.hwcust{font-size:2.1rem;line-height:1}
+.hwlock{font-size:13px;font-weight:800;color:var(--muted)}
+.hwmiss{display:grid;gap:6px}.hwhint{margin:0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--sun) 22%,var(--surface))}.hwmore{margin:0;font-weight:700;color:var(--muted)}
+.hwpw{display:grid;gap:3px;padding:8px 10px;border-left:4px solid var(--teal);background:var(--soft);border-radius:6px}
+.hwearn{margin:0;font-weight:800}
+.hwinsp{display:flex;gap:12px;align-items:center;border:3px solid var(--violet);border-radius:16px;padding:10px 14px;background:color-mix(in srgb,var(--violet) 12%,var(--surface));animation:rqIn .5s ease-out}
+.hwinsp b{font:600 1.25rem var(--display);display:block}.hwinsp small{font-weight:700;color:var(--muted)}.hwbig{font-size:2.6rem;line-height:1}
+.hwcal{display:grid;gap:6px;border:2px solid var(--ink);border-radius:14px;padding:10px;background:var(--surface)}.hwcalh{font-weight:800}
+.hwline{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:8px 10px;font:600 1rem/1.5 var(--body);cursor:pointer}
+.hwline:hover:not(:disabled){border-color:var(--ink)}.hwln{flex:none;width:1.7em;height:1.7em;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-weight:800;font-size:.85rem}
+.hwline.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}.hwline.okl{border-color:var(--good);opacity:.7}
+.hwsteps{display:flex;gap:8px;list-style:none;margin:0;padding:0;counter-reset:hs}.hwsteps li{counter-increment:hs;flex:1;display:flex;gap:6px;align-items:center;padding:6px 10px;border:2px solid var(--line);border-radius:12px;font-weight:800;color:var(--muted);font-size:14px}
+.hwsteps li::before{content:counter(hs);flex:none;width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--ink)}
+.hwsteps li.on{border-color:var(--violet);color:var(--ink);background:color-mix(in srgb,var(--violet) 10%,var(--surface))}.hwsteps li.on::before{background:var(--violet);color:#fff}
+.hwsteps li.done{color:var(--good)}.hwsteps li.done::before{content:'✓';background:var(--good);color:#fff}
+.hwcalh span{font-weight:700;color:var(--muted)}
+.hwfix{margin:0;font-weight:700;color:var(--good)}.hwstep{font-weight:700}
+.hwsum{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.hwsum>div{display:grid;border:2px solid var(--line);border-radius:12px;padding:6px 14px;min-width:110px}.hwsum small{color:var(--muted);font-weight:700}.hwsum b{font:600 1.2rem var(--display)}
+.hwtipup{font-weight:800;color:var(--teal)}
+.hwname{display:flex;gap:6px 8px;flex-wrap:wrap;justify-content:center;align-items:center;padding:8px 10px 0;font-weight:700}.hwname input{font:700 1rem var(--body);padding:6px 10px;border:2px solid var(--ink);border-radius:10px;background:var(--surface);color:var(--ink);width:10em}.hwnameerr{color:var(--bad);font-weight:700;width:100%;text-align:center}.hwnameerr:empty{display:none}
+.hwqline{font-size:1.8rem;letter-spacing:4px;margin:4px 0}
+.hwscene{border:3px solid var(--ink);border-radius:18px;overflow:hidden;background:color-mix(in srgb,var(--sun) 10%,var(--surface));box-shadow:0 4px 0 var(--ink);display:grid}
+.hwawn{height:18px;background:repeating-linear-gradient(90deg,var(--tomato) 0 22px,#fff 22px 44px);border-bottom:2px solid var(--ink)}
+.hwboard{margin:8px auto 0;padding:3px 16px;border:2.5px solid var(--ink);border-radius:10px;background:var(--tomato);color:#fff;font:700 1.15rem var(--display);text-align:center;box-shadow:0 3px 0 var(--ink)}
+.hwmeta{display:block;text-align:center;color:var(--muted);font-weight:700;font-size:13px;margin-top:6px}
+.hwfront{display:flex;gap:10px;align-items:flex-end;padding:10px 14px 6px}
+.hwfront .hwcust{font-size:3rem;line-height:1;flex:none}
+.hwbub{position:relative;flex:0 1 auto;max-width:600px;border:2.5px solid var(--ink);border-radius:16px;padding:9px 13px;background:var(--surface);font:600 1.08rem/1.35 var(--display);margin-bottom:10px}
+.hwbub::before{content:'';position:absolute;left:-11px;bottom:10px;border:9px solid transparent;border-right:11px solid var(--ink);border-left:0}
+.hwbub::after{content:'';position:absolute;left:-7px;bottom:12px;border:7px solid transparent;border-right:8px solid var(--surface);border-left:0}
+.hwface{font-size:1.25em}
+.hwcounter{display:flex;align-items:center;gap:10px;padding:6px 14px;border-top:3px solid var(--ink);background:color-mix(in srgb,#b0703c 70%,var(--surface));color:#fff;min-height:46px}
+.hwplate{font-size:1.9rem;line-height:1;filter:grayscale(.3);opacity:.75}.hwplate.served{filter:none;opacity:1;animation:hwServe .6s cubic-bezier(.3,1.6,.5,1)}
+.hwwait{margin-left:auto;font-weight:800;font-size:13px;text-shadow:0 1px 0 rgba(0,0,0,.35)}.hwwait span{font-size:1.25rem;letter-spacing:2px}
+.hwwalk{animation:hwWalk .55s ease-out}.hwhop{animation:hwHop .5s ease-out}.hwshake{animation:hwNo .45s ease-in-out}.hwbub.pop{animation:hwPop .35s ease-out}
+.hwfrontsm{padding:4px 0}.hwfrontsm .hwcust{font-size:2.2rem}.hwfrontsm .hwbub{font-size:1rem}
+@keyframes hwWalk{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+@keyframes hwHop{30%{transform:translateY(-12px)}60%{transform:none}80%{transform:translateY(-4px)}}
+@keyframes hwNo{20%,60%{transform:rotate(-10deg)}40%,80%{transform:rotate(10deg)}}
+@keyframes hwPop{from{transform:scale(.94)}to{transform:none}}
+@keyframes hwServe{0%{transform:translateY(-40px) scale(.4);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.hwwalk,.hwhop,.hwshake,.hwbub.pop,.hwplate.served{animation:none}}
+.hwgo{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:3px solid var(--ink);border-radius:16px;padding:12px 16px;background:var(--teal);color:#fff;font:inherit;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.hwgo:hover{filter:brightness(1.06)}.hwgo:active{transform:translateY(2px);box-shadow:0 2px 0 var(--ink)}.hwgo b{display:block;font:600 1.25rem var(--display)}.hwgo small{font-weight:700;opacity:.9}.hwgo .hwic{font-size:2.4rem}.hwgoarr{margin-left:auto;font-size:1.4rem}
+.hwbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.hwbar .hwh{margin:0}
+.hwlvn{font-size:12px!important}.hwacc{font-size:12px!important;color:var(--teal)!important}
+.hwstall .hwup{border:2px dashed var(--line);border-radius:12px;padding:6px;background:none;color:var(--muted);font:800 13px var(--body);cursor:pointer}
+.hwstall .hwup.can{border:2px solid var(--ink);background:var(--sun);color:#16233a;box-shadow:0 3px 0 var(--ink)}
+.hwpop{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(10,20,30,.55)}
+.hwpopc{width:min(440px,100%);display:grid;gap:12px;background:var(--surface);color:var(--ink);border:3px solid var(--ink);border-radius:18px;padding:16px;box-shadow:0 6px 0 var(--ink)}.hwpopc h3{margin:0;font:600 1.35rem var(--display)}.hwpopc p{margin:0}
+.hwuprows{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch}.hwuparr{align-self:center;font-size:1.4rem;color:var(--muted)}
+.hwuprow{display:grid;gap:2px;align-content:start;justify-items:center;text-align:center;border:2px solid var(--line);border-radius:12px;padding:8px}.hwuprow b{font:600 1.05rem var(--display)}.hwuprow small{font-weight:700;color:var(--muted);font-size:12.5px}
+.hwuprow.next{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,var(--surface))}
+.hwdeco{font-size:1rem;letter-spacing:2px;line-height:1}.hwvip{justify-self:center;margin:6px auto 0;display:table;padding:3px 12px;border-radius:99px;border:2px solid var(--ink);background:var(--sun);color:#16233a;font-weight:800;font-size:13px}
+.hwsw{display:inline-block;width:1.1em;height:1.1em;border-radius:4px;border:2px solid #16233a;vertical-align:-.2em;margin-right:6px}
+.hwmodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.hwmode{display:grid;gap:2px;justify-items:start;text-align:left;border:2px solid var(--ink);border-radius:14px;padding:10px 12px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.hwmode>span{font-size:1.5rem;line-height:1}.hwmode b{font:600 1.02rem var(--display)}.hwmode small{color:var(--muted);font-weight:700;font-size:12px;line-height:1.3}.hwmode:hover{background:var(--soft)}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:800;color:var(--teal);text-decoration:underline;cursor:pointer}
+.hwname1{display:grid;gap:4px;font-weight:800}.hwname1 input{font:700 1.05rem var(--body);padding:8px 12px;border:2px solid var(--ink);border-radius:12px;background:var(--surface);color:var(--ink);width:min(260px,80vw)}
+@media (max-width:480px){.hwgo b{font-size:1.08rem}.hwgo .hwic{font-size:2rem}.hwfront .hwcust{font-size:2.5rem}.hwbub{font-size:1rem}.hwboard{font-size:1.02rem}.hwstalls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.hwic{font-size:1.9rem}.hwserve b{font-size:.98rem}.hwbanner{font-size:1.1rem}.hwmodes{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
 </style>
 
 <canvas id="bgfx" aria-hidden="true"></canvas>
@@ -762,7 +842,7 @@ body.playing .gbtn{display:none}
   <div class="aboutpanel" id="aboutPanel" hidden role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
     <div class="aboutcard"><div class="abouthead"><h2 id="aboutTitle">ℹ️ About Maths Arcade</h2><button class="btn" id="aboutX" aria-label="Close">✕</button></div>
       <div class="aboutbody">
-        <p><b>Maths Arcade</b> is a free <b>maths learning website</b> for Singapore pupils in <b>Primary 4 to 6</b> and <b>Secondary 1</b>. Each game practises one topic from school mathematics, such as fractions, decimals, percentage, time, speed, area and volume, angles, data, prime numbers, negative numbers and estimation, in short rounds with instant feedback.</p>
+        <p><b>Maths Arcade</b> is a free <b>maths learning website</b> for Singapore pupils in <b>Primary 4 to 6</b> and <b>Secondary 1 to 4</b>. Each game practises one topic from school mathematics, such as fractions, decimals, percentage, time, speed, area and volume, angles, data, prime numbers, negative numbers and estimation, in short rounds with instant feedback.</p>
         <h3>How it helps pupils learn</h3>
         <ul>
           <li><b>Built around common mistakes.</b> Wrong options are the mistakes pupils really make, and the feedback explains <i>why</i> an answer is wrong, not just that it is wrong.</li>

@@ -206,7 +206,7 @@ function rqCalcShow(on){let c=$('rqCalc');if(!c){if(!on)return;document.body.ins
     c=$('rqCalc');c.querySelectorAll('[data-k]').forEach(b=>{b.onpointerdown=e=>e.preventDefault();b.onclick=()=>{calcKey(b.dataset.k);sfx.tap()}});$('rqCx').onclick=()=>rqCalcShow(false);
     const E=$('rqcE');E.oninput=()=>{const p=E.selectionStart,v=E.value.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−').replace(/\^2/g,'²');if(v!==E.value){E.value=v;E.setSelectionRange(p,p)}CALC.just=false;calcPreview()};
     E.onclick=E.onkeyup=()=>calcHint();E.onkeydown=e=>{if(CALC.just&&e.key.length===1&&!e.ctrlKey&&!e.metaKey){CALC.just=false;E.value=/[*\/+\-^×÷−]/.test(e.key)?'Ans':''}if(e.key==='Enter'){e.preventDefault();calcKey('=')}else if(e.key==='Escape'){e.preventDefault();calcKey('C')}};
-    $('rqcUse').onclick=()=>{const i=RQ&&RQ.input;if(CALC.last===null){$('rqcR').textContent='Press = first';return}if(!i||i.disabled){$('rqcR').innerHTML='Tap an answer box first';return}i.value=calcText(CALC.last,CALC.mode,true);i.focus();sfx.pop()}}
+    $('rqcUse').onclick=()=>{const i=(typeof HW!=='undefined'&&HW&&HW.input&&document.contains(HW.input)&&HW.input)||(RQ&&RQ.input);if(CALC.last===null){$('rqcR').textContent='Press = first';return}if(!i||i.disabled){$('rqcR').innerHTML='Tap an answer box first';return}i.value=calcText(CALC.last,CALC.mode,true);i.focus();sfx.pop()}}
   c.hidden=!on;document.body.classList.toggle('rqco',on);const b=$('rqCalcBtn');if(b){b.setAttribute('aria-expanded',String(on));b.classList.toggle('primary',on)}if(on&&!('ontouchstart' in window))$('rqcE').focus()}
 function calcIns(s){const E=$('rqcE'),op=s.length===1&&'÷×−+²'.includes(s);
   if(CALC.just){CALC.just=false;E.value=op?'Ans':'';E.setSelectionRange(E.value.length,E.value.length)}

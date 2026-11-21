@@ -53,6 +53,7 @@ const QHINTS={
   ]
 };
 if(typeof FNHINTS!=='undefined')QHINTS['s1-news']=QHINTS['s1-news']||[];
+QHINTS['s1-ratio']=QHINTS['s1-ratio']||[]; /* filled per round by 23-sec1-paint.js */
 const QGENERAL=['Read the question again slowly. What exactly is it asking you to find? Point to the key numbers and words.',
   'Choose a tool: a model or bar diagram, a number line, a table, or a quick sketch. Which one fits this question?',
   'Do one small step at a time and write it down. Then check: is your answer sensible? Estimate first and compare.'];

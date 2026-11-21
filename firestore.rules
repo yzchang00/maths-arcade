@@ -32,11 +32,11 @@ service cloud.firestore {
         'p4-rounding': 90, 'p4-factors': 80, 'p4-product': 90, 'p4-flip': 30, 'p4-share': 80, 'p4-target': 100,
         'p4-decimals': 80, 'p4-cashier': 80, 'p4-garden': 80, 'p4-angles': 100, 'p4-mirror': 80, 'p4-nets': 100,
         'p4-graphs': 100, 'p5-vault': 20000, 'p5-order': 80, 'p5-slide': 80, 'p5-share': 80, 'p5-fgrid': 80,
-        'p5-rate': 80, 'p5-tarea': 80, 'p5-volume': 80, 'p5-angles': 80, 'p5-triangles': 80, 'p5-quads': 80,
+        'p5-rate': 80, 'p5-tarea': 80, 'p5-volume': 80, 'p5-angles': 80, 'p5-triangles': 50, 'p5-quads': 80,
         'p6-fdiv': 80, 'p6-pchange': 80, 'p6-ratio': 80, 'p6-algebra': 80, 'p6-circle': 80, 'p6-cuberoot': 80,
         'p6-chain': 80, 'p6-average': 80, 'p4-diner': 80, 'p4-train': 80, 'p4-compass': 80, 'p5-pizza': 80,
         'p5-pshop': 80, 'p6-pie': 80, 'party-tug': 1000, 'party-bingo': 1000, 'party-wall': 1000, 'p6-quest': 100,
-        'party-team': 1000, 'sg-journeys': 80, 'sg-journeys-2': 80, 'world-journeys': 80, 's1-primes': 80, 's1-integers': 80, 's1-estimate': 80, 's1-bouncer': 80, 's1-split': 80, 's1-news': 80, 's1-tables': 80
+        'party-team': 1000, 'sg-journeys': 80, 'sg-journeys-2': 80, 'world-journeys': 80, 's1-primes': 80, 's1-integers': 80, 's1-estimate': 80, 's1-bouncer': 80, 's1-split': 80, 's1-news': 80, 's1-tables': 80, 'p5-hawker': 100, 's1-ratio': 80
       };
     }
     // Class: empty, or letters/numbers/dash starting with a letter or number (5B, P5-2, 6E1).

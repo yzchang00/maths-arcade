@@ -1,7 +1,7 @@
 {
  "name": "Maths Arcade",
  "short_name": "Maths Arcade",
- "description": "Maths games for Primary 4 to 6, matched to the MOE syllabus.",
+ "description": "Maths games for Primary 4 to 6 and Secondary 1 to 4, matched to the MOE syllabus.",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

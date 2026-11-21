@@ -96,50 +96,316 @@ addGame('p5-angles',{level:'P5',strand:'geo',glyph:'∡',title:'Angle Detective'
     $('adChk').onclick=()=>{const v=parseInt($('adIn').value,10);if(isNaN(v))return;$('adIn').disabled=true;const o=v===x;api.done(o,`x = ${x}°`,work,(pOk?4:0)+(o?6:0))}});
   if(ctx.keep.fact)$('adP').querySelector(`[data-k="${prop}"]`).click()}});
 
-/* P5-10. Triangle Sorter — Properties of triangles, angle sum */
+/* P5-10. Triangle Sorter — Properties of triangles, angle sum.
+   Two kinds of round take turns:
+   • Triangle warehouse (even rounds): 5 parcels ride a belt one at a time; drag or tap each into the right crate before it drops off.
+     Wrong bins are real mistakes and say why. 2 points a triangle.
+   • Missing Corner Rescue (odd rounds): step 1 (a fact or a first angle) must be right before step 2 (find x) opens.
+   Easy = rounds 0–3 (angle bins, side bins, angle-sum discovery, right angle); Hard = rounds 4–7 (impossible triangles,
+   two-label bins with a hidden third angle, isosceles, extended side). */
+document.head.insertAdjacentHTML('beforeend',`<style>
+/* Triangle warehouse: scanner screen on top, a moving belt with the parcel, crates underneath. Cardboard and belt colours are object colours, the same in both themes. */
+.tswh{--card:#d9a66b;--card2:#b98146;--cardInk:#5b3713;--belt:#2d3442;position:relative;max-width:440px;width:100%;margin:0 auto;box-sizing:border-box;border:3px solid var(--ink);border-radius:18px;overflow:hidden;
+  background:linear-gradient(var(--soft) 0 0) top/100% 100%;display:grid;gap:10px;padding:10px 10px 12px}
+.tswh::before{content:'';position:absolute;inset:0 0 auto;height:118px;opacity:.5;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 34px,color-mix(in srgb,var(--ink) 18%,transparent) 34px 37px),repeating-linear-gradient(90deg,transparent 0 70px,color-mix(in srgb,var(--ink) 12%,transparent) 70px 73px)}
+.tshud{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;font:800 13px var(--body)}
+.tshud .tsk{background:var(--surface);border:2px solid var(--ink);border-radius:999px;padding:2px 10px}
+.tshud .tsst{color:var(--tomato);font-size:15px;min-width:3em;text-align:right}
+.tstime{flex:1;height:12px;border-radius:99px;background:var(--surface);border:2px solid var(--ink);overflow:hidden}
+.tstime i{display:block;height:100%;width:100%;background:var(--teal)}
+.tstime i.low{background:var(--tomato)}
+.tsscan{position:relative;background:#0b1830;border:3px solid var(--ink);border-radius:14px;padding:20px 6px 6px;box-shadow:0 4px 0 var(--ink)}
+.tsscan::before{content:'X-RAY SCREEN';position:absolute;left:10px;top:4px;font:800 10px var(--body);letter-spacing:.14em;color:#7ee0d6;z-index:1}
+.tsscan::after{content:'';position:absolute;right:12px;top:7px;width:8px;height:8px;border-radius:50%;background:#3b4a63}
+.tsscan.live::after{background:#4dff9a;box-shadow:0 0 8px #4dff9a}
+.tsscr{position:relative;border-radius:9px;min-height:150px;display:grid;place-items:center;overflow:hidden;
+  background:radial-gradient(circle at 50% 45%,#12305a,#071226 75%);background-image:radial-gradient(circle at 50% 45%,#12305a,#071226 75%),repeating-linear-gradient(0deg,#ffffff08 0 1px,transparent 1px 16px),repeating-linear-gradient(90deg,#ffffff08 0 1px,transparent 1px 16px);background-blend-mode:screen}
+.tsscr .idle{font:800 13px var(--body);color:#7ee0d6;opacity:.8;letter-spacing:.06em;animation:tsblink 1.2s steps(2) infinite}
+@keyframes tsblink{50%{opacity:.3}}
+.tsscr .img{width:100%;display:grid;place-items:center}
+.tsscr.scan .img{animation:tsreveal 1s linear}
+.tsscr.scan::after{content:'';position:absolute;top:0;bottom:0;width:4px;left:0;background:#8ff8ff;box-shadow:0 0 14px 4px #8ff8ffaa;animation:tsline 1s linear forwards}
+@keyframes tsreveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes tsline{from{left:0}to{left:100%;opacity:0}}
+.tsscr svg{display:block;width:100%;height:auto;max-width:300px!important}
+.tsscr svg polygon{fill:#8ff8ff22!important;stroke:#a9fbff;filter:drop-shadow(0 0 3px #8ff8ff)}
+.tsscr svg text{fill:#effeff!important}
+.tsscr svg text[style*="tomato"]{fill:#ff8f80!important}
+.tsscr svg path[stroke="var(--ink)"]{stroke:#a9fbff}
+.tshit{pointer-events:none}
+.tsscr.tap .tshit{pointer-events:all;cursor:pointer;stroke:#8ff8ff;stroke-width:2;stroke-dasharray:4 5;animation:tsdash 1.2s linear infinite}
+@keyframes tsdash{to{stroke-dashoffset:-18}}
+.tsscr .tv.pick .tshit{fill:#4dff9a33;stroke:#4dff9a;stroke-width:3;stroke-dasharray:none;animation:none}
+.tsscr .tv.miss .tshit{fill:#ff6b5733;stroke:#ff8f80;stroke-dasharray:none;animation:none}
+.tsstep{position:relative;justify-self:stretch;margin:0 8px 8px;background:#16233ae6;color:#effeff;border:2px solid #8ff8ff;border-radius:10px;padding:4px 8px;font:800 13px/1.3 var(--body);text-align:center}
+.tsstep.ok{border-color:#4dff9a}.tsstep.no{border-color:#ff8f80}
+@media (prefers-reduced-motion:reduce){.tsscr.tap .tshit{animation:none}}
+.tsbelt{position:relative;height:120px;touch-action:none}
+.tsbelt .rail{position:absolute;left:26px;right:44px;bottom:6px;height:26px;border-radius:13px;background:var(--belt);border:3px solid var(--ink);overflow:hidden}
+.tsbelt .rail::before{content:'';position:absolute;inset:3px 0;background:repeating-linear-gradient(90deg,#4a5366 0 14px,transparent 14px 28px);animation:tsroll .9s linear infinite}
+.tsbelt.stop .rail::before{animation-play-state:paused}
+@keyframes tsroll{to{background-position:28px 0}}
+.tsbelt .chute{position:absolute;right:0;bottom:0;z-index:6;width:46px;height:44px;border:3px solid var(--ink);border-top:0;border-radius:0 0 10px 10px;background:repeating-linear-gradient(45deg,var(--sun) 0 8px,#16233a 8px 16px)}
+.tsbelt .chute::after{content:'MISS';position:absolute;inset:auto 0 -1px;text-align:center;font:800 9px var(--body);color:#fff;background:#16233a}
+.tsworker{position:absolute;left:-4px;bottom:0;width:50px;height:98px;z-index:7}
+.tsworker svg{width:100%;height:100%;overflow:visible}
+.tsworker .arm{transform-box:view-box;transform-origin:39.5px 42px;transition:transform .3s}
+.tsworker.lift .arm{animation:tslift .7s ease-in-out}
+@keyframes tslift{35%{transform:rotate(-115deg)}70%{transform:rotate(-60deg)}}
+.tsworker.cheer{animation:tshop .5s 2}
+.tsworker.cheer .arm{transform:rotate(-150deg)}
+@keyframes tshop{50%{transform:translateY(-6px)}}
+.tsworker.sad svg{transform:rotate(-6deg);transform-origin:bottom}
+.tsworker .m2{display:none}.tsworker.sad .m1{display:none}.tsworker.sad .m2{display:inline}
+.tsxray{position:absolute;left:48px;bottom:8px;width:88px;height:94px;z-index:6;pointer-events:none}
+.tsxray .body{position:absolute;inset:0;background:linear-gradient(#cfd8e3,#aab6c5);border:3px solid var(--ink);border-radius:16px 16px 6px 6px;box-shadow:inset 0 -6px 0 #8e9bad}
+.tsxray .hole{position:absolute;left:9px;right:9px;bottom:8px;height:50px;border:3px solid var(--ink);border-radius:8px 8px 2px 2px;background:#0b1830;overflow:hidden}
+.tsxray .hole::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,#27416bcc 0 6px,#16233acc 6px 8px)}
+.tsxray .sign{position:absolute;left:50%;top:7px;transform:translateX(-50%);background:var(--sun);border:2px solid var(--ink);border-radius:5px;font:800 10px/1 var(--body);color:#16233a;padding:3px 5px;letter-spacing:.06em;white-space:nowrap}
+.tsxray .lamp{position:absolute;left:50%;top:-12px;width:16px;height:10px;margin-left:-8px;border:2.5px solid var(--ink);border-bottom:0;border-radius:8px 8px 0 0;background:#7a8597}
+.tsxray.on .lamp{background:#4dff9a;box-shadow:0 0 12px 3px #4dff9a}
+.tsxray.on .hole{box-shadow:inset 0 0 14px #8ff8ff}
+.tsxray .cable{position:absolute;left:calc(50% + 14px);top:-31px;width:5px;height:33px;background:#16233a;border-radius:3px}
+.tsparcel{position:absolute;bottom:28px;left:0;width:58px;height:44px;cursor:grab;z-index:5;touch-action:none;user-select:none;-webkit-user-select:none}
+.tsparcel .bx{position:absolute;inset:0;background:var(--card);border:2.5px solid var(--cardInk);border-radius:5px;box-shadow:inset 0 -6px 0 var(--card2)}
+.tsparcel .bx::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:9px;margin-left:-4.5px;background:#e9cf9b;border-inline:1px solid var(--card2)}
+.tsparcel svg{position:absolute;inset:6px 10px 9px;width:calc(100% - 20px);height:calc(100% - 15px)}
+.tsparcel.drag{cursor:grabbing;transition:none!important;filter:drop-shadow(0 8px 6px #0005);z-index:20}
+.tsparcel.fall{transition:none!important;animation:tsfall .9s ease-in forwards}
+@keyframes tsfall{0%{transform:none}45%{transform:translateX(52px)}100%{transform:translate(52px,52px) scale(.8);opacity:.2}}
+.tsparcel.fly{transition:transform .45s cubic-bezier(.5,-.3,.7,1),opacity .2s .4s!important}
+.tscrates{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:8px}
+.tscrate{position:relative;appearance:none;border:0;background:none;padding:14px 0 0;cursor:pointer;font:inherit;color:inherit;min-width:0}
+.tscrate .flap{position:absolute;top:2px;height:16px;width:46%;background:var(--card2);border:2.5px solid var(--cardInk);border-radius:3px}
+.tscrate .flap.l{left:2%;transform:skewX(-18deg) rotate(-8deg);transform-origin:right bottom}
+.tscrate .flap.r{right:2%;transform:skewX(18deg) rotate(8deg);transform-origin:left bottom}
+.tscrate .front{position:relative;display:grid;align-content:center;gap:2px;min-height:76px;padding:8px 4px 6px;background:var(--card);border:2.5px solid var(--cardInk);border-radius:4px 4px 10px 10px;box-shadow:0 5px 0 var(--cardInk);text-align:center}
+.tscrate .front b{font:800 clamp(12px,3.6vw,15px)/1.15 var(--body);color:#2b1a08;overflow-wrap:normal;hyphens:manual}
+.tscrates.n4 .front b{text-transform:none;letter-spacing:0;font-size:clamp(11.5px,3.3vw,14px)}
+.tscrate .front .ico{width:44px;height:28px;margin:0 auto;display:block;background:#f3dcb4;border-radius:6px;padding:2px 4px;box-sizing:content-box}
+.tscrate .front small{font:700 11px/1.2 var(--body);color:#4a2e10}
+.tscrate .cnt{position:absolute;top:-6px;right:-4px;min-width:22px;height:22px;border-radius:11px;background:var(--surface);border:2px solid var(--ink);font:800 12px/18px var(--body);color:var(--ink);text-align:center;z-index:2}
+.tscrate:focus-visible .front{outline:3px solid var(--violet);outline-offset:2px}
+.tscrate.hover .front,.tscrate:hover .front{filter:brightness(1.08)}
+.tscrate.hover .flap.l{transform:skewX(-18deg) rotate(-28deg)}.tscrate.hover .flap.r{transform:skewX(18deg) rotate(28deg)}
+.tscrate.ok .front{background:#7fd6a4;border-color:#0c5f37;box-shadow:0 5px 0 #0c5f37}
+.tscrate.no .front{background:#f3a39a;border-color:#8f241c;box-shadow:0 5px 0 #8f241c}
+.tscrate.glow .front{box-shadow:0 0 0 4px var(--sun),0 5px 0 var(--cardInk)}
+.tscrate.bump{animation:tsbump .35s}
+@keyframes tsbump{40%{transform:translateY(5px) scaleY(.94)}}
+.tscrate[disabled]{cursor:default}
+.tswhy{max-width:440px;width:100%;margin:0 auto;display:grid;gap:6px}
+.tswhy p{margin:0}
+.tsdisc{max-width:240px;margin:0 auto}
+.tstip{font:700 12px var(--body);color:var(--muted);text-align:center;margin:-2px 0 0}
+@media (prefers-reduced-motion:reduce){.tsbelt .rail::before,.tscrate.bump,.tsscan .tsscr.flash{animation:none}}
+</style>`);
 function triPts(al,be){const L=200,ga=(180-al-be)*Math.PI/180,a=al*Math.PI/180,b=be*Math.PI/180,AC=L*Math.sin(b)/Math.sin(ga);return [[0,0],[L,0],[AC*Math.cos(a),AC*Math.sin(a)]]}
-function triSVG(ang,labs,ticks){const P=triPts(ang[0],ang[1]),xs=P.map(p=>p[0]),ys=P.map(p=>p[1]),mnx=Math.min(...xs),mxx=Math.max(...xs),mxy=Math.max(...ys),sc=Math.min(260/(mxx-mnx),170/mxy);
-  const Q=P.map(([x,y])=>[20+(x-mnx)*sc,200-y*sc]);let s=`<polygon points="${Q.map(q=>q.map(v=>v.toFixed(1)).join(',')).join(' ')}" style="fill:color-mix(in srgb,var(--sun) 30%,transparent)" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>`;
-  Q.forEach((q,i)=>{const o=Q.filter((_,j)=>j!==i),u=o.map(p=>{const dx=p[0]-q[0],dy=p[1]-q[1],l=Math.hypot(dx,dy);return [dx/l,dy/l]}),bx=u[0][0]+u[1][0],by=u[0][1]+u[1][1],bl=Math.hypot(bx,by);
-    if(ang[i]===90&&labs[i]==='⊾'){s+=`<path d="M${q[0]+u[0][0]*14},${q[1]+u[0][1]*14} L${q[0]+(u[0][0]+u[1][0])*14},${q[1]+(u[0][1]+u[1][1])*14} L${q[0]+u[1][0]*14},${q[1]+u[1][1]*14}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;return}
-    if(labs[i])s+=`<text x="${(q[0]+bx/bl*(ang[i]<60?46:32)).toFixed(1)}" y="${(q[1]+by/bl*(ang[i]<60?46:32)+5).toFixed(1)}" text-anchor="middle" style="font:800 14px var(--body);fill:${labs[i]==='x'?'var(--tomato)':'var(--ink)'}">${labs[i]}</text>`});
+/* ext: label for an outside angle, made by extending the side from corner 0 through corner 1 */
+function triSVG(ang,labs,ticks,ext){const P=triPts(ang[0],ang[1]),E=[P[1][0]+90,0],xs=[...P,...(ext?[E]:[])].map(p=>p[0]),ys=P.map(p=>p[1]),mnx=Math.min(...xs),mxx=Math.max(...xs),mxy=Math.max(...ys),sc=Math.min(260/(mxx-mnx),170/mxy);
+  const ox=(300-(mxx-mnx)*sc)/2,T=([x,y])=>[ox+(x-mnx)*sc,200-y*sc],Q=P.map(T);let s=`<polygon points="${Q.map(q=>q.map(v=>v.toFixed(1)).join(',')).join(' ')}" style="fill:color-mix(in srgb,var(--sun) 30%,transparent)" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const arc=(q,u,r,col)=>{const sw=(u[0][0]*u[1][1]-u[0][1]*u[1][0])>0?1:0;return `<path d="M${(q[0]+u[0][0]*r).toFixed(1)},${(q[1]+u[0][1]*r).toFixed(1)} A${r},${r} 0 0 ${sw} ${(q[0]+u[1][0]*r).toFixed(1)},${(q[1]+u[1][1]*r).toFixed(1)}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>`};
+  const txt=(x,y,lab)=>{const hot=lab==='x';return `<text x="${x.toFixed(1)}" y="${(y+5).toFixed(1)}" text-anchor="middle" style="font:${hot?'italic 800 21px':'800 15px'} var(--body);fill:${hot?'var(--tomato)':'var(--ink)'}">${lab}</text>`};
+  const unit=(q,p)=>{const dx=p[0]-q[0],dy=p[1]-q[1],l=Math.hypot(dx,dy);return [dx/l,dy/l]};
+  if(ext){const QE=T(E),q=Q[1],u=[unit(q,QE),unit(q,Q[2])],bx=u[0][0]+u[1][0],by=u[0][1]+u[1][1],bl=Math.hypot(bx,by);
+    s+=`<line x1="${q[0].toFixed(1)}" y1="${q[1].toFixed(1)}" x2="${QE[0].toFixed(1)}" y2="${QE[1].toFixed(1)}" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>`+arc(q,u,20,'var(--sun)')+txt(q[0]+bx/bl*40,q[1]+by/bl*40,ext)}
+  Q.forEach((q,i)=>{const u=Q.filter((_,j)=>j!==i).map(p=>unit(q,p)),bx=u[0][0]+u[1][0],by=u[0][1]+u[1][1],bl=Math.hypot(bx,by);
+    /* each corner is a group with a hit circle, so a round can ask pupils to tap a corner (Triangle warehouse) */
+    const hit=dd=>`<circle class="tshit" cx="${(q[0]+bx/bl*dd).toFixed(1)}" cy="${(q[1]+by/bl*dd).toFixed(1)}" r="27" fill="transparent"/>`;
+    if(labs[i]==='⊾'){s+=`<g class="tv" data-v="${i}"><path d="M${q[0]+u[0][0]*14},${q[1]+u[0][1]*14} L${q[0]+(u[0][0]+u[1][0])*14},${q[1]+(u[0][1]+u[1][1])*14} L${q[0]+u[1][0]*14},${q[1]+u[1][1]*14}" fill="none" stroke="var(--ink)" stroke-width="2"/>${hit(16)}</g>`;return}
+    if(!labs[i])return;const r=ang[i]<45?24:ang[i]>100?16:19,d=r+(ang[i]<45?22:ang[i]<70?17:15);
+    /* angle arc: sun-yellow for a given angle, tomato for the unknown x (same style as Quad Quest) */
+    s+=`<g class="tv" data-v="${i}">`+arc(q,u,r,labs[i]==='x'?'var(--tomato)':'var(--sun)')+txt(q[0]+bx/bl*d,q[1]+by/bl*d,labs[i])+hit(d*.8)+'</g>'});
   (ticks||[]).forEach(([i,j])=>{const a=Q[i],b=Q[j],m=[(a[0]+b[0])/2,(a[1]+b[1])/2],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy),n=[-dy/l*8,dx/l*8];s+=`<line x1="${m[0]-n[0]}" y1="${m[1]-n[1]}" x2="${m[0]+n[0]}" y2="${m[1]+n[1]}" stroke="var(--tomato)" stroke-width="3"/>`});
-  return `<svg viewBox="0 0 300 220" class="msvg" style="max-width:340px" role="img" aria-label="Triangle">${s}</svg>`}
+  const top=Math.max(0,Math.floor(Math.min(...Q.map(q=>q[1]))-30));return `<svg viewBox="0 ${top} 300 ${222-top}" class="msvg" style="max-width:340px" role="img" aria-label="Triangle">${s}</svg>`}
 function genTri(kind){let a,b,c;
   if(kind==='equi')return {ang:[60,60,60],ticks:[[0,1],[1,2],[0,2]]};
-  if(kind==='isoA'){const t=pick([20,30,40,50,70,80]);return {ang:[(180-t)/2,(180-t)/2,t],ticks:[[0,2],[1,2]],apex:2}}
+  if(kind==='isoA'){const t=pick([30,40,50,70,80]);return {ang:[(180-t)/2,(180-t)/2,t],ticks:[[0,2],[1,2]],apex:2}}
   if(kind==='isoR')return {ang:[90,45,45],ticks:[[0,1],[0,2]],apex:0};
   if(kind==='isoO'){const t=pick([100,110,120,130,140]);return {ang:[(180-t)/2,(180-t)/2,t],ticks:[[0,2],[1,2]],apex:2}}
   if(kind==='scaR'){do{b=R(25,65)}while(b===45);return {ang:pick([[90,b,90-b],[b,90,90-b]])}}
   for(;;){if(kind==='scaO'){c=R(100,135);a=R(15,180-c-15);b=180-c-a}else{a=R(40,80);b=R(40,80);c=180-a-b}
     if(new Set([a,b,c]).size===3&&a>=15&&b>=15&&(kind==='scaO'||c<90&&c>30)){return {ang:shuffle([a,b,c])}}}}
-const TPROP=['Isosceles','Equilateral','Right-angled','Acute-angled','Obtuse-angled'];
-addGame('p5-triangles',{level:'P5',strand:'geo',glyph:'△',title:'Triangle Sorter',topic:'Properties of triangles and angle sum',
- how:'Some rounds: tick every name that describes the triangle. Other rounds: find the unknown angle using the angle sum of 180°.',rounds:8,
- round(api,r){
-  if(r%2===0){const kind=pick(['equi','isoA','isoR','isoO','scaR','scaA','scaO']),T=genTri(kind);let ang=T.ang;
-    const truth=new Set();if(kind==='equi'){truth.add('Equilateral')}else if(kind.startsWith('iso'))truth.add('Isosceles');
-    if(ang.includes(90))truth.add('Right-angled');else if(ang.some(v=>v>90))truth.add('Obtuse-angled');else truth.add('Acute-angled');
-    api.q(`<p class="qt">Tap <b>every</b> name that describes this triangle, then press Check.</p><p class="qs">Equal marks on two sides mean those sides are the same length.</p>`);
-    api.body.innerHTML=triSVG(ang,ang.map(v=>v===90?'⊾':v+'°'),T.ticks)+`<div class="row" id="tsC">${TPROP.map(p=>`<button class="btn" aria-pressed="false">${p}</button>`).join('')}</div><div><button class="btn primary" id="tsChk">Check</button></div>`;
-    const sel=new Set();$('tsC').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(api.answered)return;const p=b.textContent;sel.has(p)?sel.delete(p):sel.add(p);b.classList.toggle('sel',sel.has(p));b.setAttribute('aria-pressed',String(sel.has(p)));sfx.tap()});
-    $('tsChk').onclick=()=>{const opt=kind==='equi'?['Isosceles']:[],need=[...truth],ok=need.every(p=>sel.has(p))&&[...sel].every(p=>truth.has(p)||opt.includes(p));
-      $('tsC').querySelectorAll('button').forEach(b=>{b.disabled=true;b.classList.remove('sel');if(truth.has(b.textContent))b.classList.add('ok');else if(sel.has(b.textContent)&&!opt.includes(b.textContent))b.classList.add('no')});
-      const big=Math.max(...ang);
-      api.done(ok,`It is ${need.map(x=>x.toLowerCase()).join(' and ')}.`,[kind==='equi'?'All 3 sides are equal and every angle is 60°, so it is equilateral (it also counts as isosceles).':kind.startsWith('iso')?'Two sides are equal, so it is isosceles. The angles opposite the equal sides are equal too.':'No sides are equal.',
-        big===90?'One angle is 90°, so it is right-angled.':big>90?`One angle is ${big}°, more than 90°, so it is obtuse-angled.`:'All three angles are less than 90°, so it is acute-angled.'])};return}
-  const mode=['sum','isoBase','isoApex','right'][(r-1)/2];let ang,labs,x,work,ticks;
-  if(mode==='sum'){const T=genTri(pick(['scaA','scaO']));ang=T.ang;const xi=R(0,2);x=ang[xi];labs=ang.map((v,i)=>i===xi?'x':v+'°');const kn=ang.filter((_,i)=>i!==xi);
-    work=['The angles in a triangle add up to 180°.',`x = 180° − ${kn[0]}° − ${kn[1]}° = <b>${x}°</b>`]}
-  else if(mode==='isoBase'){const T=genTri(pick(['isoA','isoO']));ang=T.ang;ticks=T.ticks;x=ang[0];labs=['x','',ang[2]+'°'];
-    work=['The two marked sides are equal, so the two base angles are equal.',`180° − ${ang[2]}° = ${180-ang[2]}°`,`x = ${180-ang[2]}° ÷ 2 = <b>${x}°</b>`]}
-  else if(mode==='isoApex'){const T=genTri(pick(['isoA','isoO']));ang=T.ang;ticks=T.ticks;x=ang[2];labs=[ang[0]+'°','','x'];
-    work=['The two marked sides are equal, so both base angles are '+ang[0]+'°.',`x = 180° − ${ang[0]}° − ${ang[0]}° = <b>${x}°</b>`]}
-  else{const T=genTri('scaR');ang=T.ang;const ri=ang.indexOf(90),others=[0,1,2].filter(i=>i!==ri),xi=pick(others),ki=others.find(i=>i!==xi);x=ang[xi];labs=ang.map((v,i)=>i===ri?'⊾':i===xi?'x':v+'°');
-    work=['The square mark shows a right angle, 90°.',`x = 180° − 90° − ${ang[ki]}° = <b>${x}°</b>`]}
-  api.q(`<p class="qt">Find the value of <b>x</b>.</p><p class="qs">Not drawn to scale.</p>`);
-  api.body.innerHTML=triSVG(ang,labs,ticks)+`<div class="row"><b>x =</b><input class="num" id="tsIn" inputmode="numeric" aria-label="x"><span>°</span><button class="btn primary" id="tsChk">Check</button></div>`;
-  $('tsChk').onclick=()=>{const v=parseInt($('tsIn').value,10);if(isNaN(v))return;$('tsIn').disabled=true;api.done(v===x,`x = ${x}°`,work)}}});
+const degs=a=>a.map(v=>v+'°');
+const tsSum=a=>a.map(v=>v+'°').join(' + ')+' = '+a.reduce((x,y)=>x+y,0)+'°';
+/* split tot into two different whole numbers, each at least mn */
+const tsSplit=(tot,mn)=>{for(;;){const a=R(mn,tot-mn);if(a*2!==tot)return [a,tot-a]}};
+
+/* ---------- Triangle warehouse rounds ---------- */
+/* crate labels: a name plus a small picture of the idea (an angle, tick marks), not a rule to read */
+const TSICO={"acute": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M5 24 H39 M5 24 L33 5\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M17 24 A12 12 0 0 0 15 17.3\" stroke=\"#c2410c\" stroke-width=\"2.4\" fill=\"none\"/></svg>", "right": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M10 24 H38 M10 24 V3\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M10 16 H18 V24\" stroke=\"#c2410c\" stroke-width=\"2.4\" fill=\"none\"/></svg>", "obtuse": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M22 24 H40 M22 24 L4 8\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M32 24 A10 10 0 0 0 14.5 17.3\" stroke=\"#c2410c\" stroke-width=\"2.4\" fill=\"none\"/></svg>", "equi": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M22 3 L39 25 H5 Z\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M11 13 l4 3 M33 13 l-4 3 M22 22 v6\" stroke=\"#c2410c\" stroke-width=\"2.4\" fill=\"none\"/></svg>", "iso": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M22 2 L33 25 H11 Z\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M14 13 l4 2 M30 13 l-4 2\" stroke=\"#c2410c\" stroke-width=\"2.4\" fill=\"none\"/></svg>", "neither": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M8 25 L38 25 L15 5 Z\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>", "real": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M6 25 L22 4 L38 25 Z\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M15 16 l5 5 l9 -10\" stroke=\"#0c7a45\" stroke-width=\"3\" fill=\"none\" stroke-linecap=\"round\"/></svg>", "imp": "<svg class=\"ico\" viewBox=\"0 0 44 28\" aria-hidden=\"true\"><path d=\"M6 25 L22 4 L38 25 Z\" fill=\"none\" stroke=\"#2b1a08\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M15 10 l14 13 M29 10 l-14 13\" stroke=\"#c2231a\" stroke-width=\"3\" fill=\"none\" stroke-linecap=\"round\"/></svg>"};
+const TSBINS={
+  ang:[['acute','Acute angle'],['right','Right angle'],['obtuse','Obtuse angle']],
+  side:[['equi','Equilateral'],['iso','Isosceles'],['neither','Neither']],
+  real:[['real','Real triangle'],['imp','Impossible']],
+  two:[['right','Right-angled'],['iso','Isosceles'],['equi','Equi&shy;lateral'],['imp','Impos&shy;sible']]};
+function tsAngItem(kind){let ang,ticks;
+  if(kind==='near'){const B=pick([88,89,91,92]);ang=shuffle([B,...tsSplit(180-B,22)])}
+  else{const T=genTri(kind==='acute'?pick(['scaA','scaA','isoA']):kind==='right'?pick(['scaR','scaR','isoR']):pick(['scaO','scaO','isoO']));ang=T.ang;ticks=T.ticks}
+  const B=Math.max(...ang),bin=B===90?'right':B>90?'obtuse':'acute',labs=ang.map(v=>v===90?'⊾':v+'°'),w={};
+  const exp=bin==='right'?'The biggest angle has a square mark: it is a right angle (exactly 90°). So this is a right-angled triangle.':bin==='obtuse'?`The biggest angle, ${B}°, is more than 90°, so it is an obtuse angle.`:`The biggest angle, ${B}°, is less than 90°, so it is an acute angle.`;
+  if(bin==='acute'){w.right=B>=88?`${B}° is close to 90°, but not 90°. A right angle is exactly 90°.`:`${B}° is not 90°. A right angle is exactly 90° and has a square mark.`;w.obtuse=`${B}° is less than 90°. An obtuse angle is more than 90°.`}
+  if(bin==='right'){w.acute='The square mark means exactly 90°. An acute angle is less than 90°.';w.obtuse='The square mark means exactly 90°. An obtuse angle is more than 90°.'}
+  if(bin==='obtuse'){w.acute=`${B}° is more than 90°. An acute angle is less than 90°.`;w.right=B<=92?`${B}° is just over 90°, so it is obtuse, not a right angle.`:`There is no square mark. ${B}° is more than 90°.`}
+  return {ang,svg:triSVG(ang,labs,ticks),bin,exp,w}}
+function tsSideItem(kind){let ang,labs,ticks=null,byAng=false;
+  if(kind==='equi'){byAng=Math.random()<.5;ang=[60,60,60];labs=byAng?degs(ang):['','',''];if(!byAng)ticks=[[0,1],[1,2],[0,2]]}
+  else if(kind==='isoT'){const T=genTri(pick(['isoA','isoO','isoR']));ang=T.ang;ticks=T.ticks;labs=['','','']}
+  else if(kind==='isoA'){const T=genTri(pick(['isoA','isoO']));byAng=true;const k=shuffle([0,1,2]);ang=k.map(i=>T.ang[i]);labs=degs(ang)}
+  else{let a;do{a=genTri(pick(['scaA','scaO','scaA'])).ang}while(Math.max(...a)-Math.min(...a)>60&&Math.random()<.6);ang=a;labs=degs(ang)}
+  const bin=kind==='equi'?'equi':kind==='sca'?'neither':'iso',w={},eq=ang.find((v,i)=>ang.indexOf(v)!==i);
+  const exp=bin==='equi'?(byAng?'All three angles are 60°, so all three sides are equal: equilateral.':'All three sides have equal marks: equilateral.'):bin==='iso'?(byAng?`${eq}° appears twice. Two equal angles mean two equal sides, so it is isosceles.`:'Two sides have equal marks, so it is isosceles.'):`All three angles are different (${degs(ang).join(', ')}), so no two sides are equal. It is neither isosceles nor equilateral.`;
+  if(bin==='equi'){w.iso='It does have two equal sides, but in fact all three are equal. The best name is equilateral.';w.neither=byAng?'All three angles are 60°. Equal angles mean equal sides, so all three sides are equal.':'All three sides have the same mark, so they are all equal.'}
+  if(bin==='iso'){w.equi=byAng?`Only two angles are equal. Equilateral needs all three angles to be 60°.`:'Only two sides are marked equal. The third side has no mark.';w.neither=byAng?`Look again: ${eq}° appears twice. Two equal angles mean two equal sides, so it is isosceles.`:'The tick marks show two equal sides.'}
+  if(bin==='neither'){w.iso=w.equi=`It may look balanced, but the angles are all different (${degs(ang).join(', ')}). Different angles mean different sides.`}
+  return {ang,svg:triSVG(ang,labs,ticks),bin,exp,w}}
+function tsRealItem(kind){let ang,labs,ticks=null,bin='imp',exp;
+  if(kind==='real'){const T=genTri(pick(['scaA','scaO','scaO','scaR','isoO']));ang=T.ang;labs=degs(ang);ticks=T.ticks;bin='real';
+    const B=Math.max(...ang);exp=`This one can exist: ${tsSum(ang)}.${B>90?' Only one angle is over 90°, which is allowed.':''}`}
+  else if(kind==='equiR'){ang=[60,60,60];labs=degs(ang);ticks=[[0,1],[1,2],[0,2]];bin='real';exp=`This one can exist: three equal sides and three 60° angles, ${tsSum(ang)}.`}
+  else if(kind==='sum'){const T=genTri(pick(['scaA','scaO']));ang=T.ang;const i=R(0,2),d=ang[i]<35?pick([10,20]):pick([-20,-10,10,20]),lv=ang.map((v,j)=>j===i?v+d:v);labs=degs(lv);
+    exp=`Add them: ${tsSum(lv)}. The angles of a triangle always add up to exactly 180°.`}
+  else if(kind==='obt2'){const a=R(92,110),b=R(91,100),c=R(8,25);ang=[35,40,105];labs=degs([c,b,a]);
+    exp=`${a}° and ${b}° are both over 90°. Together they already make more than 180°, so no triangle can have them.`}
+  else if(kind==='right2'){const c=R(10,40);ang=[75,70,35];labs=['90°','90°',c+'°'];exp='Two right angles already make 180°. There is nothing left for the third corner.'}
+  else{const a=pick([50,55,65,70,75]);ang=[60,60,60];labs=degs([a,a,180-2*a]);ticks=[[0,1],[1,2],[0,2]];
+    exp=`The angles do add up to 180°, but all three sides are marked equal. Three equal sides mean every angle must be 60°.`}
+  return {ang,svg:triSVG(ang,labs,ticks),bin,exp,w:{}}}
+function tsTwoItem(kind){let ang,show;
+  if(kind==='right'){ang=genTri('scaR').ang;const ri=ang.indexOf(90);show=pick([[ri,ri===0?1:0],[0,1,2].filter(i=>i!==ri)])}
+  else if(kind==='iso'){const t=pick([30,40,50,70,80,100,110,120,130,140]);ang=[(180-t)/2,(180-t)/2,t];show=pick([[0,1],[0,2],[1,2]])}
+  else if(kind==='equi'){ang=[60,60,60];show=pick([[0,1],[0,2],[1,2]])}
+  else{const a=R(91,125),b=R(180-a+1,180-a+25);ang=[45,35,100];show=[0,2];ang.lv=[b,0,a]}
+  const lv=ang.lv||ang,labs=ang.map((v,i)=>show.includes(i)?(lv[i]===90?'⊾':lv[i]+'°'):''),[a,b]=show.map(i=>lv[i]);let exp;
+  if(kind==='imp')exp=`${a}° + ${b}° = ${a+b}°, already more than 180°. There is nothing left for the third angle.`;
+  else{const c=180-a-b,all=[a,b,c].sort((x,y)=>x-y).map(v=>v+'°').join(', ');
+    exp=`Third angle: 180° − ${a}° − ${b}° = ${c}°. The angles are ${all}: `+(kind==='right'?'one of them is 90°, so it is a right-angled triangle.':kind==='iso'?'two angles are equal, so two sides are equal. It is an isosceles triangle.':'all three angles are 60°, so all three sides are equal. It is an equilateral triangle.')}
+  return {ang,svg:triSVG(ang,labs),bin:kind,exp,w:{}}}
+const TSWORKER=`<svg viewBox="0 0 54 104" aria-hidden="true"><rect x="17" y="70" width="8" height="32" rx="3" fill="#2f4a7a" stroke="#16233a" stroke-width="1.5"/><rect x="29" y="70" width="8" height="32" rx="3" fill="#2f4a7a" stroke="#16233a" stroke-width="1.5"/><rect x="13" y="38" width="28" height="36" rx="8" fill="#ef5240" stroke="#16233a" stroke-width="2"/><rect x="14" y="54" width="26" height="4" fill="#ffd257"/><rect x="14" y="62" width="26" height="3" fill="#ffd257"/><rect x="11" y="40" width="7" height="24" rx="3.5" fill="#ef5240" stroke="#16233a" stroke-width="2"/><g class="arm"><rect x="36" y="40" width="7" height="26" rx="3.5" fill="#ef5240" stroke="#16233a" stroke-width="2"/><circle cx="39.5" cy="67" r="4" fill="#f2c9a0" stroke="#16233a" stroke-width="1.5"/></g><circle cx="27" cy="27" r="11" fill="#f2c9a0" stroke="#16233a" stroke-width="2"/><circle cx="23" cy="27" r="1.6" fill="#16233a"/><circle cx="31" cy="27" r="1.6" fill="#16233a"/><path class="m1" d="M23 32 Q27 35.5 31 32" fill="none" stroke="#16233a" stroke-width="1.6" stroke-linecap="round"/><path class="m2" d="M23 34 Q27 30.5 31 34" fill="none" stroke="#16233a" stroke-width="1.6" stroke-linecap="round"/><path d="M15 21 Q27 5 39 21 Z" fill="#ffb81f" stroke="#16233a" stroke-width="2"/><rect x="12" y="19.5" width="30" height="4" rx="2" fill="#ffb81f" stroke="#16233a" stroke-width="1.5"/></svg>`;
+function tsGlyph(ang){const P=triPts(ang[0],ang[1]),xs=P.map(p=>p[0]),ys=P.map(p=>p[1]),mn=Math.min(...xs),w=Math.max(...xs)-mn,h=Math.max(...ys),sc=Math.min(36/w,26/h),ox=(40-w*sc)/2;
+  return `<svg viewBox="0 0 40 30" aria-hidden="true"><polygon points="${P.map(([x,y])=>`${(ox+(x-mn)*sc).toFixed(1)},${(28-y*sc).toFixed(1)}`).join(' ')}" fill="#fff6e0" stroke="#5b3713" stroke-width="2" stroke-linejoin="round"/></svg>`}
+function tsConveyor(api,r){
+  /* 5 rounds: 0 warehouse (angles), 1 rescue, 2 warehouse, 3 rescue, 4 warehouse. Easy plays rounds 0–3, Hard rounds 2–4 with harder sets. */
+  const hard=ctx&&ctx.level==='hard',set=r===0?'ang':r===2?(hard?'real':'side'):hard?'two':pick(['real','two']),BINS=TSBINS[set],secs={ang:20,side:16,real:18,two:24}[set];let items;
+  /* 3 parcels a round, one of each crate where possible */
+  if(set==='ang')items=shuffle([pick(['acute','near']),'right',pick(['obtuse','near'])]).map(tsAngItem);
+  else if(set==='side')items=shuffle(['equi',pick(['isoT','isoA']),'sca']).map(tsSideItem); /* 'sca' items go in the Neither crate */
+  else if(set==='real')items=shuffle([pick(['real','equiR']),pick(['sum','right2']),pick(['obt2','equiW','real'])]).map(tsRealItem);
+  else items=shuffle(['right','iso',pick(['equi','imp'])]).map(tsTwoItem);
+  const ask={ang:'Find the <b>biggest angle</b>. Is it an <b>acute</b>, <b>right</b> or <b>obtuse</b> angle?',side:'Is this triangle <b>equilateral</b>, <b>isosceles</b> or <b>neither</b>?',real:'Could this triangle <b>really exist</b>?',two:'Work out the <b>third angle</b>. Then, what kind of triangle is it?'}[set],
+    tip={ang:'If the biggest angle is a right angle, the triangle is right-angled.',side:'Equal tick marks mean equal sides. Equal angles mean equal sides too.',real:'Check that the angles add up to 180° and match the marks.',two:'The three angles add up to 180°.'}[set];
+  api.q(`<p class="qs">📦 Triangle warehouse · 3 parcels</p><p class="qt">${ask}</p><p class="qs">Each parcel goes through the X-ray. Drag it into the crate with the answer before it drops off the belt. ${tip} Not drawn to scale.</p>`);
+  api.body.innerHTML=`<div class="tswh tmap-nozoom"><div class="tshud"><span class="tsk" id="tsK"></span><span class="tstime" aria-hidden="true"><i id="tsT"></i></span><span class="tsst" id="tsSt"></span></div>
+    <div class="tsscan" id="tsScan"><div class="tsscr" id="tsScr"></div></div>
+    <div class="tsbelt" id="tsBelt"><div class="rail"></div><div class="chute" aria-hidden="true"></div><div class="tsworker" id="tsMan">${TSWORKER}</div>
+      <div class="tsxray" id="tsXr" aria-hidden="true"><span class="cable"></span><span class="lamp"></span><div class="body"></div><span class="sign">X-RAY</span><div class="hole"></div></div>
+      <div class="tsparcel" id="tsPar" role="img" aria-label="Parcel on the belt"><div class="bx"></div></div></div>
+    <div class="tscrates n${BINS.length}" id="tsBins" style="--n:${BINS.length}">${BINS.map(([k,t])=>`<button class="tscrate" data-k="${k}"><span class="flap l"></span><span class="flap r"></span><span class="cnt">0</span><span class="front">${BINS.length<4&&TSICO[k]?TSICO[k]:''}<b>${t}</b></span></button>`).join('')}</div>
+    <p class="tstip">When the X-ray shows the triangle, drag the parcel into a crate (or tap a crate).</p></div><div class="tswhy" id="tsWhy" aria-live="polite"></div>`;
+  const belt=$('tsBelt'),par=$('tsPar'),bins=[...$('tsBins').children],cnt={};let k=0,got=0,streak=0,live=false,tok=0,endX=0,drag=null;const log=[];
+  const curX=()=>parseFloat(getComputedStyle(par).left)||0;
+  const freeze=()=>{const x=curX(),bar=$('tsT'),bw=getComputedStyle(bar).width;bar.style.transition='none';bar.style.width=bw;par.style.transition='none';par.style.left=x+'px';tok++;belt.classList.add('stop');return x};
+  const run=()=>{const x=curX(),left=Math.max(0,endX-x),t=secs*left/Math.max(1,endX-scanX),my=++tok;belt.classList.remove('stop');void par.offsetWidth;
+    par.style.transition=`left ${t}s linear`;par.style.left=endX+'px';const bar=$('tsT');bar.style.transition=`width ${t}s linear`;bar.style.width='0%';api.later(()=>{if(my===tok&&live)bar.classList.add('low')},Math.max(0,t*1000-secs*300));api.later(()=>{if(my===tok&&live)answer(null)},t*1000+60)};
+  const X0=28,man=$('tsMan'),xr=$('tsXr');let scanned=false,scanX=X0,ready=false,slip=false,sc=0;
+  const scan=()=>{if(scanned||!live)return;scanned=true;const it=items[k];$('tsScr').classList.remove('scan');$('tsScr').innerHTML=`<div class="img">${it.svg}</div>`;void $('tsScr').offsetWidth;$('tsScr').classList.add('scan');
+    $('tsScan').classList.add('live');xr.classList.add('on');sfx.pop();api.later(()=>xr.classList.remove('on'),1200);
+    if(set!=='ang'){ready=true;bins.forEach(b=>b.disabled=false);return}
+    /* angle round, step 1: a triangle is named by its biggest angle, so find that angle before packing */
+    const scr=$('tsScr'),big=Math.max(...it.ang);ready=false;slip=false;scr.classList.add('tap');scr.insertAdjacentHTML('beforeend','<div class="tsstep" id="tsStep">Step 1: tap the <b>biggest</b> angle</div>');
+    scr.querySelectorAll('.tv').forEach(g=>g.onclick=()=>{if(ready||!live)return;const v=it.ang[+g.dataset.v],st=$('tsStep');
+      if(v===big){ready=true;g.classList.add('pick');scr.classList.remove('tap');sfx.pop();st.className='tsstep ok';
+        st.innerHTML=`✓ The biggest angle is <b>${v}°</b>.<br>Step 2: What type of angle is ${v}°? Put the parcel in that crate.`;bins.forEach(b=>b.disabled=false);return}
+      slip=true;sfx.no();g.classList.add('miss');st.className='tsstep no';st.innerHTML=`${v}° is not the biggest. Find a bigger angle!`})};
+  const show=()=>{const it=items[k];live=true;scanned=false;ready=false;slip=false;$('tsWhy').innerHTML='';$('tsK').textContent=`Parcel ${k+1} of ${items.length}`;$('tsSt').textContent=streak>=2?`🔥 ×${streak}`:'';
+    {const bar=$('tsT');bar.classList.remove('low');bar.style.transition='none';bar.style.width='100%'}$('tsScr').className='tsscr';$('tsScr').innerHTML='<span class="idle">WAITING FOR PARCEL…</span>';$('tsScan').classList.remove('live');man.className='tsworker';void man.offsetWidth;man.classList.add('lift');
+    par.className='tsparcel';par.style.transform='translateY(-34px)';par.style.opacity='0';par.style.transition='none';par.style.left=X0+'px';par.innerHTML=`<div class="bx"></div>${tsGlyph(it.ang)}`;
+    bins.forEach(b=>{b.disabled=true;b.classList.remove('ok','no','glow','hover')});endX=belt.clientWidth-58-50;
+    /* the worker lifts the box onto the belt; it then rides into the X-ray, and the screen lights up when the box is inside */
+    api.later(()=>{par.style.transition='transform .3s ease-in,opacity .15s';par.style.transform='';par.style.opacity='1'},calm?0:250);
+    /* quick ride into the X-ray; the timed part of the belt starts once the screen shows the triangle */
+    scanX=xr.offsetLeft+xr.offsetWidth/2-29;const my=++tok;
+    api.later(()=>{if(my!==tok)return;belt.classList.remove('stop');par.style.transition='left 1.4s ease-in';par.style.left=scanX+'px';
+      api.later(()=>{if(my!==tok||!live)return;scan();scanX=xr.offsetLeft+xr.offsetWidth+2;par.style.transition='left .5s ease-out';par.style.left=scanX+'px';
+        api.later(()=>{if(my===tok&&live)run()},calm?50:1100)},1450)},calm?100:600)};
+  const next=()=>{k++;if(k<items.length)return show();
+    /* 3 points a parcel (2 if step 1 needed a second tap), plus 1 for a perfect round: 10 at most */
+    const perfect=sc===items.length*3;api.done(got>=2,`You packed ${got} of ${items.length} parcels into the right crate.${perfect?' Perfect round: +1 bonus!':''}`,log,sc+(perfect?1:0),{noRetry:true})};
+  const crateAt=(x,y)=>bins.find(b=>{const q=b.getBoundingClientRect();return x>=q.left-6&&x<=q.right+6&&y>=q.top-30&&y<=q.bottom+6});
+  const answer=b=>{if(!live||api.answered)return;live=false;freeze();const it=items[k],ch=b&&b.dataset.k,ok=ch===it.bin;
+    bins.forEach(x=>{x.disabled=true;x.classList.remove('hover');if(x.dataset.k===it.bin&&!ok)x.classList.add('glow')});
+    if(!b){par.classList.add('fall')}
+    else{const p=par.getBoundingClientRect(),q=b.getBoundingClientRect(),base=par.style.transform||'';const m=/translate\(([-\d.]+)px, ?([-\d.]+)px\)/.exec(base)||[0,0,0];
+      const dx=+m[1]+(q.left+q.width/2)-(p.left+p.width/2),dy=+m[2]+(q.top+22)-(p.top+p.height/2);par.classList.remove('drag');par.classList.add('fly');void par.offsetWidth;par.style.transform=`translate(${dx}px,${dy}px) scale(.45)`;par.style.opacity='0'}
+    if(ok){got++;sc+=slip?2:3;streak++;sfx.ok();man.className='tsworker cheer';api.later(()=>{b.classList.add('ok','bump');const c=b.querySelector('.cnt');cnt[ch]=(cnt[ch]||0)+1;c.textContent=cnt[ch]},calm?0:380);
+      $('tsSt').textContent=streak>=2?`🔥 ×${streak}`:'';if(streak>=3)qubi('gQ','cheer',`Packing streak ×${streak}!`);log.push(`✔ ${it.exp}`);api.later(next,calm?500:1000);return}
+    streak=0;$('tsSt').textContent='';sfx.no();man.className='tsworker sad';if(b)api.later(()=>b.classList.add('no'),calm?0:380);qubi('gQ','oops',b?'Wrong crate!':'It dropped off the belt!');
+    const why=(b&&it.w[ch])||it.exp;log.push(`✘ ${it.exp}`);
+    $('tsWhy').innerHTML=`<p class="retrymsg">${b?'':'⏰ Too slow, it fell off the belt! '}${why}</p>${b&&it.w[ch]&&it.w[ch]!==it.exp?`<p>${it.exp}</p>`:''}<div><button class="btn primary" id="tsGo">${k+1<items.length?'Next parcel ▶':'Finish'}</button></div>`;
+    $('tsGo').onclick=()=>{sfx.tap();next()};$('tsGo').focus({preventScroll:true})};
+  bins.forEach(b=>b.onclick=()=>{if(ready)answer(b)});
+  /* drag the parcel: it stops while held, and carries on along the belt if dropped anywhere but a crate */
+  par.addEventListener('pointerdown',e=>{if(!live||api.answered||!ready)return;e.preventDefault();freeze();par.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,moved:false};par.classList.add('drag');sfx.tap()});
+  par.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>6)drag.moved=true;par.style.transform=`translate(${dx}px,${dy}px)`;
+    const c=crateAt(e.clientX,e.clientY);bins.forEach(b=>b.classList.toggle('hover',b===c))});
+  const drop=e=>{if(!drag)return;const d=drag;drag=null;const c=d.moved&&crateAt(e.clientX,e.clientY);if(c&&live)return answer(c);
+    par.classList.remove('drag');par.style.transform='';bins.forEach(b=>b.classList.remove('hover'));if(live)run()};
+  par.addEventListener('pointerup',drop);par.addEventListener('pointercancel',drop);
+  show()}
+
+/* ---------- Missing Corner Rescue rounds ---------- */
+/* a choice step that must be right before the next step opens. First wrong pick: why it's wrong, try again.
+   Second: the right choice glows and the round can score at most 6. */
+function tsPick(api,o){const kk='tsP'+o.id;api.body.insertAdjacentHTML('beforeend',`<div class="askwrap"><p class="asklab">${o.label}</p><div class="choices one" id="${o.id}"></div><div id="${o.id}M"></div></div>`);
+  const box=$(o.id),fin=()=>{[...box.children].forEach(b=>{b.disabled=true;b.style.boxShadow='';if(b.dataset.ok)b.classList.add('ok')});o.then()};
+  shuffle(o.opts).forEach(op=>{const b=document.createElement('button');b.className='btn';b.innerHTML=op.t;if(op.ok)b.dataset.ok='1';
+    b.onclick=()=>{if(api.answered||b.disabled)return;if(op.ok){sfx.pop();ctx.keep[kk]=1;$(o.id+'M').innerHTML='';return fin()}
+      b.disabled=true;b.classList.add('no');if(api.first(o.id)){api.retry($(o.id+'M'),op.why);return}
+      sfx.no();ctx.keep.pen=1;[...box.children].forEach(y=>{if(y.dataset.ok){y.disabled=false;y.style.boxShadow='0 0 0 4px var(--sun)'}else y.disabled=true});
+      $(o.id+'M').innerHTML=`<p class="retrymsg">${op.why} The right one is glowing. Tap it to carry on.</p>`};box.appendChild(b)});
+  if(ctx.keep[kk])fin()}
+const tsTraps=(x,list)=>list.filter(([v])=>v!==x&&v>0);
+function tsRescue(api,r){
+  const mode=r===1?'sum':ctx&&ctx.level==='hard'?pick(['apex','base','ext']):pick(['right','apex']),tag='<p class="qt">🛟 Missing Corner Rescue: find the value of <b>x</b>.</p><p class="qs">Not drawn to scale.</p>';
+  api.q(tag);
+  if(mode==='sum'){const D=genTri(pick(['scaA','scaO','isoA'])).ang,T=genTri(pick(['scaA','scaO'])).ang,xi=R(0,2),x=T[xi],[a,b]=T.filter((_,i)=>i!==xi);
+    api.body.innerHTML=`<div class="tsdisc">${triSVG(D,degs(D)).replace('max-width:340px','max-width:240px')}</div>`;
+    askOne(api,{id:'tsD',label:`<b>Step 1:</b> Qubi measured every corner of this triangle. What do the three angles add up to?`,right:180,unit:'°',w:4,
+      traps:[[360,'Add them carefully: '+D.map(v=>v+'°').join(' + ')+'. 360° is a full turn, not a triangle.']],hint:'Add the three angles: '+D.map(v=>v+'°').join(' + '),
+      then:()=>{api.body.insertAdjacentHTML('beforeend',`<p class="asklab">🎉 It works for <b>every</b> triangle: the angles always add up to 180°. Now use that to rescue the missing corner.</p>${triSVG(T,T.map((v,i)=>i===xi?'x':v+'°'))}`);
+        askOne(api,{id:'tsX',label:'<b>Step 2:</b> x =',right:x,unit:'°',w:4,ok:`x = ${x}°`,bad:`x = ${x}°.`,
+          traps:tsTraps(x,[[180-a,`You took away only ${a}°. Take away ${b}° as well.`],[180-b,`You took away only ${b}°. Take away ${a}° as well.`],[a+b,`That is the two known angles added together. x is what is left: 180° − ${a+b}°.`],[360-a-b,'360° is for angles at a point. Angles in a triangle add up to 180°.']]),
+          work:[`Step 1: ${tsSum(D)}, and the same is true for every triangle.`,`x = 180° − ${a}° − ${b}° = <b>${x}°</b>`]})}});return}
+  if(mode==='right'){const T=genTri(pick(['scaR','scaR','isoR'])).ang,ri=T.indexOf(90),others=[0,1,2].filter(i=>i!==ri),xi=pick(others),ki=others.find(i=>i!==xi),x=T[xi],kv=T[ki];
+    api.body.innerHTML=triSVG(T,T.map((v,i)=>i===ri?'⊾':i===xi?'x':v+'°'));
+    tsPick(api,{id:'tsR',label:'<b>Step 1:</b> How big is the corner with the little square?',opts:[{t:'90°',ok:1},{t:'180°',why:'180° is a straight line. The little square shows a right angle.'},{t:'45°',why:'45° is half a right angle. The little square shows a whole right angle.'},{t:'Can’t tell, there is no number',why:'The little square is the number! It always means 90°.'}],
+      then:()=>askOne(api,{id:'tsX',label:'<b>Step 2:</b> x =',right:x,unit:'°',w:4,ok:`x = ${x}°`,bad:`x = ${x}°.`,
+        traps:tsTraps(x,[[180-kv,`You forgot the right angle. Take away 90° as well as ${kv}°.`],[90+kv,`You added. x is what is left after taking 90° and ${kv}° away from 180°.`],[270-kv,'360° is for angles at a point. Angles in a triangle add up to 180°.']]),
+        work:['The little square means 90°.',`x = 180° − 90° − ${kv}° = <b>${x}°</b>`,`Shortcut: in a right-angled triangle the other two angles add up to 90°, so x = 90° − ${kv}°.`]})});return}
+  if(mode==='apex'){const G=genTri(pick(['isoA','isoA','isoO'])),a=G.ang[0],x=G.ang[2];
+    api.body.innerHTML=triSVG(G.ang,[a+'°','','x'],G.ticks);
+    tsPick(api,{id:'tsI',label:'<b>Step 1:</b> The two marked sides are equal. How big is the other bottom angle?',opts:[{t:a+'°',ok:1},{t:(180-a)+'°',why:'That uses the straight-line rule, but there is no straight line here.'},{t:'90°',why:'Only a corner with a little square is 90°.'},{t:'Can’t tell',why:'The tick marks tell you! The two angles at the bottom of the equal sides are equal.'}],
+      then:()=>askOne(api,{id:'tsX',label:'<b>Step 2:</b> x =',right:x,unit:'°',w:4,ok:`x = ${x}°`,bad:`x = ${x}°.`,
+        traps:tsTraps(x,[[180-a,`You took away only one bottom angle. Both bottom angles are ${a}°.`],[2*a,`That is the two bottom angles added. x is what is left: 180° − ${2*a}°.`],[a,'x is the top angle, not a bottom angle.']]),
+        work:[`The marked sides are equal, so both bottom angles are ${a}°.`,`x = 180° − ${a}° − ${a}° = <b>${x}°</b>`]})});return}
+  if(mode==='base'){const G=genTri(pick(['isoA','isoO'])),t=G.ang[2],x=G.ang[0];
+    api.body.innerHTML=triSVG(G.ang,['x','',t+'°'],G.ticks);
+    tsPick(api,{id:'tsI',label:'<b>Step 1:</b> The two marked sides are equal. x and the other bottom angle…',opts:[{t:'are equal',ok:1},{t:'add up to 180°',why:'That is the rule for angles on a straight line. These two corners are not on a straight line.'},{t:'add up to 90°',why:'That only happens with the two smaller angles of a right-angled triangle.'}],
+      then:()=>askOne(api,{id:'tsX',label:'<b>Step 2:</b> x =',right:x,unit:'°',w:4,ok:`x = ${x}°`,bad:`x = ${x}°.`,
+        traps:tsTraps(x,[[180-t,`${180-t}° is both bottom angles together. They are equal, so share it: ÷ 2.`],[t,`x is a bottom angle. ${t}° is the top angle.`],[(360-t)/2,'360° is for angles at a point. Angles in a triangle add up to 180°.']]),
+        work:[`Both bottom angles together: 180° − ${t}° = ${180-t}°`,`They are equal, so x = ${180-t}° ÷ 2 = <b>${x}°</b>`]})});return}
+  /* ext: side extended at corner 1, outside angle e given; find the top angle x */
+  let T;do{T=genTri(pick(['scaA','scaO'])).ang}while(T[0]+T[1]>=160||T[2]>=150||T[0]<25);const [a,b,x]=T,e=180-b;
+  api.body.innerHTML=triSVG(T,[a+'°','','x'],null,e+'°');
+  askOne(api,{id:'tsE',label:`<b>Step 1:</b> The bottom side is extended. Find the angle <b>inside</b> the triangle next to ${e}°.`,right:b,unit:'°',w:4,
+    traps:tsTraps(b,[[e,`${e}° is the outside angle. The inside angle sits next to it on a straight line.`],[360-e,'360° is a full turn. Angles on a straight line add up to 180°.']]),hint:`Angles on a straight line add up to 180°: 180° − ${e}°`,
+    then:()=>askOne(api,{id:'tsX',label:'<b>Step 2:</b> x =',right:x,unit:'°',w:4,ok:`x = ${x}°`,bad:`x = ${x}°.`,
+      traps:tsTraps(x,[[180-a-e,`Use the inside angle (${b}°), not the outside angle (${e}°).`],[180-b,`You took away only ${b}°. Take away ${a}° as well.`],[180-a,`You took away only ${a}°. Take away ${b}° as well.`]]),
+      work:[`Angles on a straight line: 180° − ${e}° = ${b}°`,`Angles in a triangle: x = 180° − ${a}° − ${b}° = <b>${x}°</b>`,`Shortcut: the outside angle equals the two far inside angles added, so ${e}° = ${a}° + x.`]})})}
+addGame('p5-triangles',{level:'P5',strand:'geo',glyph:'△',title:'Triangle Sorter',topic:'Properties of triangles and angle sum',music:'warehouse',
+ how:'5 rounds, two kinds take turns. Triangle warehouse: a worker loads each parcel and the X-ray shows the triangle inside; drag or tap it into the right crate before it drops off the belt, and build a streak. Missing Corner Rescue: get step 1 right, then find the missing angle x. Diagrams are not drawn to scale.',rounds:5,
+ round(api,r){return r%2===0?tsConveyor(api,r):tsRescue(api,r)}});
 
 /* P5-11. Quad Quest — Parallelogram, rhombus, trapezium */
 const QSH={

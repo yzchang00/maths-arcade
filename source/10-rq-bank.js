@@ -31,7 +31,7 @@ const PG=(pts,c='')=>`<polygon points="${pts.map(p=>r6(p[0])+','+r6(p[1])).join(
 const deg=Math.PI/180;
 /* angle arc at vertex v between directions to a and b, with label */
 function angArc(v,a,b,label,r=22){const a1=Math.atan2(a[1]-v[1],a[0]-v[0]),a2=Math.atan2(b[1]-v[1],b[0]-v[0]);let d=a2-a1;while(d<=-Math.PI)d+=2*Math.PI;while(d>Math.PI)d-=2*Math.PI;
-  const p1=[v[0]+r*Math.cos(a1),v[1]+r*Math.sin(a1)],p2=[v[0]+r*Math.cos(a1+d),v[1]+r*Math.sin(a1+d)],m=a1+d/2,lr=r+15;
+  const p1=[v[0]+r*Math.cos(a1),v[1]+r*Math.sin(a1)],p2=[v[0]+r*Math.cos(a1+d),v[1]+r*Math.sin(a1+d)],m=a1+d/2,lw=String(label||'').replace(/<[^>]+>/g,'').length*6.5,lr=Math.min(95,Math.max(r+15,(lw/2+7)/Math.tan(Math.abs(d)/2)));
   return `<path class="arc" d="M${r6(p1[0])} ${r6(p1[1])} A${r} ${r} 0 0 ${d>0?1:0} ${r6(p2[0])} ${r6(p2[1])}"/>`+(label?tx(v[0]+lr*Math.cos(m),v[1]+lr*Math.sin(m)+4,label,'middle','ang'):'')}
 const tk=(a,b)=>{const m=[(a[0]+b[0])/2,(a[1]+b[1])/2],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy),nx=-dy/l*6,ny=dx/l*6;return ln([m[0]-nx,m[1]-ny],[m[0]+nx,m[1]+ny],'thin')};
 const lab=(p,s,dx=0,dy=0)=>tx(p[0]+dx,p[1]+dy,s,'middle','ptl');
@@ -51,9 +51,9 @@ function lineGraph(series,xmax,xstep,ymax,ystep,yminor,xlab,ylab,xfmt=v=>v){cons
 function pieChart(secs){/* secs: [{f:fraction of circle, label, right:bool}] starting at 12 o'clock clockwise */
   const cx=150,cy=125,r=100;let s=`<circle cx="${cx}" cy="${cy}" r="${r}"/>`,a=-90;
   secs.forEach(sc=>{const a2=a+sc.f*360,p=[cx+r*Math.cos(a*deg),cy+r*Math.sin(a*deg)];s+=ln([cx,cy],p);
-    const m=(a+a2)/2,lr=sc.f<.12?r*.72:r*.55;s+=tx(cx+lr*Math.cos(m*deg),cy+lr*Math.sin(m*deg)+4,sc.label);
+    const m=(a+a2)/2,lr=sc.f<.12?r*.72:sc.f<.21?r*.64:r*.55,dy=sc.sub?-4:4;s+=tx(cx+lr*Math.cos(m*deg),cy+lr*Math.sin(m*deg)+dy,sc.label);
     if(sc.right){const u=[Math.cos(a*deg),Math.sin(a*deg)],w=[Math.cos(a2*deg),Math.sin(a2*deg)],k=13;s+=`<polyline class="thin" points="${r6(cx+u[0]*k)},${r6(cy+u[1]*k)} ${r6(cx+(u[0]+w[0])*k)},${r6(cy+(u[1]+w[1])*k)} ${r6(cx+w[0]*k)},${r6(cy+w[1]*k)}"/>`}
-    if(sc.sub)s+=tx(cx+lr*Math.cos(m*deg),cy+lr*Math.sin(m*deg)+20,sc.sub);a=a2});return svgW(300,250,s,300)}
+    if(sc.sub)s+=tx(cx+lr*Math.cos(m*deg),cy+lr*Math.sin(m*deg)+12,sc.sub);a=a2});return svgW(300,250,s,300)}
 function tableH(head,rows){return `<table class="rqt"><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>`}
 
 /* =============== BOOKLET A: 1-mark MCQ =============== */
@@ -188,7 +188,7 @@ rq({id:'paraang',kind:'saq',paper:1,topic:'angle',make(){let p,s,P,Q,Rr,S,Y,ok=f
     const sr=Math.atan2(Rr[1]-S[1],Rr[0]-S[0]),sp=Math.atan2(P[1]-S[1],P[0]-S[0]),dir=sr+(sp>sr?1:-1)*s*deg,tt=-S[1]/Math.sin(dir);Y=[S[0]+tt*Math.cos(dir),0];ok=tt>0&&Y[0]>Lr*.2&&Y[0]<Lr*.8}
   const F=pt=>[pt[0]+25,130-pt[1]],pP=F(P),pQ=F(Q),pR=F(Rr),pS=F(S),pY=F(Y);
   const g=PG([pP,pQ,pR,pS])+ln(pP,pR)+ln(pS,pY)+angArc(pP,pQ,pR,p+'°',30)+angArc(pS,pY,pR,s+'°',30)+lab(pP,'P',-12,4)+lab(pQ,'Q',0,-8)+lab(pR,'R',12,4)+lab(pS,'S',0,18)+lab(pY,'Y',0,-10);
-  return {stem:`PQRS is a parallelogram. PYR is a straight line. ∠QPY = ${p}° and ∠YSR = ${s}°. Find ∠PYS.`,fig:svgW(390,230,g,390),parts:[num(p+s,{marks:2,unit:'°',work:[`PQ ∥ SR, so ∠SRY = ∠QPY = ${p}° (alternate angles).`,`In triangle SYR: ∠SYR = 180° − ${s}° − ${p}° = ${180-s-p}°`,`∠PYS = 180° − ${180-s-p}° = <b>${p+s}°</b>`]})]}}});
+  return {stem:`PQRS is a parallelogram. PYR is a straight line. ∠QPY = ${p}° and ∠YSR = ${s}°. Find ∠PYS.`,fig:svgW(390,Math.max(230,Math.ceil(pS[1]+30)),g,390),parts:[num(p+s,{marks:2,unit:'°',work:[`PQ ∥ SR, so ∠SRY = ∠QPY = ${p}° (alternate angles).`,`In triangle SYR: ∠SYR = 180° − ${s}° − ${p}° = ${180-s-p}°`,`∠PYS = 180° − ${180-s-p}° = <b>${p+s}°</b>`]})]}}});
 rq({id:'algsaq',kind:'saq',paper:1,topic:'alg',make(){const v=pick(['p','k','y','m']),c=R(2,9),a=c+R(4,20),d=R(2,9),b=d+R(1,9),k2=pick(['k','n','x']),m=R(3,9),q=pick([2,3,4,5]),nn=R(1,q-1)+q,val=q*R(1,4),res=m*val-nn*val/q;
   return {stem:'',parts:[{type:'expr',marks:1,v:{c:a-c,k:b-d,x:v},show:lin(a-c,v,b-d),q:`Simplify the expression ${a}${vi(v)} + ${b} − ${c}${vi(v)} − ${d}.`,work:[`${a}${vi(v)} − ${c}${vi(v)} = ${lin(a-c,v,0)}; ${b} − ${d} = ${b-d}`,`Answer: <b>${lin(a-c,v,b-d)}</b>`]},
     num(res,{q:`Find the value of ${m}${vi(k2)} − ${fr(nn+vi(k2),q)} when ${vi(k2)} = ${val}.`,work:[`${m} × ${val} − ${fr(nn+' × '+val,q)} = ${m*val} − ${nn*val/q} = <b>${fmtN(res)}</b>`]})]}}});
@@ -257,7 +257,7 @@ rq({id:'Ltaps',kind:'long',topic:'rate',make(){let a,t1,t2,b,cap;do{a=pick([1.25
 rq({id:'Lrhombus',kind:'long',topic:'angle',make(){let a,b,t;do{a=R(28,38)*2;b=R(18,40);t=Math.sin(b*deg)/Math.sin((180-a-b)*deg)}while(t>.85||t<.35);
   const S=170,F=p=>[60+p[0]*S,190-p[1]*S],A=[0,0],B=[1,0],D=[Math.cos(a*deg),Math.sin(a*deg)],C=[1+D[0],D[1]],E=[t*D[0],t*D[1]];
   const pA=F(A),pB=F(B),pC=F(C),pD=F(D),pE=F(E);
-  const g=PG([pA,pB,pC,pD])+ln(pA,pC)+ln(pB,pE)+tk(pA,pB)+tk(pB,pC)+tk(pC,pD)+tk(pD,pA)+angArc(pA,pB,pD,a+'°',28)+angArc(pB,pE,pA,b+'°',30)+lab(pA,'A',-10,12)+lab(pB,'B',8,14)+lab(pC,'C',10,-4)+lab(pD,'D',-6,-8)+lab(pE,'E',-12,0);
+  const g=PG([pA,pB,pC,pD])+ln(pA,pC)+ln(pB,pE)+tk(pA,pB)+tk(pB,pC)+tk(pC,pD)+tk(pD,pA)+angArc(pA,pB,pD,'',22)+(()=>{const t=Math.atan2(pB[1]-pA[1],pB[0]-pA[0])-a/4*deg;return tx(pA[0]+54*Math.cos(t),pA[1]+54*Math.sin(t)+4,a+'°','middle','ang')})()+angArc(pB,pE,pA,b+'°',30)+lab(pA,'A',-10,12)+lab(pB,'B',8,14)+lab(pC,'C',10,-4)+lab(pD,'D',-6,-8)+lab(pE,'E',-12,0);
   return {stem:`ABCD is a rhombus. AC is a straight line. E is a point on AD. ∠DAB = ${a}° and ∠ABE = ${b}°.`,fig:svgW(430,215,g,430),
     parts:[num(a/2,{marks:2,unit:'°',q:'Find ∠ACD.',work:[`∠ADC = 180° − ${a}° = ${180-a}° (AB ∥ DC)`,`DA = DC, so triangle ACD is isosceles: ∠ACD = (180° − ${180-a}°) ÷ 2 = <b>${a/2}°</b>`]}),
       num(a+b,{marks:2,unit:'°',q:'Find ∠BED.',work:[`In triangle ABE: ∠AEB = 180° − ${a}° − ${b}° = ${180-a-b}°`,`AED is a straight line: ∠BED = 180° − ${180-a-b}° = <b>${a+b}°</b>`]}),
@@ -376,7 +376,7 @@ rq({id:'pctinc2',kind:'saq',paper:1,topic:'pct',make(){const p=pick([10,20,25,50
   return {stem:'',parts:[num(p,{q:`The cost of a bag increased from ${$m(a)} to ${$m(b)}. What is the percentage increase in the cost of the bag?`,unit:'%',work:[`Increase = ${$m(b-a)}`,`${fr($m(b-a),$m(a))} × 100% = <b>${p}%</b>`]}),
     num(S,{q:`A pair of shoes costs ${$m(P)}. It is sold at a ${d}% discount. What is the sale price?`,pre:'$',work:[`${100-d}% of ${$m(P)} = ${fr(100-d,100)} × ${P} = <b>${$m(S)}</b>`]})]}}});
 rq({id:'vertang',kind:'saq',paper:1,topic:'angle',make(){const x=R(25,75),O=[160,112],dir=(a,r)=>[O[0]+r*Math.cos(a*deg),O[1]-r*Math.sin(a*deg)];
-  const A=dir(180,130),B=dir(0,130),C=dir(180-x,88),D=dir(-x,88);const g=ln(A,B)+ln(C,D)+angArc(O,A,C,x+'°',30)+lab(A,'A',-10,4)+lab(B,'B',10,4)+lab(C,'C',-8,-6)+lab(D,'D',8,14)+lab(O,'O',14,20);
+  const A=dir(180,130),B=dir(0,130),C=dir(180-x,88),D=dir(-x,88);const g=ln(A,B)+ln(C,D)+angArc(O,A,C,x+'°',30)+lab(A,'A',-10,4)+lab(B,'B',10,4)+lab(C,'C',-8,-6)+lab(D,'D',8,14)+labFree(O,'O',[A,B,C,D],20);
   return {stem:`AB and CD are straight lines that cross at O. ∠AOC = ${x}°.`,fig:svgW(320,230,g,320),parts:[num(180-x,{q:'Find ∠BOC.',unit:'°',work:[`Angles on a straight line add up to 180°: ∠BOC = 180° − ${x}° = <b>${180-x}°</b>`]}),
     num(x,{q:'Find ∠BOD.',unit:'°',work:[`∠BOD and ∠AOC are vertically opposite angles, so they are equal: <b>${x}°</b>`]})]}}});
 rq({id:'sumdiff',kind:'saq',paper:2,topic:'whole',make(){const i=R(500,3000)*10,D=R(100,Math.floor(i/10)-50)*10,T=2*i-D;
