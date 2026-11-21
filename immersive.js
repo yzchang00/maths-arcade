@@ -60,7 +60,8 @@ const css=`
 @keyframes imShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
 #imStreak{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);z-index:9999;pointer-events:none;
   font:700 18px var(--display,system-ui);color:#fff;background:linear-gradient(135deg,#ef5240,#ffb81f);padding:10px 20px;border-radius:999px;
-  box-shadow:0 10px 30px -8px rgba(239,82,64,.7);transition:transform .45s cubic-bezier(.3,1.6,.5,1);display:flex;gap:10px;align-items:center}
+  box-shadow:0 10px 30px -8px rgba(239,82,64,.7);transition:transform .45s cubic-bezier(.3,1.6,.5,1);display:flex;gap:10px;align-items:center;white-space:nowrap;max-width:calc(100vw - 32px);box-sizing:border-box}
+@media (max-width:420px){#imStreak{font-size:15px;padding:8px 14px;gap:8px}#imStreak .m{width:56px}}
 #imStreak.on{transform:translate(-50%,0)}
 #imStreak.pump{animation:imPump .4s cubic-bezier(.3,1.8,.5,1)}
 #imStreak .m{display:inline-block;width:90px;height:8px;border-radius:9px;background:rgba(255,255,255,.35);overflow:hidden}

@@ -16,7 +16,7 @@ H=$A/1-head.html
   cat $(sed -n "s/.*cat \(2-kit.js[^;]*\);.*/\1/p" $A/build.sh | sed "s#\([^ ]*\.js\)#$A/\1#g")
   echo '</script>'
   echo '<script type="module" src="backend.js?v=7"></script>'
-  echo '<script src="immersive.js?v=2"></script>'
+  echo '<script src="immersive.js?v=3"></script>'
   echo '</body></html>'
 } > $S/index.html
 node -e "

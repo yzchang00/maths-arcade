@@ -92,7 +92,7 @@ const api={
   later(fn,ms){const c=ctx;const t=setTimeout(()=>{if(c&&!c.dead)fn()},ms);c.timers.push(t)},
   done(ok,msg,work=[],pts,opt={}){const c=ctx;if(!c||c.answered)return;c.answered=true;if(pts===undefined)pts=ok?10:0;
     const roundEv=v=>{try{dispatchEvent(new CustomEvent('arc:round',{detail:{ok:v}}))}catch(e){}}; /* one event per round result, for the streak bar */
-    if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;roundEv(false);sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
+    if(!ok&&c.try===1&&!opt.noRetry){ /* noRetry: the round already gave its own extra practice */c.try=2;c.streak=0;roundEv(false);sfx.no();qubi('gQ','oops',pick(RETRY));const st=$('gStage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake');startRound(true);return}
     if(c.try===2){pts=Math.ceil(pts/2);if(ok)msg=`Got it on the second try (half points). ${msg}`}
     if(c.inBonus){c.bonusOk=ok;pts=0}
     else if(c.mode!=='pass'){(c.res=c.res||[]).push(ok?(c.try===2||c.hint?1:2):0);(c.rt=c.rt||[]).push(c.rr==null?c.r:c.rr)} /* kept for the teacher's view of a signed-in pupil */
@@ -117,7 +117,10 @@ const api={
 const LEVELS=[['easy','Easy'],['mixed','Mixed'],['hard','Hard']];
 const getLvl=id=>{try{return localStorage.getItem('arcLvl_'+id)||'mixed'}catch(e){return 'mixed'}};
 function effR(r,N,lv){if(lv==='mixed'||N<2)return r;let span=Math.ceil(N/2);if(span%2&&span<N)span++;if(lv==='easy')return r%span;let st=N-span;if(st%2&&st+1<N)st++;return st+(r%(N-st))}
-function renderScore(){const c=ctx;if(!c||!$('gVs'))return;
+/* The streak bar: a pill in the top bar that stays on screen for the whole round while the pupil has 2+ rounds in a row right first time.
+   (The pop-up streak toast at the bottom only shows for a few seconds after each round, which is easy to miss in long rounds.) */
+function streakPill(){const c=ctx,e=$('gStreak');if(!c||!e)return;const on=c.mode!=='pass'&&!c.inBonus&&c.streak>=2;e.hidden=!on;if(on)e.textContent=`🔥 ${c.streak} in a row`}
+function renderScore(){const c=ctx;if(!c||!$('gVs'))return;streakPill();
   if(c.mode==='solo'){$('gVs').innerHTML='';$('gScore').hidden=false;$('gScore').textContent=`Score ${c.score}`;return}
   $('gScore').hidden=true;let rows;
   if(c.mode==='bot')rows=[{n:'You',s:c.score,me:1},{n:'🤖 '+BOT[c.level].name,s:c.botScore}];
@@ -130,7 +133,7 @@ function playGame(id,opts={}){cleanup();if(opts.setup||opts.go)arcLog('start',id
   ctx={id,G,r:0,score:0,botScore:0,streak:0,timers:[],answered:false,dead:false,level:opts.level||getLvl(id),mode:MODE,seedBase:opts.seedBase,go:!!opts.go};
   const s=STRANDS[G.strand];
   $('view').innerHTML=`<div style="display:grid;gap:14px;--c:${s.c}">
-    <div class="gbar"><a class="back" href="${homeHref()}">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
+    <div class="gbar"><a class="back" href="${homeHref()}">← All games</a><div class="row">${window.ARCB?'<button class="btn gbtn" id="gLb" title="See the top scores for this game">🏆 Leaderboard</button>':''}<span class="pill streakp" id="gStreak" hidden></span><span class="pill" id="gRound" hidden></span><span class="pill" id="gScore" hidden>Score 0</span></div></div>
     <div class="gtop"><div class="ghead"><span class="tag">${G.level} · ${G.topic}</span><h2>${G.title}</h2></div>${qubiBox('gQ',pick(['Let’s go!','You can do this!','I believe in you!']))}</div>
     <div id="gSet" class="row"></div><div id="gVs"></div>
     <div class="stagewrap"><button class="stagemenu" id="gMenu" hidden title="Leave this round and go back to this game's start screen">↩ Back to game menu</button><section class="stage" id="gStage"><div id="gq"></div><div id="gb" style="display:grid;gap:14px;min-width:0"></div><div id="gf"></div></section></div></div>`;
@@ -178,7 +181,7 @@ function startRound(retry){const c=ctx;c.answered=false;c.st={};c.timers.forEach
   if(!retry){c.seed=c.seedBase!==undefined?(c.seedBase+Math.imul(c.r+1,2654435761))>>>0:Math.floor(Math.random()*4294967296);c.try=1;c.keep={};c.hint=0}
   ['gq','gb','gf'].forEach(i=>$(i).innerHTML='');const T=totalRounds(c);
   const who=c.mode==='pass'?` · ${esc(c.players[c.r%c.players.length].name)}'s turn`:'';
-  $('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
+  streakPill();$('gRound').innerHTML=c.inBonus?`🎁 Secret bonus round${c.try===2?' · second try':''}`:`Round ${c.r+1} of ${T}${who}${c.try===2?' · second try':''}`;
   const eff=(r)=>c.G.sec?r:effR(r,c.G.rounds,c.level),rr=c.mode==='pass'?eff(passR(Math.floor(c.r/c.players.length),c.per,c.G.rounds)):eff(c.r);c.rr=rr;
   const real=Math.random;Math.random=mulberry(c.seed);try{if(c.inBonus)c.G.bonus(api);else c.G.round(api,rr)}finally{Math.random=real}
   if(c.mode==='pass')$('gq').insertAdjacentHTML('afterbegin',`<p class="turn">${esc(c.players[c.r%c.players.length].name)}, it's your turn!</p>`);
